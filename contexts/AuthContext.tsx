@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, userType: 'customer' | 'restaurant' | 'delivery') => Promise<{ error: any }>;
+  signUp: (email: string, password: string, userType: 'customer' | 'restaurant' | 'delivery', extraMetadata?: Record<string, any>) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   userType: 'customer' | 'restaurant' | 'delivery' | null;
@@ -73,13 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   usePushRegistration(user?.id);
 
-  const signUp = async (email: string, password: string, userType: 'customer' | 'restaurant' | 'delivery') => {
+  const signUp = async (email: string, password: string, userType: 'customer' | 'restaurant' | 'delivery', extraMetadata?: Record<string, any>) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           user_type: userType,
+          ...extraMetadata,
         },
       },
     });

@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { User, Store, Truck, Eye, EyeOff } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as Location from 'expo-location';
 
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/ui/Header';
@@ -46,7 +47,24 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      const { error } = await signUp(data.email, data.password, data.userType);
+      let extraMetadata = {};
+
+      if (data.userType === 'restaurant') {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const position = await Location.getCurrentPositionAsync({});
+            extraMetadata = {
+              restaurant_latitude: position.coords.latitude,
+              restaurant_longitude: position.coords.longitude,
+            };
+          }
+        } catch (err) {
+          console.warn('Restaurant location capture failed:', err);
+        }
+      }
+
+      const { error } = await signUp(data.email, data.password, data.userType, extraMetadata);
 
       if (error) {
         // Handle specific error types

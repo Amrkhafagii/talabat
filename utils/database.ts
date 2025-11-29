@@ -10,3 +10,5 @@ export * from './db/deliveries';
 export * from './db/stats';
 export * from './db/reviews';
 export * from './db/search';
+export * from './db/wallets';
+export * from './db/pushTokens';

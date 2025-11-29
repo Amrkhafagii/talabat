@@ -12,6 +12,7 @@ interface Restaurant {
   deliveryFee: number;
   image: string;
   promoted?: boolean;
+  distanceKm?: number | null;
 }
 
 interface RestaurantCardProps {
@@ -88,6 +89,9 @@ export default function RestaurantCard({
             <Text style={styles.deliveryText}>{restaurant.deliveryTime} min</Text>
           </View>
           <Text style={styles.deliveryFee}>${restaurant.deliveryFee} delivery</Text>
+          {restaurant.distanceKm !== undefined && restaurant.distanceKm !== null && (
+            <Text style={styles.distanceText}>{restaurant.distanceKm.toFixed(1)} km</Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -205,6 +209,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
   },
   deliveryFee: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter-Regular',
+    marginRight: 12,
+  },
+  distanceText: {
     fontSize: 12,
     color: '#6B7280',
     fontFamily: 'Inter-Regular',

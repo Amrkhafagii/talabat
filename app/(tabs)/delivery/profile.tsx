@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Truck, User, MapPin, Star, DollarSign, Clock, Phone, Mail, CreditCard as Edit, LogOut } from 'lucide-react-native';
 import { router } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDriverByUserId, getUserProfile } from '@/utils/database';
+import { getDriverByUserId, getUserProfile, updateDriverProfile, uploadDriverDocument } from '@/utils/database';
 import { DeliveryDriver, User as UserType } from '@/types/database';
 
 export default function DeliveryProfile() {
@@ -12,6 +13,19 @@ export default function DeliveryProfile() {
   const [driver, setDriver] = useState<DeliveryDriver | null>(null);
   const [userProfile, setUserProfile] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<'id' | 'license' | null>(null);
+  const [form, setForm] = useState({
+    license_number: '',
+    vehicle_type: 'car' as DeliveryDriver['vehicle_type'],
+    vehicle_make: '',
+    vehicle_model: '',
+    vehicle_year: '',
+    vehicle_color: '',
+    license_plate: '',
+  });
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -31,6 +45,17 @@ export default function DeliveryProfile() {
       
       setDriver(driverData);
       setUserProfile(profileData);
+      if (driverData) {
+        setForm({
+          license_number: driverData.license_number || '',
+          vehicle_type: driverData.vehicle_type || 'car',
+          vehicle_make: driverData.vehicle_make || '',
+          vehicle_model: driverData.vehicle_model || '',
+          vehicle_year: driverData.vehicle_year ? String(driverData.vehicle_year) : '',
+          vehicle_color: driverData.vehicle_color || '',
+          license_plate: driverData.license_plate || '',
+        });
+      }
     } catch (error) {
       console.error('Error loading driver data:', error);
     } finally {
@@ -56,6 +81,48 @@ export default function DeliveryProfile() {
     );
   };
 
+  const pickAndUpload = async (type: 'id' | 'license') => {
+    if (!driver) return;
+
+    try {
+      setUploading(type);
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled || !result.assets?.length) {
+        setUploading(null);
+        return;
+      }
+
+      const file = result.assets[0];
+      const uploadedUrl = await uploadDriverDocument(driver.id, file.uri, type);
+
+      if (!uploadedUrl) {
+        Alert.alert('Upload Failed', 'Could not upload document. Please try again.');
+      } else {
+        const updated = await updateDriverProfile(driver.id, {
+          id_document_url: type === 'id' ? uploadedUrl : driver.id_document_url,
+          license_document_url: type === 'license' ? uploadedUrl : driver.license_document_url,
+          documents_verified: false,
+          background_check_status: 'pending',
+          is_online: false,
+          is_available: false,
+        });
+        if (updated) {
+          setDriver(updated);
+          Alert.alert('Uploaded', 'Document uploaded. Verification pending.');
+        }
+      }
+    } catch (err) {
+      console.error('Document upload error:', err);
+      Alert.alert('Upload Failed', 'Unexpected error. Please try again.');
+    } finally {
+      setUploading(null);
+    }
+  };
+
   const getInitials = (name?: string) => {
     if (!name) return user?.email?.charAt(0).toUpperCase() || 'D';
     return name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
@@ -73,6 +140,42 @@ export default function DeliveryProfile() {
         return 'Scooter';
       default:
         return 'Vehicle';
+    }
+  };
+
+  const saveProfile = async () => {
+    if (!driver) return;
+
+    if (!form.license_number.trim()) {
+      setFormError('License number is required.');
+      return;
+    }
+
+    setFormError(null);
+    setSaving(true);
+    try {
+      const updated = await updateDriverProfile(driver.id, {
+        license_number: form.license_number.trim(),
+        vehicle_type: form.vehicle_type,
+        vehicle_make: form.vehicle_make || null as any,
+        vehicle_model: form.vehicle_model || null as any,
+        vehicle_year: form.vehicle_year ? Number(form.vehicle_year) : null as any,
+        vehicle_color: form.vehicle_color || null as any,
+        license_plate: form.license_plate || null as any,
+      });
+
+      if (updated) {
+        setDriver(updated);
+        setEditing(false);
+        Alert.alert('Profile Updated', 'Your profile has been submitted for verification.');
+      } else {
+        setFormError('Failed to update profile. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error updating driver profile:', err);
+      setFormError('Failed to update profile. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -94,7 +197,7 @@ export default function DeliveryProfile() {
           <Text style={styles.headerTitle}>Driver Profile</Text>
           <TouchableOpacity 
             style={styles.editButton}
-            onPress={() => console.log('Edit profile')}
+            onPress={() => setEditing(!editing)}
           >
             <Edit size={20} color="#FF6B35" />
           </TouchableOpacity>
@@ -119,16 +222,33 @@ export default function DeliveryProfile() {
           <View style={styles.statusContainer}>
             <View style={[
               styles.statusBadge,
-              driver?.is_online ? styles.onlineStatus : styles.offlineStatus
+              driver?.background_check_status === 'approved' && driver.documents_verified
+                ? styles.onlineStatus
+                : styles.offlineStatus
             ]}>
               <Text style={[
                 styles.statusText,
-                driver?.is_online ? styles.onlineText : styles.offlineText
+                driver?.background_check_status === 'approved' && driver.documents_verified
+                  ? styles.onlineText
+                  : styles.offlineText
               ]}>
-                {driver?.is_online ? 'Online' : 'Offline'}
-              </Text>
-            </View>
+                {driver?.background_check_status === 'approved' && driver.documents_verified
+                  ? 'Verified'
+                  : driver?.background_check_status === 'rejected'
+                    ? 'Rejected'
+                    : 'Pending Verification'}
+            </Text>
           </View>
+          <View style={styles.verificationBanner}>
+            <Text style={styles.verificationBannerTitle}>Account Verification</Text>
+            <Text style={styles.verificationBannerText}>
+              We verify your ID and vehicle documents before you can go online. Updates reset your status to pending.
+            </Text>
+            <Text style={styles.verificationBannerStatus}>
+              Background Check: {driver?.background_check_status || 'pending'} • Documents: {driver?.documents_verified ? 'verified' : 'not verified'}
+            </Text>
+          </View>
+        </View>
         </View>
 
         {/* Driver Stats */}
@@ -150,9 +270,9 @@ export default function DeliveryProfile() {
           </View>
         </View>
 
-        {/* Vehicle Information */}
+        {/* Vehicle / License Information */}
         <View style={styles.vehicleSection}>
-          <Text style={styles.sectionTitle}>Vehicle Information</Text>
+          <Text style={styles.sectionTitle}>Vehicle & License</Text>
           <View style={styles.vehicleCard}>
             <View style={styles.vehicleHeader}>
               <Truck size={20} color="#FF6B35" />
@@ -161,23 +281,177 @@ export default function DeliveryProfile() {
               </Text>
             </View>
             
-            {driver?.vehicle_make && driver?.vehicle_model && (
-              <Text style={styles.vehicleDetails}>
-                {driver.vehicle_year} {driver.vehicle_make} {driver.vehicle_model}
-              </Text>
+            {!editing && (
+              <>
+                <Text style={styles.vehicleDetails}>
+                  License: {driver?.license_number || 'Not set'}
+                </Text>
+                {driver?.vehicle_make && driver?.vehicle_model && (
+                  <Text style={styles.vehicleDetails}>
+                    {driver.vehicle_year} {driver.vehicle_make} {driver.vehicle_model}
+                  </Text>
+                )}
+                {driver?.vehicle_color && (
+                  <Text style={styles.vehicleDetails}>
+                    Color: {driver.vehicle_color}
+                  </Text>
+                )}
+                {driver?.license_plate && (
+                  <Text style={styles.vehicleDetails}>
+                    Plate: {driver.license_plate}
+                  </Text>
+                )}
+                <Text style={styles.verificationNote}>
+                  Status: {driver?.background_check_status || 'pending'} • Documents {driver?.documents_verified ? 'verified' : 'unverified'}
+                </Text>
+                <Text style={styles.verificationHelper}>
+                  Update your profile and upload documents to get approved.
+                </Text>
+              </>
             )}
-            
-            {driver?.vehicle_color && (
-              <Text style={styles.vehicleDetails}>
-                Color: {driver.vehicle_color}
-              </Text>
+
+            {editing && (
+              <View style={styles.form}>
+                {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+                <Text style={styles.label}>License Number</Text>
+                <TextInput
+                  style={styles.input}
+                  value={form.license_number}
+                  onChangeText={(text) => setForm({ ...form, license_number: text })}
+                  placeholder="Driver license number"
+                />
+
+                <Text style={styles.label}>Vehicle Type</Text>
+                <View style={styles.typeRow}>
+                  {(['car', 'motorcycle', 'scooter', 'bicycle'] as const).map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.typeChip,
+                        form.vehicle_type === type && styles.typeChipActive
+                      ]}
+                      onPress={() => setForm({ ...form, vehicle_type: type })}
+                    >
+                      <Text style={[
+                        styles.typeChipText,
+                        form.vehicle_type === type && styles.typeChipTextActive
+                      ]}>
+                        {getVehicleDisplayName(type)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.label}>Make</Text>
+                <TextInput
+                  style={styles.input}
+                  value={form.vehicle_make}
+                  onChangeText={(text) => setForm({ ...form, vehicle_make: text })}
+                  placeholder="e.g., Toyota"
+                />
+
+                <Text style={styles.label}>Model</Text>
+                <TextInput
+                  style={styles.input}
+                  value={form.vehicle_model}
+                  onChangeText={(text) => setForm({ ...form, vehicle_model: text })}
+                  placeholder="e.g., Prius"
+                />
+
+                <Text style={styles.label}>Year</Text>
+                <TextInput
+                  style={styles.input}
+                  value={form.vehicle_year}
+                  onChangeText={(text) => setForm({ ...form, vehicle_year: text })}
+                  placeholder="e.g., 2020"
+                  keyboardType="numeric"
+                />
+
+                <Text style={styles.label}>Color</Text>
+                <TextInput
+                  style={styles.input}
+                  value={form.vehicle_color}
+                  onChangeText={(text) => setForm({ ...form, vehicle_color: text })}
+                  placeholder="e.g., Blue"
+                />
+
+                <Text style={styles.label}>License Plate</Text>
+                <TextInput
+                  style={styles.input}
+                  value={form.license_plate}
+                  onChangeText={(text) => setForm({ ...form, license_plate: text })}
+                  placeholder="Plate number"
+                  autoCapitalize="characters"
+                />
+
+                <Text style={styles.verificationHelper}>
+                  Submitting updates will set your account to pending until verified. Documents need manual review.
+                </Text>
+
+                <View style={styles.formActions}>
+                  <TouchableOpacity
+                    style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                    onPress={saveProfile}
+                    disabled={saving}
+                  >
+                    <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Save & Submit'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => {
+                      setEditing(false);
+                      setFormError(null);
+                      if (driver) {
+                        setForm({
+                          license_number: driver.license_number || '',
+                          vehicle_type: driver.vehicle_type || 'car',
+                          vehicle_make: driver.vehicle_make || '',
+                          vehicle_model: driver.vehicle_model || '',
+                          vehicle_year: driver.vehicle_year ? String(driver.vehicle_year) : '',
+                          vehicle_color: driver.vehicle_color || '',
+                          license_plate: driver.license_plate || '',
+                        });
+                      }
+                    }}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
-            
-            {driver?.license_plate && (
-              <Text style={styles.vehicleDetails}>
-                License: {driver.license_plate}
-              </Text>
+          </View>
+        </View>
+
+        {/* Document Upload Placeholder */}
+        <View style={styles.vehicleSection}>
+          <Text style={styles.sectionTitle}>Documents</Text>
+          <View style={styles.vehicleCard}>
+            <Text style={styles.vehicleDetails}>Upload your ID and vehicle documents for verification.</Text>
+            {(driver?.id_document_url || driver?.license_document_url) && (
+              <View style={styles.docStatus}>
+                {driver?.id_document_url && (
+                  <Text style={styles.vehicleDetails}>ID uploaded ✓</Text>
+                )}
+                {driver?.license_document_url && (
+                  <Text style={styles.vehicleDetails}>License/Registration uploaded ✓</Text>
+                )}
+              </View>
             )}
+            <View style={styles.docButtons}>
+              <TouchableOpacity style={styles.docButton} onPress={() => pickAndUpload('id')} disabled={!!uploading}>
+                <Text style={styles.docButtonText}>
+                  {uploading === 'id' ? 'Uploading...' : 'Upload ID'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.docButton} onPress={() => pickAndUpload('license')} disabled={!!uploading}>
+                <Text style={styles.docButtonText}>
+                  {uploading === 'license' ? 'Uploading...' : 'Upload License / Registration'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.verificationHelper}>
+              Files are stored in Supabase Storage bucket `driver-docs`. Review and approve in backoffice.
+            </Text>
           </View>
         </View>
 
@@ -313,6 +587,44 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     marginBottom: 16,
   },
+  verificationNote: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter-Medium',
+  },
+  verificationHelper: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter-Regular',
+  },
+  verificationBanner: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FFF7F5',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    alignSelf: 'stretch',
+    marginHorizontal: 20,
+  },
+  verificationBannerTitle: {
+    fontFamily: 'Inter-SemiBold',
+    color: '#9A3412',
+    marginBottom: 4,
+  },
+  verificationBannerText: {
+    fontFamily: 'Inter-Regular',
+    color: '#9A3412',
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  verificationBannerStatus: {
+    fontFamily: 'Inter-Medium',
+    color: '#7C2D12',
+    fontSize: 13,
+  },
   profilePicture: {
     width: 80,
     height: 80,
@@ -426,6 +738,103 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontFamily: 'Inter-Regular',
     marginBottom: 4,
+  },
+  form: {
+    marginTop: 12,
+    gap: 10,
+  },
+  label: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter-Medium',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontFamily: 'Inter-Regular',
+    color: '#111827',
+  },
+  typeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  typeChip: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  typeChipActive: {
+    backgroundColor: '#FFF1EA',
+    borderColor: '#FF6B35',
+  },
+  typeChipText: {
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+  },
+  typeChipTextActive: {
+    color: '#FF6B35',
+  },
+  docButtons: {
+    flexDirection: 'column',
+    gap: 8,
+    marginTop: 12,
+  },
+  docStatus: {
+    marginTop: 8,
+    gap: 4,
+  },
+  docButton: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  docButtonText: {
+    color: '#111827',
+    fontFamily: 'Inter-SemiBold',
+  },
+  formActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#FF6B35',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter-SemiBold',
+  },
+  cancelButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#374151',
+    fontFamily: 'Inter-SemiBold',
+  },
+  formError: {
+    color: '#DC2626',
+    fontFamily: 'Inter-Medium',
   },
   actionsSection: {
     backgroundColor: '#FFFFFF',

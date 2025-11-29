@@ -105,6 +105,12 @@ export default function RestaurantLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

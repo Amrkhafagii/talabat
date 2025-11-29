@@ -106,7 +106,7 @@ export default function ForgotPassword() {
                 
                 <Text style={styles.successTitle}>Email Sent!</Text>
                 <Text style={styles.successMessage}>
-                  We've sent a password reset link to{' '}
+                  We&apos;ve sent a password reset link to{' '}
                   <Text style={styles.emailText}>{getValues('email')}</Text>
                 </Text>
                 
@@ -141,7 +141,7 @@ export default function ForgotPassword() {
 
               <View style={styles.helpContainer}>
                 <Text style={styles.helpText}>
-                  Didn't receive the email? Check your spam folder or contact support.
+                  Didn&apos;t receive the email? Check your spam folder or contact support.
                 </Text>
               </View>
             </View>
@@ -174,7 +174,7 @@ export default function ForgotPassword() {
               </View>
               <Text style={styles.title}>Forgot your password?</Text>
               <Text style={styles.subtitle}>
-                No worries! Enter your email address and we'll send you a link to reset your password.
+                No worries! Enter your email address and we&apos;ll send you a link to reset your password.
               </Text>
             </View>
 

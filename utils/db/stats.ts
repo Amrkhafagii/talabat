@@ -143,6 +143,7 @@ export async function getDriverEarningsStats(driverId: string): Promise<{
   totalDeliveries: number;
   totalHours: number;
   avgRating: number;
+  totalCommission: number;
 }> {
   const now = new Date();
   
@@ -154,7 +155,7 @@ export async function getDriverEarningsStats(driverId: string): Promise<{
   // Get all completed deliveries
   const { data: allDeliveries, error: deliveriesError } = await supabase
     .from('deliveries')
-    .select('driver_earnings, delivered_at, picked_up_at, assigned_at')
+    .select('driver_earnings, delivered_at, picked_up_at, assigned_at, order:orders(total)')
     .eq('driver_id', driverId)
     .eq('status', 'delivered')
     .order('delivered_at', { ascending: false });
@@ -173,11 +174,12 @@ export async function getDriverEarningsStats(driverId: string): Promise<{
       weekEarnings: 0,
       monthEarnings: 0,
       totalEarnings: 0,
-      avgEarningsPerDelivery: 0,
-      totalDeliveries: 0,
-      totalHours: 0,
-      avgRating: 0
-    };
+    avgEarningsPerDelivery: 0,
+    totalDeliveries: 0,
+    totalHours: 0,
+    avgRating: 0,
+    totalCommission: 0
+  };
   }
 
   const deliveries = allDeliveries || [];
@@ -196,6 +198,11 @@ export async function getDriverEarningsStats(driverId: string): Promise<{
     .reduce((sum, d) => sum + d.driver_earnings, 0);
 
   const totalEarnings = deliveries.reduce((sum, d) => sum + d.driver_earnings, 0);
+  const totalCommission = deliveries.reduce((sum, d) => {
+    const total = (d as any).order?.total || 0;
+    const commission = Math.max(total * 0.1, 30);
+    return sum + commission;
+  }, 0);
   const totalDeliveries = deliveries.length;
   const avgEarningsPerDelivery = totalDeliveries > 0 ? totalEarnings / totalDeliveries : 0;
 
@@ -217,6 +224,7 @@ export async function getDriverEarningsStats(driverId: string): Promise<{
     avgEarningsPerDelivery,
     totalDeliveries,
     totalHours: Math.round(totalHours),
-    avgRating: driver?.rating || 0
+    avgRating: driver?.rating || 0,
+    totalCommission
   };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Delivery } from '@/types/database';
 
@@ -15,6 +15,82 @@ export function useRealtimeDeliveries({
   const [availableDeliveries, setAvailableDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const loadInitialDeliveries = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const queries = [];
+
+      // Load driver's assigned deliveries
+      if (driverId) {
+        const driverQuery = supabase
+          .from('deliveries')
+          .select(`
+            *,
+            order:orders(
+              *,
+              restaurant:restaurants(*),
+              user:users(*),
+              order_items(
+                *,
+                menu_item:menu_items(*)
+              )
+            )
+          `)
+          .eq('driver_id', driverId)
+          .in('status', ['assigned', 'picked_up', 'on_the_way']);
+
+        queries.push(driverQuery);
+      }
+
+      // Load available deliveries
+      if (includeAvailable) {
+        const availableQuery = supabase
+          .from('deliveries')
+          .select(`
+            *,
+            order:orders(
+              *,
+              restaurant:restaurants(*),
+              user:users(*),
+              order_items(
+                *,
+                menu_item:menu_items(*)
+              )
+            )
+          `)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: true });
+
+        queries.push(availableQuery);
+      }
+
+      const results = await Promise.all(queries);
+
+      if (driverId && results[0]) {
+        const { data: driverDeliveries, error: driverError } = results[0];
+        if (driverError) throw driverError;
+        setDeliveries(driverDeliveries || []);
+      }
+
+      if (includeAvailable) {
+        const availableIndex = driverId ? 1 : 0;
+        if (results[availableIndex]) {
+          const { data: available, error: availableError } = results[availableIndex];
+          if (availableError) throw availableError;
+          setAvailableDeliveries(available || []);
+        }
+      }
+
+      setError(null);
+    } catch (err) {
+      console.error('Error loading initial deliveries:', err);
+      setError('Failed to load deliveries');
+    } finally {
+      setLoading(false);
+    }
+  }, [driverId, includeAvailable]);
 
   useEffect(() => {
     let channel: any;
@@ -43,82 +119,6 @@ export function useRealtimeDeliveries({
       } catch (err) {
         console.error('Error setting up deliveries realtime subscription:', err);
         setError('Failed to set up real-time updates');
-      }
-    };
-
-    const loadInitialDeliveries = async () => {
-      try {
-        setLoading(true);
-
-        const queries = [];
-
-        // Load driver's assigned deliveries
-        if (driverId) {
-          const driverQuery = supabase
-            .from('deliveries')
-            .select(`
-              *,
-              order:orders(
-                *,
-                restaurant:restaurants(*),
-                user:users(*),
-                order_items(
-                  *,
-                  menu_item:menu_items(*)
-                )
-              )
-            `)
-            .eq('driver_id', driverId)
-            .in('status', ['assigned', 'picked_up', 'on_the_way']);
-
-          queries.push(driverQuery);
-        }
-
-        // Load available deliveries
-        if (includeAvailable) {
-          const availableQuery = supabase
-            .from('deliveries')
-            .select(`
-              *,
-              order:orders(
-                *,
-                restaurant:restaurants(*),
-                user:users(*),
-                order_items(
-                  *,
-                  menu_item:menu_items(*)
-                )
-              )
-            `)
-            .eq('status', 'pending')
-            .order('created_at', { ascending: true });
-
-          queries.push(availableQuery);
-        }
-
-        const results = await Promise.all(queries);
-
-        if (driverId && results[0]) {
-          const { data: driverDeliveries, error: driverError } = results[0];
-          if (driverError) throw driverError;
-          setDeliveries(driverDeliveries || []);
-        }
-
-        if (includeAvailable) {
-          const availableIndex = driverId ? 1 : 0;
-          if (results[availableIndex]) {
-            const { data: available, error: availableError } = results[availableIndex];
-            if (availableError) throw availableError;
-            setAvailableDeliveries(available || []);
-          }
-        }
-
-        setError(null);
-      } catch (err) {
-        console.error('Error loading initial deliveries:', err);
-        setError('Failed to load deliveries');
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -200,7 +200,7 @@ export function useRealtimeDeliveries({
         supabase.removeChannel(channel);
       }
     };
-  }, [driverId, includeAvailable]);
+  }, [driverId, includeAvailable, loadInitialDeliveries]);
 
   const acceptDelivery = async (deliveryId: string) => {
     if (!driverId) return false;
@@ -266,6 +266,6 @@ export function useRealtimeDeliveries({
     error,
     acceptDelivery,
     updateDeliveryStatus,
-    refetch: () => setLoading(true)
+    refetch: loadInitialDeliveries
   };
 }

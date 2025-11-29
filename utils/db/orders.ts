@@ -1,5 +1,7 @@
 import { supabase } from '../supabase';
 import { Order, OrderFilters } from '@/types/database';
+import { getPushTokens } from './pushTokens';
+import { sendPushNotification } from '../push';
 
 export async function createOrder(
   userId: string,
@@ -13,7 +15,8 @@ export async function createOrder(
   tipAmount: number,
   total: number,
   paymentMethod: string,
-  deliveryInstructions?: string
+  deliveryInstructions?: string,
+  receiptUrl?: string
 ): Promise<Order | null> {
   // Start a transaction
   const { data: order, error: orderError } = await supabase
@@ -30,6 +33,9 @@ export async function createOrder(
       total,
       payment_method: paymentMethod,
       delivery_instructions: deliveryInstructions,
+      receipt_url: receiptUrl,
+      payment_status: receiptUrl ? 'pending' : 'pending_receipt',
+      wallet_capture_status: 'pending',
       status: 'pending'
     })
     .select()
@@ -61,7 +67,31 @@ export async function createOrder(
     return null;
   }
 
+  // Notify restaurant about new order
+  notifyRestaurantNewOrder(restaurantId, order.id, total);
+
   return order;
+}
+
+async function notifyRestaurantNewOrder(restaurantId: string, orderId: string, total: number) {
+  try {
+    const { data: restaurant } = await supabase
+      .from('restaurants')
+      .select('owner_id,name')
+      .eq('id', restaurantId)
+      .single();
+
+    if (!restaurant?.owner_id) return;
+    const tokens = await getPushTokens([restaurant.owner_id]);
+    await Promise.all(tokens.map(token => sendPushNotification(
+      token,
+      'New Order',
+      `You have a new order (${orderId.slice(-6).toUpperCase()}) • ${total.toFixed(2)}`,
+      { orderId }
+    )));
+  } catch (err) {
+    console.error('Error notifying restaurant about new order:', err);
+  }
 }
 
 async function getUserOrders(userId: string, filters?: OrderFilters): Promise<Order[]> {

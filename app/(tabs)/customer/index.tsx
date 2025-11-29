@@ -10,6 +10,7 @@ import RestaurantCard from '@/components/customer/RestaurantCard';
 import { useFavorites } from '@/hooks/useFavorites';
 import { getCategories, getRestaurants } from '@/utils/database';
 import { Category, Restaurant, RestaurantFilters } from '@/types/database';
+import { useLocationContext } from '@/contexts/LocationContext';
 
 export default function CustomerHome() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +25,7 @@ export default function CustomerHome() {
   const [minRating, setMinRating] = useState<number>(0);
   const [maxDeliveryFee, setMaxDeliveryFee] = useState<number>(50);
   const [showPromotedOnly, setShowPromotedOnly] = useState<boolean>(false);
+  const { selectedAddress, coords } = useLocationContext();
 
   const params = useLocalSearchParams();
 
@@ -69,7 +71,13 @@ export default function CustomerHome() {
 
       const [categoriesData, restaurantsData] = await Promise.all([
         getCategories(),
-        getRestaurants(filters)
+        getRestaurants(filters, {
+          page: 0,
+          pageSize: 50,
+          lat: coords?.latitude,
+          lng: coords?.longitude,
+          maxDistanceKm: 20,
+        })
       ]);
       
       setCategories(categoriesData);
@@ -131,7 +139,13 @@ export default function CustomerHome() {
             <MapPin size={20} color="#FF6B35" />
             <View style={styles.locationText}>
               <Text style={styles.deliverTo}>Deliver to</Text>
-              <Text style={styles.address}>Downtown, City Center</Text>
+              <Text style={styles.address}>
+                {selectedAddress
+                  ? selectedAddress.label
+                  : coords
+                    ? `Current: ${coords.latitude.toFixed(3)}, ${coords.longitude.toFixed(3)}`
+                    : 'Choose location'}
+              </Text>
             </View>
           </View>
           <View style={styles.headerActions}>

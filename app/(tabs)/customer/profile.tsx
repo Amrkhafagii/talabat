@@ -26,6 +26,12 @@ const profileOptions = [
     icon: HelpCircle,
     action: () => console.log('Help'),
   },
+  {
+    id: 4,
+    title: 'Wallet',
+    icon: CreditCard,
+    action: () => router.push('/customer/wallet'),
+  },
 ];
 
 export default function Profile() {

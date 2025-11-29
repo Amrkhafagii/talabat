@@ -142,6 +142,12 @@ export default function CustomerLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

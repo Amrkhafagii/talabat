@@ -20,6 +20,7 @@ interface EarningsStats {
   totalDeliveries: number;
   totalHours: number;
   avgRating: number;
+  totalCommission: number;
 }
 
 export default function DeliveryEarnings() {
@@ -33,7 +34,8 @@ export default function DeliveryEarnings() {
     avgEarningsPerDelivery: 0,
     totalDeliveries: 0,
     totalHours: 0,
-    avgRating: 0
+    avgRating: 0,
+    totalCommission: 0
   });
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'all'>('week');
   const [loading, setLoading] = useState(true);
@@ -219,7 +221,16 @@ export default function DeliveryEarnings() {
               label="Rating"
               iconColor="#FFB800"
             />
+            <StatCard
+              icon={DollarSign}
+              value={formatCurrency(stats.totalCommission)}
+              label="Commission"
+              iconColor="#EF4444"
+            />
           </View>
+          <Text style={styles.commissionNote}>
+            Commission rule: max(10% of order total, 30 EGP) charged to the customer.
+          </Text>
         </View>
 
         {/* Detailed Breakdown */}
@@ -433,6 +444,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
+  },
+  commissionNote: {
+    marginTop: 12,
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter-Regular',
+    paddingHorizontal: 2,
   },
   breakdownItem: {
     flex: 1,

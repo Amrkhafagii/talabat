@@ -8,9 +8,10 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeDeliveries } from '@/hooks/useRealtimeDeliveries';
-import { getDriverByUserId } from '@/utils/database';
+import { getDriverByUserId, releaseOrderPayment, getPushTokens } from '@/utils/database';
 import { DeliveryDriver, Delivery } from '@/types/database';
 import { formatCurrency } from '@/utils/formatters';
+import { sendPushNotification } from '@/utils/push';
 
 interface NavigationDestination {
   address: string;
@@ -77,7 +78,7 @@ export default function DeliveryNavigation() {
     }
   };
 
-  const openInGoogleMaps = (address: string) => {
+  const openInGoogleMaps = async (address: string) => {
     const encodedAddress = encodeURIComponent(address);
     const url = Platform.select({
       ios: `comgooglemaps://?q=${encodedAddress}&directionsmode=driving`,
@@ -93,79 +94,67 @@ export default function DeliveryNavigation() {
 
     if (Platform.OS === 'web') {
       window.open(url!, '_blank');
-    } else {
-      // For mobile platforms, you would use Linking
-      console.log('Would open Google Maps with:', url);
-      console.log('Fallback URL:', fallbackUrl);
-      
-      // Simulate opening the app
-      Alert.alert(
-        'Open Navigation',
-        `Would open Google Maps navigation to:\n${address}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Maps', onPress: () => console.log('Opening maps...') }
-        ]
-      );
+      return;
+    }
+
+    try {
+      const supported = await Linking.canOpenURL(url!);
+      await Linking.openURL(supported ? url! : fallbackUrl!);
+    } catch (err) {
+      console.error('Error opening maps:', err);
+      Alert.alert('Navigation', 'Unable to open navigation app');
     }
   };
 
-  const openInAppleMaps = (address: string) => {
+  const openInAppleMaps = async (address: string) => {
     const encodedAddress = encodeURIComponent(address);
     const url = `maps://?q=${encodedAddress}&dirflg=d`;
+    const webFallback = `https://maps.google.com/maps?q=${encodedAddress}`;
     
     if (Platform.OS === 'web') {
-      // Fallback to Google Maps on web
-      window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
-    } else {
-      console.log('Would open Apple Maps with:', url);
-      Alert.alert(
-        'Open Navigation',
-        `Would open Apple Maps navigation to:\n${address}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Maps', onPress: () => console.log('Opening Apple Maps...') }
-        ]
-      );
+      window.open(webFallback, '_blank');
+      return;
+    }
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      await Linking.openURL(supported ? url : webFallback);
+    } catch (err) {
+      console.error('Error opening Apple Maps:', err);
+      Alert.alert('Navigation', 'Unable to open navigation app');
     }
   };
 
-  const openInWaze = (address: string) => {
+  const openInWaze = async (address: string) => {
     const encodedAddress = encodeURIComponent(address);
     const url = `waze://?q=${encodedAddress}&navigate=yes`;
     const webUrl = `https://waze.com/ul?q=${encodedAddress}&navigate=yes`;
     
     if (Platform.OS === 'web') {
       window.open(webUrl, '_blank');
-    } else {
-      console.log('Would open Waze with:', url);
-      Alert.alert(
-        'Open Navigation',
-        `Would open Waze navigation to:\n${address}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Waze', onPress: () => console.log('Opening Waze...') }
-        ]
-      );
+      return;
+    }
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      await Linking.openURL(supported ? url : webUrl);
+    } catch (err) {
+      console.error('Error opening Waze:', err);
+      Alert.alert('Navigation', 'Unable to open navigation app');
     }
   };
 
   const callCustomer = () => {
-    const phoneNumber = '+1 (555) 123-4567'; // This would come from order data
+    const phoneNumber = '+15551234567'; // This should come from order data
     
     if (Platform.OS === 'web') {
-      Alert.alert('Call Customer', `Would call: ${phoneNumber}`);
-    } else {
-      console.log('Would call:', phoneNumber);
-      Alert.alert(
-        'Call Customer',
-        `Call ${phoneNumber}?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Call', onPress: () => console.log('Calling customer...') }
-        ]
-      );
+      window.open(`tel:${phoneNumber}`);
+      return;
     }
+
+    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+      Alert.alert('Call Customer', 'Unable to start a call on this device.');
+    });
   };
 
   const markPickedUp = async () => {
@@ -174,6 +163,9 @@ export default function DeliveryNavigation() {
     try {
       const success = await updateDeliveryStatus(activeDelivery.id, 'picked_up');
       if (success) {
+        // Notify customer that driver picked up
+        const tokens = await getPushTokens([activeDelivery.order?.user_id].filter(Boolean) as string[]);
+        await Promise.all(tokens.map(token => sendPushNotification(token, 'Order Picked Up', 'Driver is on the way.', { orderId: activeDelivery.order_id })));
         Alert.alert('Success', 'Order marked as picked up! Navigate to customer location.');
       } else {
         Alert.alert('Error', 'Failed to update delivery status');
@@ -198,7 +190,13 @@ export default function DeliveryNavigation() {
             try {
               const success = await updateDeliveryStatus(activeDelivery.id, 'delivered');
               if (success) {
-                Alert.alert('Success', 'Delivery completed! Great job!');
+                if (activeDelivery.order_id) {
+                  await releaseOrderPayment(activeDelivery.order_id);
+                  // Notify customer that order is delivered
+                  const tokens = await getPushTokens([activeDelivery.order?.user_id].filter(Boolean) as string[]);
+                  await Promise.all(tokens.map(token => sendPushNotification(token, 'Order Delivered', 'Your delivery has arrived.', { orderId: activeDelivery.order_id })));
+                }
+                Alert.alert('Success', 'Delivery completed! Payment released.');
               } else {
                 Alert.alert('Error', 'Failed to update delivery status');
               }

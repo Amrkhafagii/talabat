@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Order } from '@/types/database';
 
@@ -18,6 +18,47 @@ export function useRealtimeOrders({
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const loadInitialOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('orders')
+        .select(`
+          *,
+          restaurant:restaurants(*),
+          order_items(
+            *,
+            menu_item:menu_items(*)
+          ),
+          delivery:deliveries(
+            *,
+            driver:delivery_drivers(*)
+          )
+        `);
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      } else if (restaurantId) {
+        query = query.eq('restaurant_id', restaurantId);
+      } else if (orderIds && orderIds.length > 0) {
+        query = query.in('id', orderIds);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) throw fetchError;
+      setOrders(data || []);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading initial orders:', err);
+      setError('Failed to load orders');
+    } finally {
+      setLoading(false);
+    }
+  }, [orderIds, restaurantId, userId]);
 
   useEffect(() => {
     let channel: any;
@@ -66,47 +107,6 @@ export function useRealtimeOrders({
       if (restaurantId) return `restaurant_id=eq.${restaurantId}`;
       if (orderIds && orderIds.length > 0) return `id=in.(${orderIds.join(',')})`;
       return undefined;
-    };
-
-    const loadInitialOrders = async () => {
-      try {
-        setLoading(true);
-        let query = supabase
-          .from('orders')
-          .select(`
-            *,
-            restaurant:restaurants(*),
-            order_items(
-              *,
-              menu_item:menu_items(*)
-            ),
-            delivery:deliveries(
-              *,
-              driver:delivery_drivers(*)
-            )
-          `);
-
-        if (userId) {
-          query = query.eq('user_id', userId);
-        } else if (restaurantId) {
-          query = query.eq('restaurant_id', restaurantId);
-        } else if (orderIds && orderIds.length > 0) {
-          query = query.in('id', orderIds);
-        }
-
-        query = query.order('created_at', { ascending: false });
-
-        const { data, error: fetchError } = await query;
-
-        if (fetchError) throw fetchError;
-        setOrders(data || []);
-        setError(null);
-      } catch (err) {
-        console.error('Error loading initial orders:', err);
-        setError('Failed to load orders');
-      } finally {
-        setLoading(false);
-      }
     };
 
     const handleOrderChange = (payload: any) => {
@@ -166,7 +166,7 @@ export function useRealtimeOrders({
         supabase.removeChannel(channel);
       }
     };
-  }, [userId, restaurantId, driverId, orderIds?.join(',')]);
+  }, [loadInitialOrders, orderIds?.join(','), restaurantId, userId]);
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -191,6 +191,6 @@ export function useRealtimeOrders({
     loading,
     error,
     updateOrderStatus,
-    refetch: () => setLoading(true)
+    refetch: loadInitialOrders
   };
 }

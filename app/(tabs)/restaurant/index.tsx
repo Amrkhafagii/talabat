@@ -194,9 +194,9 @@ export default function RestaurantDashboard() {
           />
         }
       >
-        {/* Today's Stats */}
+        {/* Today&apos;s Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Performance</Text>
+          <Text style={styles.sectionTitle}>Today&apos;s Performance</Text>
           <View style={styles.statsGrid}>
             <StatCard
               icon={DollarSign}

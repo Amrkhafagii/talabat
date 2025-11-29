@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/utils/supabase';
+import { usePushRegistration } from '@/hooks/usePushRegistration';
 
 interface AuthContextType {
   user: User | null;
@@ -69,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  usePushRegistration(user?.id);
 
   const signUp = async (email: string, password: string, userType: 'customer' | 'restaurant' | 'delivery') => {
     const { data, error } = await supabase.auth.signUp({

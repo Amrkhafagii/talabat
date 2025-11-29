@@ -12,6 +12,7 @@ import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import FormToggle from '@/components/ui/FormToggle';
 import { loginSchema, LoginFormData } from '@/utils/validation/schemas';
+import { supabase } from '@/utils/supabase';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -56,23 +57,30 @@ export default function Login() {
           setFormError(error.message || 'An error occurred during sign in. Please try again.');
         }
       } else {
-        // Note: Supabase automatically handles session persistence
-        // The "Remember Me" checkbox is primarily for user reassurance
-        
-        // Wait a moment for the auth context to update with userType
-        setTimeout(() => {
-          // Redirect to the specific role dashboard
-          if (userType === 'customer') {
-            router.replace('/(tabs)/customer');
-          } else if (userType === 'restaurant') {
-            router.replace('/(tabs)/restaurant');
-          } else if (userType === 'delivery') {
-            router.replace('/(tabs)/delivery');
-          } else {
-            // Fallback to generic tabs if userType is not set yet
-            router.replace('/(tabs)');
-          }
-        }, 100);
+        // Fetch fresh user metadata to avoid stale userType before redirecting
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        const validUserTypes = ['customer', 'restaurant', 'delivery'] as const;
+        type UserType = typeof validUserTypes[number];
+
+        const metadataType = userData.user?.user_metadata?.user_type as string | undefined;
+        const resolvedUserType: UserType = validUserTypes.includes(metadataType as UserType)
+          ? (metadataType as UserType)
+          : (userType as UserType) || 'customer';
+
+        if (userError || !userData.user) {
+          router.replace('/(tabs)');
+          return;
+        }
+
+        if (resolvedUserType === 'customer') {
+          router.replace('/(tabs)/customer');
+        } else if (resolvedUserType === 'restaurant') {
+          router.replace('/(tabs)/restaurant');
+        } else if (resolvedUserType === 'delivery') {
+          router.replace('/(tabs)/delivery');
+        } else {
+          router.replace('/(tabs)');
+        }
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -176,7 +184,7 @@ export default function Login() {
             </View>
 
             <View style={styles.signUpContainer}>
-              <Text style={styles.signUpText}>Don't have an account? </Text>
+              <Text style={styles.signUpText}>Don&apos;t have an account? </Text>
               <TouchableOpacity onPress={() => router.push('/signup')}>
                 <Text style={styles.signUpLink}>Sign Up</Text>
               </TouchableOpacity>

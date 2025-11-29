@@ -160,7 +160,7 @@ export default function ResetPassword() {
               </View>
               <Text style={styles.title}>Create New Password</Text>
               <Text style={styles.subtitle}>
-                Please create a strong password that you haven't used before.
+                Please create a strong password that you haven&apos;t used before.
               </Text>
             </View>
 
@@ -266,7 +266,7 @@ export default function ResetPassword() {
 
             <View style={styles.securityNote}>
               <Text style={styles.securityText}>
-                🔒 Make sure to use a password that's unique to this account and not used elsewhere.
+                🔒 Make sure to use a password that&apos;s unique to this account and not used elsewhere.
               </Text>
             </View>
           </View>

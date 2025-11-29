@@ -41,6 +41,9 @@ export interface Restaurant {
   created_at: string;
   updated_at: string;
   restaurant_hours?: RestaurantHours[];
+  latitude?: number;
+  longitude?: number;
+  distance_km?: number;
 }
 
 interface RestaurantHours {
@@ -110,6 +113,9 @@ export interface Order {
   delivery_address: string;
   delivery_instructions?: string;
   estimated_delivery_time?: string;
+  receipt_url?: string;
+  wallet_capture_status?: 'pending' | 'held' | 'released' | 'failed';
+  commission_amount?: number;
   confirmed_at?: string;
   prepared_at?: string;
   picked_up_at?: string;
@@ -157,6 +163,8 @@ export interface DeliveryDriver {
   total_earnings: number;
   background_check_status: 'pending' | 'approved' | 'rejected';
   documents_verified: boolean;
+  id_document_url?: string;
+  license_document_url?: string;
   created_at: string;
   updated_at: string;
   user?: User;
@@ -219,6 +227,29 @@ export interface RestaurantStats {
   totalRevenue: number;
   popularItems: MenuItem[];
   recentOrders: Order[];
+}
+
+export interface Wallet {
+  id: string;
+  user_id: string;
+  balance: number;
+  currency: string;
+  type: 'customer' | 'restaurant' | 'driver';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WalletTransaction {
+  id: string;
+  wallet_id: string;
+  order_id?: string;
+  amount: number;
+  type: 'deposit' | 'withdrawal' | 'escrow_hold' | 'escrow_release' | 'commission';
+  status: 'pending' | 'completed' | 'failed';
+  reference?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DeliveryStats {

@@ -1,10 +1,37 @@
 import { supabase } from '../supabase';
 import { Restaurant, RestaurantFilters } from '@/types/database';
 
-export async function getRestaurants(filters?: RestaurantFilters): Promise<Restaurant[]> {
+interface RestaurantQueryOptions {
+  page?: number;
+  pageSize?: number;
+  lat?: number;
+  lng?: number;
+  maxDistanceKm?: number;
+}
+
+export async function getRestaurants(filters?: RestaurantFilters, options?: RestaurantQueryOptions): Promise<Restaurant[]> {
+  const pageSize = options?.pageSize ?? 20;
+  const page = options?.page ?? 0;
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+  const hasLocation = options?.lat !== undefined && options?.lng !== undefined;
+  const maxDistanceKm = options?.maxDistanceKm ?? 15;
+
   let query = supabase
     .from('restaurants')
-    .select('*')
+    .select(`
+      *,
+      distance_km: (
+        case 
+          when ${hasLocation} then
+            6371 * acos(
+              cos(radians(${options?.lat ?? 0})) * cos(radians(latitude)) *
+              cos(radians(longitude) - radians(${options?.lng ?? 0})) +
+              sin(radians(${options?.lat ?? 0})) * sin(radians(latitude))
+            )
+          else null end
+      )
+    `)
     .eq('is_active', true);
 
   // Apply filters
@@ -27,6 +54,13 @@ export async function getRestaurants(filters?: RestaurantFilters): Promise<Resta
   if (filters?.search) {
     query = query.or(`name.ilike.%${filters.search}%,cuisine.ilike.%${filters.search}%`);
   }
+
+  // Distance filter and pagination
+  if (hasLocation) {
+    query = query.filter('distance_km', 'lte', maxDistanceKm);
+  }
+
+  query = query.range(from, to);
 
   // Order by promoted first, then by rating
   query = query.order('is_promoted', { ascending: false })

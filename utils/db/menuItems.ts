@@ -61,6 +61,25 @@ export async function getMenuItemById(id: string): Promise<MenuItem | null> {
   return data;
 }
 
+export async function getMenuItemsByIds(ids: string[]): Promise<MenuItem[]> {
+  if (ids.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('menu_items')
+    .select(`
+      *,
+      restaurant:restaurants(*)
+    `)
+    .in('id', ids);
+
+  if (error) {
+    console.error('Error fetching menu items by IDs:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
 export async function createMenuItem(menuItem: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> {
   const { error } = await supabase
     .from('menu_items')

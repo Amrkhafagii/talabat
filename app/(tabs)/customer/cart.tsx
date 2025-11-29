@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, Minus, CreditCard, MapPin, ChevronDown } from 'lucide-react-native';
 import { router } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
 
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMenuItemById, createOrder, getUserAddresses } from '@/utils/database';
+import { getMenuItemsByIds, createOrder, getUserAddresses } from '@/utils/database';
 import { MenuItem, UserAddress } from '@/types/database';
 import CartItemCard from '@/components/customer/CartItemCard';
 
@@ -19,6 +20,9 @@ export default function Cart() {
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState('card');
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [receiptUri, setReceiptUri] = useState<string | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
 
   useEffect(() => {
     loadCartData();
@@ -28,17 +32,25 @@ export default function Cart() {
     try {
       setLoading(true);
       
-      // Load cart items
-      const items = [];
-      for (const [itemId, quantity] of Object.entries(cart)) {
-        if (quantity > 0) {
-          const menuItem = await getMenuItemById(itemId);
-          if (menuItem) {
-            items.push({ ...menuItem, quantity });
-          }
-        }
+      // Load cart items in a single batch
+      const cartEntries = Object.entries(cart).filter(([, quantity]) => quantity > 0);
+      const itemIds = cartEntries.map(([itemId]) => itemId);
+
+      if (itemIds.length > 0) {
+        const fetchedItems = await getMenuItemsByIds(itemIds);
+        const itemMap = new Map(fetchedItems.map(item => [item.id, item]));
+
+        const itemsWithQuantity = cartEntries
+          .map(([itemId, quantity]) => {
+            const menuItem = itemMap.get(itemId);
+            return menuItem ? { ...menuItem, quantity } : null;
+          })
+          .filter(Boolean) as (MenuItem & { quantity: number })[];
+
+        setCartItems(itemsWithQuantity);
+      } else {
+        setCartItems([]);
       }
-      setCartItems(items);
 
       // Load user addresses if user is logged in
       if (user) {
@@ -55,6 +67,32 @@ export default function Cart() {
       setLoading(false);
     }
   };
+
+  const ReceiptSection = () => (
+    <View style={styles.section}>
+      <View style={styles.receiptHeader}>
+        <Text style={styles.sectionTitle}>Payment Receipt</Text>
+        {receiptUri ? (
+          <Text style={styles.receiptStatus}>Attached</Text>
+        ) : (
+          <Text style={styles.receiptStatusPending}>Required</Text>
+        )}
+      </View>
+      {receiptError ? <Text style={styles.receiptError}>{receiptError}</Text> : null}
+      <TouchableOpacity
+        style={styles.receiptButton}
+        onPress={pickReceipt}
+        disabled={receiptUploading}
+      >
+        <Text style={styles.receiptButtonText}>
+          {receiptUploading ? 'Uploading...' : receiptUri ? 'Replace Receipt' : 'Upload Receipt'}
+        </Text>
+      </TouchableOpacity>
+      <Text style={styles.receiptHelper}>
+        Upload your payment receipt. Restaurant will start preparing after verification.
+      </Text>
+    </View>
+  );
 
   const updateItemQuantity = (itemId: string, change: number) => {
     const currentQuantity = cart[itemId] || 0;
@@ -83,6 +121,30 @@ export default function Cart() {
     } else {
       // Show address selection modal or navigate to address selection screen
       router.push('/customer/select-address');
+    }
+  };
+
+  const pickReceipt = async () => {
+    try {
+      setReceiptError(null);
+      setReceiptUploading(true);
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled || !result.assets?.length) {
+        setReceiptUploading(false);
+        return;
+      }
+
+      const file = result.assets[0];
+      setReceiptUri(file.uri);
+    } catch (err) {
+      console.error('Receipt pick error:', err);
+      setReceiptError('Failed to pick receipt. Please try again.');
+    } finally {
+      setReceiptUploading(false);
     }
   };
 
@@ -128,7 +190,8 @@ export default function Cart() {
         0, // tip amount
         total,
         selectedPayment,
-        selectedAddress.delivery_instructions
+        selectedAddress.delivery_instructions,
+        receiptUri || undefined
       );
 
       if (order) {
@@ -271,6 +334,9 @@ export default function Cart() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Receipt Upload */}
+        <ReceiptSection />
 
         {/* Order Summary */}
         <View style={styles.section}>
@@ -471,6 +537,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     fontFamily: 'Inter-Regular',
+  },
+  receiptSection: {
+    marginBottom: 16,
+  },
+  receiptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  receiptStatus: {
+    color: '#10B981',
+    fontFamily: 'Inter-SemiBold',
+  },
+  receiptStatusPending: {
+    color: '#EF4444',
+    fontFamily: 'Inter-SemiBold',
+  },
+  receiptButton: {
+    backgroundColor: '#FFF7F5',
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginBottom: 6,
+  },
+  receiptButtonText: {
+    color: '#FF6B35',
+    fontFamily: 'Inter-SemiBold',
+    textAlign: 'center',
+  },
+  receiptHelper: {
+    color: '#6B7280',
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+  },
+  receiptError: {
+    color: '#EF4444',
+    fontFamily: 'Inter-Regular',
+    marginBottom: 8,
   },
   summaryContainer: {
     gap: 12,

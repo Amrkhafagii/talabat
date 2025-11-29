@@ -57,6 +57,13 @@ const settingsOptions = [
     icon: Bell,
     action: () => console.log('Notifications'),
   },
+  {
+    id: 8,
+    title: 'Wallet',
+    subtitle: 'View balance and payouts',
+    icon: CreditCard,
+    action: () => router.push('/restaurant/wallet'),
+  },
 ];
 
 export default function RestaurantSettings() {

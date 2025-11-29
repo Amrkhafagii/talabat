@@ -7,7 +7,8 @@ import OrderManagementCard from '@/components/restaurant/OrderManagementCard';
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
-import { getRestaurantByUserId } from '@/utils/database';
+import { getRestaurantByUserId, releaseOrderPayment, getPushTokens } from '@/utils/database';
+import { sendPushNotification } from '@/utils/push';
 import { Restaurant } from '@/types/database';
 import { formatOrderTime } from '@/utils/formatters';
 import { getOrderItems } from '@/utils/orderHelpers';
@@ -61,6 +62,23 @@ export default function RestaurantOrders() {
       const success = await updateOrderStatus(orderId, newStatus);
       if (!success) {
         Alert.alert('Error', 'Failed to update order status');
+      } else if (newStatus === 'delivered') {
+        await releaseOrderPayment(orderId);
+        // Notify customer about delivery
+        const tokens = await getPushTokens([orders.find(o => o.id === orderId)?.user_id || ''].filter(Boolean) as string[]);
+        await Promise.all(tokens.map(token => sendPushNotification(token, 'Order Delivered', 'Your order has been delivered.', { orderId })));
+      } else if (['confirmed', 'preparing', 'ready'].includes(newStatus)) {
+        const order = orders.find(o => o.id === orderId);
+        if (order?.user_id) {
+          const tokens = await getPushTokens([order.user_id]);
+          const statusTitle = newStatus === 'ready' ? 'Order Ready' : 'Order Update';
+          const statusBody = newStatus === 'ready'
+            ? 'Your order is ready for pickup.'
+            : newStatus === 'preparing'
+              ? 'Your order is being prepared.'
+              : 'Your order was accepted.';
+          await Promise.all(tokens.map(token => sendPushNotification(token, statusTitle, statusBody, { orderId })));
+        }
       }
     } catch (err) {
       console.error('Error updating order status:', err);

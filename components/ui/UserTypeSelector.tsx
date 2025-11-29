@@ -7,7 +7,7 @@ import Animated, {
   withTiming, 
   withSpring,
   withSequence,
-  runOnJS
+  SharedValue
 } from 'react-native-reanimated';
 
 interface UserTypeOption {
@@ -51,20 +51,173 @@ const userTypeOptions: UserTypeOption[] = [
   },
 ];
 
+type AnimationValues = {
+  scale: SharedValue<number>;
+  elevation: SharedValue<number>;
+  borderOpacity: SharedValue<number>;
+  iconScale: SharedValue<number>;
+  glowOpacity: SharedValue<number>;
+};
+
+function UserTypeCard({
+  option,
+  isSelected,
+  animations,
+  onPress
+}: {
+  option: UserTypeOption;
+  isSelected: boolean;
+  animations: AnimationValues;
+  onPress: () => void;
+}) {
+  const animatedCardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: animations.scale.value }],
+    elevation: animations.elevation.value,
+  }));
+
+  const animatedBorderStyle = useAnimatedStyle(() => ({
+    opacity: animations.borderOpacity.value,
+  }));
+
+  const animatedIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: animations.iconScale.value }],
+  }));
+
+  const animatedGlowStyle = useAnimatedStyle(() => ({
+    opacity: animations.glowOpacity.value,
+  }));
+
+  const IconComponent = option.icon;
+
+  return (
+    <TouchableOpacity
+      key={option.id}
+      activeOpacity={0.8}
+      onPress={onPress}
+    >
+      <Animated.View
+        style={[
+          styles.card,
+          animatedCardStyle,
+          {
+            backgroundColor: isSelected ? `${option.color}08` : '#FFFFFF',
+          },
+        ]}
+      >
+        {/* Animated border overlay */}
+        <Animated.View
+          style={[
+            styles.borderOverlay,
+            animatedBorderStyle,
+            {
+              borderColor: option.color,
+            },
+          ]}
+        />
+
+        {/* Glow effect overlay */}
+        <Animated.View
+          style={[
+            styles.glowOverlay,
+            animatedGlowStyle,
+            {
+              backgroundColor: `${option.color}20`,
+            },
+          ]}
+        />
+
+        <View style={styles.cardContent}>
+          <Animated.View
+            style={[
+              styles.iconContainer,
+              animatedIconStyle,
+              {
+                backgroundColor: isSelected ? option.color : '#F3F4F6',
+              },
+            ]}
+          >
+            <IconComponent
+              size={28}
+              color={isSelected ? '#FFFFFF' : '#6B7280'}
+            />
+          </Animated.View>
+
+          <View style={styles.textContainer}>
+            <Text
+              style={[
+                styles.title,
+                { color: isSelected ? option.color : '#111827' },
+              ]}
+            >
+              {option.title}
+            </Text>
+            <Text
+              style={[
+                styles.description,
+                { color: isSelected ? '#374151' : '#6B7280' },
+              ]}
+            >
+              {option.description}
+            </Text>
+          </View>
+
+          {/* Selection indicator */}
+          {isSelected && (
+            <Animated.View
+              style={[
+                styles.selectionIndicator,
+                { backgroundColor: option.color },
+              ]}
+            >
+              <Text style={styles.checkmark}>✓</Text>
+            </Animated.View>
+          )}
+        </View>
+
+        {/* Ripple effect for visual feedback */}
+        <Animated.View
+          style={[
+            styles.rippleEffect,
+            animatedGlowStyle,
+            {
+              backgroundColor: `${option.color}15`,
+            },
+          ]}
+        />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
 export default function UserTypeSelector({ selectedType, onSelect }: UserTypeSelectorProps) {
   // Shared values for each card
-  const animationValues = useRef(
-    userTypeOptions.reduce((acc, option) => {
-      acc[option.id] = {
-        scale: useSharedValue(1),
-        elevation: useSharedValue(0),
-        borderOpacity: useSharedValue(0),
-        iconScale: useSharedValue(1),
-        glowOpacity: useSharedValue(0),
-      };
-      return acc;
-    }, {} as Record<string, any>)
-  ).current;
+  const customerAnimations: AnimationValues = {
+    scale: useSharedValue(1),
+    elevation: useSharedValue(0),
+    borderOpacity: useSharedValue(0),
+    iconScale: useSharedValue(1),
+    glowOpacity: useSharedValue(0),
+  };
+  const restaurantAnimations: AnimationValues = {
+    scale: useSharedValue(1),
+    elevation: useSharedValue(0),
+    borderOpacity: useSharedValue(0),
+    iconScale: useSharedValue(1),
+    glowOpacity: useSharedValue(0),
+  };
+  const deliveryAnimations: AnimationValues = {
+    scale: useSharedValue(1),
+    elevation: useSharedValue(0),
+    borderOpacity: useSharedValue(0),
+    iconScale: useSharedValue(1),
+    glowOpacity: useSharedValue(0),
+  };
+
+  const animationValues = useRef<Record<UserTypeOption['id'], AnimationValues>>({
+    customer: customerAnimations,
+    restaurant: restaurantAnimations,
+    delivery: deliveryAnimations,
+  }).current;
 
   // Trigger haptic feedback (only on mobile platforms)
   const triggerHapticFeedback = () => {
@@ -119,7 +272,7 @@ export default function UserTypeSelector({ selectedType, onSelect }: UserTypeSel
   // Handle card press
   const handleCardPress = (option: UserTypeOption) => {
     // Trigger haptic feedback
-    runOnJS(triggerHapticFeedback)();
+    triggerHapticFeedback();
     
     // Animate all cards
     userTypeOptions.forEach((opt) => {
@@ -127,7 +280,7 @@ export default function UserTypeSelector({ selectedType, onSelect }: UserTypeSel
     });
     
     // Call the selection handler
-    runOnJS(onSelect)(option.id);
+    onSelect(option.id);
   };
 
   // Initialize animations when selectedType changes
@@ -139,127 +292,15 @@ export default function UserTypeSelector({ selectedType, onSelect }: UserTypeSel
 
   return (
     <View style={styles.container}>
-      {userTypeOptions.map((option) => {
-        const IconComponent = option.icon;
-        const isSelected = selectedType === option.id;
-        const animations = animationValues[option.id];
-
-        const animatedCardStyle = useAnimatedStyle(() => ({
-          transform: [{ scale: animations.scale.value }],
-          elevation: animations.elevation.value,
-        }));
-
-        const animatedBorderStyle = useAnimatedStyle(() => ({
-          opacity: animations.borderOpacity.value,
-        }));
-
-        const animatedIconStyle = useAnimatedStyle(() => ({
-          transform: [{ scale: animations.iconScale.value }],
-        }));
-
-        const animatedGlowStyle = useAnimatedStyle(() => ({
-          opacity: animations.glowOpacity.value,
-        }));
-
-        return (
-          <TouchableOpacity
-            key={option.id}
-            activeOpacity={0.8}
-            onPress={() => handleCardPress(option)}
-          >
-            <Animated.View
-              style={[
-                styles.card,
-                animatedCardStyle,
-                {
-                  backgroundColor: isSelected ? `${option.color}08` : '#FFFFFF',
-                },
-              ]}
-            >
-              {/* Animated border overlay */}
-              <Animated.View
-                style={[
-                  styles.borderOverlay,
-                  animatedBorderStyle,
-                  {
-                    borderColor: option.color,
-                  },
-                ]}
-              />
-
-              {/* Glow effect overlay */}
-              <Animated.View
-                style={[
-                  styles.glowOverlay,
-                  animatedGlowStyle,
-                  {
-                    backgroundColor: `${option.color}20`,
-                  },
-                ]}
-              />
-
-              <View style={styles.cardContent}>
-                <Animated.View
-                  style={[
-                    styles.iconContainer,
-                    animatedIconStyle,
-                    {
-                      backgroundColor: isSelected ? option.color : '#F3F4F6',
-                    },
-                  ]}
-                >
-                  <IconComponent
-                    size={28}
-                    color={isSelected ? '#FFFFFF' : '#6B7280'}
-                  />
-                </Animated.View>
-
-                <View style={styles.textContainer}>
-                  <Text
-                    style={[
-                      styles.title,
-                      { color: isSelected ? option.color : '#111827' },
-                    ]}
-                  >
-                    {option.title}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.description,
-                      { color: isSelected ? '#374151' : '#6B7280' },
-                    ]}
-                  >
-                    {option.description}
-                  </Text>
-                </View>
-
-                {/* Selection indicator */}
-                {isSelected && (
-                  <Animated.View
-                    style={[
-                      styles.selectionIndicator,
-                      { backgroundColor: option.color },
-                    ]}
-                  >
-                    <Text style={styles.checkmark}>✓</Text>
-                  </Animated.View>
-                )}
-              </View>
-
-              {/* Ripple effect for visual feedback */}
-              <Animated.View
-                style={[
-                  styles.rippleEffect,
-                  animatedGlowStyle,
-                  {
-                    backgroundColor: `${option.color}15`,
-                  },
-                ]}
-              />
-            </Animated.View>
-          </TouchableOpacity>
-        );
-      })}
+      {userTypeOptions.map((option) => (
+        <UserTypeCard
+          key={option.id}
+          option={option}
+          isSelected={selectedType === option.id}
+          animations={animationValues[option.id]}
+          onPress={() => handleCardPress(option)}
+        />
+      ))}
     </View>
   );
 }

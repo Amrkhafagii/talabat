@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { MapPin, Clock, Phone, User, Store } from 'lucide-react-native';
@@ -12,6 +12,8 @@ import RealtimeIndicator from '@/components/common/RealtimeIndicator';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { formatOrderTime } from '@/utils/formatters';
 import { getOrderItems } from '@/utils/orderHelpers';
+import { supabase } from '@/utils/supabase';
+import { getDriverById } from '@/utils/database';
 
 const orderSteps = [
   { key: 'confirmed', label: 'Order Confirmed', icon: Store },
@@ -30,18 +32,97 @@ export default function TrackOrder() {
   });
 
   const order = orders[0];
+  const [driverLocation, setDriverLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    updatedAt?: string;
+  } | null>(null);
 
   const getCurrentStepIndex = () => {
     if (!order) return -1;
     return orderSteps.findIndex(step => step.key === order.status);
   };
 
+  const fetchDriverLocation = useCallback(async (driverId: string) => {
+    const driverRecord = await getDriverById(driverId);
+    if (driverRecord?.current_latitude && driverRecord?.current_longitude) {
+      setDriverLocation({
+        latitude: driverRecord.current_latitude,
+        longitude: driverRecord.current_longitude,
+        updatedAt: driverRecord.last_location_update || undefined,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const driverId = order?.delivery?.driver_id;
+    if (!driverId) return;
+
+    // Fetch initial location
+    fetchDriverLocation(driverId);
+
+    // Subscribe to driver location updates
+    const channel = supabase
+      .channel(`driver-location-${driverId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'delivery_drivers',
+          filter: `id=eq.${driverId}`,
+        },
+        (payload) => {
+          const newRecord = payload.new as any;
+          if (newRecord.current_latitude && newRecord.current_longitude) {
+            setDriverLocation({
+              latitude: newRecord.current_latitude,
+              longitude: newRecord.current_longitude,
+              updatedAt: newRecord.last_location_update,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchDriverLocation, order?.delivery?.driver_id]);
+
   const callRestaurant = () => {
-    console.log('Call restaurant');
+    const phoneNumber = order?.restaurant?.phone;
+    if (!phoneNumber) {
+      Alert.alert('Call Restaurant', 'Phone number not available.');
+      return;
+    }
+    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+      Alert.alert('Call Restaurant', 'Unable to start a call on this device.');
+    });
   };
 
   const callDriver = () => {
-    console.log('Call driver');
+    const phoneNumber = order?.delivery?.driver?.user?.phone;
+    if (!phoneNumber) {
+      Alert.alert('Call Driver', 'Phone number not available.');
+      return;
+    }
+    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+      Alert.alert('Call Driver', 'Unable to start a call on this device.');
+    });
+  };
+
+  const openDriverInMaps = () => {
+    const lat = driverLocation?.latitude || order?.delivery?.driver?.current_latitude;
+    const lng = driverLocation?.longitude || order?.delivery?.driver?.current_longitude;
+    if (!lat || !lng) {
+      Alert.alert('Live Location', 'Driver location not available yet.');
+      return;
+    }
+    const url = `https://maps.google.com/maps?q=${lat},${lng}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Live Location', 'Unable to open maps.');
+    });
   };
 
   if (loading) {
@@ -167,6 +248,35 @@ export default function TrackOrder() {
                 variant="outline"
               />
             </View>
+
+            {/* Live location */}
+            {(driverLocation || driver.current_latitude) && (
+              <View style={styles.liveLocation}>
+                <View style={styles.liveLocationText}>
+                  <Text style={styles.liveLocationLabel}>Live location</Text>
+                  <Text style={styles.liveLocationValue}>
+                    {(
+                      driverLocation?.latitude || driver.current_latitude
+                    )?.toFixed(4)}
+                    ,{' '}
+                    {(
+                      driverLocation?.longitude || driver.current_longitude
+                    )?.toFixed(4)}
+                  </Text>
+                  {driverLocation?.updatedAt && (
+                    <Text style={styles.liveLocationMeta}>
+                      Updated {new Date(driverLocation.updatedAt).toLocaleTimeString()}
+                    </Text>
+                  )}
+                </View>
+                <Button
+                  title="Open in Maps"
+                  onPress={openDriverInMaps}
+                  size="small"
+                  variant="ghost"
+                />
+              </View>
+            )}
           </Card>
         )}
 
@@ -368,6 +478,37 @@ const styles = StyleSheet.create({
   },
   driverDetails: {
     flex: 1,
+  },
+  liveLocation: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  liveLocationText: {
+    flex: 1,
+  },
+  liveLocationLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter-Medium',
+  },
+  liveLocationValue: {
+    fontSize: 14,
+    color: '#111827',
+    fontFamily: 'Inter-SemiBold',
+  },
+  liveLocationMeta: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter-Regular',
+    marginTop: 2,
   },
   driverName: {
     fontSize: 16,

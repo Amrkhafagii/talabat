@@ -72,8 +72,12 @@ export default function DeliveryDashboard() {
       if (!driverData) {
         driverData = await createDriverProfile(
           user.id,
-          'DL123456789',
-          'car'
+          'PENDING-LICENSE',
+          'car',
+          {
+            background_check_status: 'pending',
+            documents_verified: false
+          }
         );
       }
 
@@ -113,6 +117,14 @@ export default function DeliveryDashboard() {
 
   const toggleOnlineStatus = async () => {
     if (!driver) return;
+
+    if (driver.background_check_status !== 'approved' || !driver.documents_verified) {
+      Alert.alert(
+        'Verification Required',
+        'Your account is pending verification. Please complete profile and upload documents before going online.'
+      );
+      return;
+    }
 
     try {
       const newStatus = !driver.is_online;
@@ -261,9 +273,9 @@ export default function DeliveryDashboard() {
           />
         }
       >
-        {/* Today's Stats */}
+        {/* Today&apos;s Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Performance</Text>
+          <Text style={styles.sectionTitle}>Today&apos;s Performance</Text>
           <View style={styles.statsGrid}>
             <StatCard
               icon={DollarSign}
@@ -393,7 +405,7 @@ export default function DeliveryDashboard() {
         {!driver.is_online && (
           <View style={styles.offlineState}>
             <Truck size={48} color="#9CA3AF" />
-            <Text style={styles.offlineTitle}>You're offline</Text>
+            <Text style={styles.offlineTitle}>You&apos;re offline</Text>
             <Text style={styles.offlineText}>Go online to start receiving delivery requests in real-time</Text>
           </View>
         )}

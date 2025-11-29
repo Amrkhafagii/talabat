@@ -178,7 +178,7 @@ export default function Cart() {
         specialInstructions: undefined
       }));
 
-      const order = await createOrder(
+      const { data: order, error } = await createOrder(
         user.id,
         restaurantId,
         selectedAddress.id,
@@ -194,7 +194,10 @@ export default function Cart() {
         receiptUri || undefined
       );
 
-      if (order) {
+      if (error || !order) {
+        console.error('Error placing order:', error);
+        Alert.alert('Error', 'Failed to place order. Please try again.');
+      } else {
         clearCart();
         Alert.alert(
           'Order Placed!',
@@ -210,8 +213,6 @@ export default function Cart() {
             }
           ]
         );
-      } else {
-        Alert.alert('Error', 'Failed to place order. Please try again.');
       }
     } catch (error) {
       console.error('Error placing order:', error);

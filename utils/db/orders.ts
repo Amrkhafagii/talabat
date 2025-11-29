@@ -17,7 +17,7 @@ export async function createOrder(
   paymentMethod: string,
   deliveryInstructions?: string,
   receiptUrl?: string
-): Promise<Order | null> {
+): Promise<{ data: Order | null; error: any }> {
   // Start a transaction
   const { data: order, error: orderError } = await supabase
     .from('orders')
@@ -42,8 +42,7 @@ export async function createOrder(
     .single();
 
   if (orderError) {
-    console.error('Error creating order:', orderError);
-    return null;
+    return { data: null, error: orderError };
   }
 
   // Create order items
@@ -61,16 +60,14 @@ export async function createOrder(
     .insert(orderItems);
 
   if (itemsError) {
-    console.error('Error creating order items:', itemsError);
-    // Rollback order creation
     await supabase.from('orders').delete().eq('id', order.id);
-    return null;
+    return { data: null, error: itemsError };
   }
 
   // Notify restaurant about new order
   notifyRestaurantNewOrder(restaurantId, order.id, total);
 
-  return order;
+  return { data: order as Order, error: null };
 }
 
 async function notifyRestaurantNewOrder(restaurantId: string, orderId: string, total: number) {
@@ -82,8 +79,8 @@ async function notifyRestaurantNewOrder(restaurantId: string, orderId: string, t
       .single();
 
     if (!restaurant?.owner_id) return;
-    const tokens = await getPushTokens([restaurant.owner_id]);
-    await Promise.all(tokens.map(token => sendPushNotification(
+    const { data: tokens } = await getPushTokens([restaurant.owner_id]);
+    await Promise.all((tokens || []).map(token => sendPushNotification(
       token,
       'New Order',
       `You have a new order (${orderId.slice(-6).toUpperCase()}) • ${total.toFixed(2)}`,

@@ -164,8 +164,8 @@ export default function DeliveryNavigation() {
       const success = await updateDeliveryStatus(activeDelivery.id, 'picked_up');
       if (success) {
         // Notify customer that driver picked up
-        const tokens = await getPushTokens([activeDelivery.order?.user_id].filter(Boolean) as string[]);
-        await Promise.all(tokens.map(token => sendPushNotification(token, 'Order Picked Up', 'Driver is on the way.', { orderId: activeDelivery.order_id })));
+        const { data: tokens } = await getPushTokens([activeDelivery.order?.user_id].filter(Boolean) as string[]);
+        await Promise.all((tokens || []).map(token => sendPushNotification(token, 'Order Picked Up', 'Driver is on the way.', { orderId: activeDelivery.order_id })));
         Alert.alert('Success', 'Order marked as picked up! Navigate to customer location.');
       } else {
         Alert.alert('Error', 'Failed to update delivery status');
@@ -193,8 +193,8 @@ export default function DeliveryNavigation() {
                 if (activeDelivery.order_id) {
                   await releaseOrderPayment(activeDelivery.order_id);
                   // Notify customer that order is delivered
-                  const tokens = await getPushTokens([activeDelivery.order?.user_id].filter(Boolean) as string[]);
-                  await Promise.all(tokens.map(token => sendPushNotification(token, 'Order Delivered', 'Your delivery has arrived.', { orderId: activeDelivery.order_id })));
+                  const { data: tokens } = await getPushTokens([activeDelivery.order?.user_id].filter(Boolean) as string[]);
+                  await Promise.all((tokens || []).map(token => sendPushNotification(token, 'Order Delivered', 'Your delivery has arrived.', { orderId: activeDelivery.order_id })));
                 }
                 Alert.alert('Success', 'Delivery completed! Payment released.');
               } else {

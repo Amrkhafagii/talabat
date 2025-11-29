@@ -22,7 +22,10 @@ export function usePushRegistration(userId?: string | null) {
       const token = await Notifications.getExpoPushTokenAsync();
       const platform = Platform.OS;
       if (token?.data) {
-        await upsertPushToken(userId, token.data, platform);
+        const { success, error } = await upsertPushToken(userId, token.data, platform);
+        if (!success) {
+          console.warn('Failed to upsert push token', error);
+        }
       }
     };
 

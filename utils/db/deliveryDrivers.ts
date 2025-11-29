@@ -138,7 +138,8 @@ export async function updateDriverProfile(
     'vehicle_color' |
     'license_plate' |
     'id_document_url' |
-    'license_document_url'
+    'license_document_url' |
+    'payout_account'
   >>
 ): Promise<DeliveryDriver | null> {
   const { data, error } = await supabase

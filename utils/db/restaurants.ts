@@ -79,7 +79,10 @@ export async function getRestaurants(filters?: RestaurantFilters, options?: Rest
 export async function getRestaurantById(id: string): Promise<Restaurant | null> {
   const { data, error } = await supabase
     .from('restaurants')
-    .select('*')
+    .select(`
+      *,
+      restaurant_hours(*)
+    `)
     .eq('id', id)
     .single();
 
@@ -106,7 +109,9 @@ export async function getRestaurantByUserId(userId: string): Promise<Restaurant 
   return data;
 }
 
-async function createRestaurant(restaurant: Omit<Restaurant, 'id' | 'created_at' | 'rating'>): Promise<Restaurant | null> {
+export async function createRestaurant(
+  restaurant: Omit<Restaurant, 'id' | 'created_at' | 'updated_at' | 'rating' | 'total_reviews'> & { owner_id: string }
+): Promise<Restaurant | null> {
   const { data, error } = await supabase
     .from('restaurants')
     .insert(restaurant)
@@ -121,7 +126,7 @@ async function createRestaurant(restaurant: Omit<Restaurant, 'id' | 'created_at'
   return data;
 }
 
-async function updateRestaurant(restaurantId: string, updates: Partial<Restaurant>): Promise<boolean> {
+export async function updateRestaurant(restaurantId: string, updates: Partial<Restaurant>): Promise<boolean> {
   const { error } = await supabase
     .from('restaurants')
     .update(updates)
@@ -129,6 +134,50 @@ async function updateRestaurant(restaurantId: string, updates: Partial<Restauran
 
   if (error) {
     console.error('Error updating restaurant:', error);
+    return false;
+  }
+
+  return true;
+}
+
+export interface RestaurantHourInput {
+  day_of_week: number;
+  open_time?: string | null;
+  close_time?: string | null;
+  is_closed?: boolean;
+}
+
+export async function upsertRestaurantHours(restaurantId: string, hours: RestaurantHourInput[]): Promise<boolean> {
+  if (!hours || hours.length === 0) return true;
+
+  const rows = hours.map(h => ({
+    restaurant_id: restaurantId,
+    day_of_week: h.day_of_week,
+    open_time: h.open_time ?? null,
+    close_time: h.close_time ?? null,
+    is_closed: h.is_closed ?? false,
+  }));
+
+  const { error } = await supabase
+    .from('restaurant_hours')
+    .upsert(rows, { onConflict: 'restaurant_id,day_of_week' });
+
+  if (error) {
+    console.error('Error upserting restaurant hours:', error);
+    return false;
+  }
+
+  return true;
+}
+
+export async function toggleRestaurantOpen(restaurantId: string, isOpen: boolean): Promise<boolean> {
+  const { error } = await supabase
+    .from('restaurants')
+    .update({ is_open: isOpen })
+    .eq('id', restaurantId);
+
+  if (error) {
+    console.error('Error toggling restaurant open state:', error);
     return false;
   }
 

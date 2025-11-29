@@ -44,6 +44,8 @@ export interface Restaurant {
   latitude?: number;
   longitude?: number;
   distance_km?: number;
+  kyc_status?: string;
+  payout_account?: Record<string, any>;
 }
 
 interface RestaurantHours {
@@ -108,13 +110,13 @@ export interface Order {
   tip_amount: number;
   total: number;
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
+  payment_status: 'initiated' | 'hold' | 'captured' | 'refunded' | 'failed' | 'voided';
   payment_method: string;
   delivery_address: string;
   delivery_instructions?: string;
   estimated_delivery_time?: string;
   receipt_url?: string;
-  wallet_capture_status?: 'pending' | 'held' | 'released' | 'failed';
+  wallet_capture_status?: 'pending' | 'held' | 'released' | 'refunded' | 'failed';
   commission_amount?: number;
   confirmed_at?: string;
   prepared_at?: string;
@@ -165,6 +167,8 @@ export interface DeliveryDriver {
   documents_verified: boolean;
   id_document_url?: string;
   license_document_url?: string;
+  payout_account?: Record<string, any>;
+  verification_notes?: string;
   created_at: string;
   updated_at: string;
   user?: User;
@@ -191,6 +195,8 @@ export interface Delivery {
   cancelled_at?: string;
   cancellation_reason?: string;
   delivery_notes?: string;
+  payout_status?: 'pending' | 'paid' | 'failed';
+  payout_at?: string;
   created_at: string;
   updated_at: string;
   order?: Order;
@@ -244,7 +250,7 @@ export interface WalletTransaction {
   wallet_id: string;
   order_id?: string;
   amount: number;
-  type: 'deposit' | 'withdrawal' | 'escrow_hold' | 'escrow_release' | 'commission';
+  type: 'deposit' | 'withdrawal' | 'escrow_hold' | 'escrow_release' | 'commission' | 'driver_payout' | 'psp_hold' | 'psp_capture' | 'refund';
   status: 'pending' | 'completed' | 'failed';
   reference?: string;
   metadata?: Record<string, any>;

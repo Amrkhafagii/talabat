@@ -21,7 +21,7 @@ export default function RestaurantDetail() {
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { cart, addToCart, removeFromCart, getCartTotal, getTotalItems } = useCart();
+  const { cart, addToCart, removeFromCart, getTotalItems } = useCart();
 
   const restaurantId = params.restaurantId as string;
 
@@ -29,6 +29,7 @@ export default function RestaurantDetail() {
     if (restaurantId) {
       loadRestaurantData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId, selectedCategory, menuSearchQuery]);
 
   const loadRestaurantData = async () => {
@@ -122,6 +123,16 @@ export default function RestaurantDetail() {
           </View>
         </View>
 
+        {/* Closed banner */}
+        {(!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)) && (
+          <View style={styles.closedBanner}>
+            <Text style={styles.closedTitle}>Currently Closed</Text>
+            <Text style={styles.closedSubtitle}>
+              Please check back during opening hours.
+            </Text>
+          </View>
+        )}
+
         {/* Menu Search */}
         <View style={styles.searchSection}>
           <SearchBar
@@ -171,6 +182,7 @@ export default function RestaurantDetail() {
               quantity={cart[item.id] || 0}
               onAdd={() => addToCart(item.id)}
               onRemove={() => removeFromCart(item.id)}
+              disabled={!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)}
             />
           ))}
           
@@ -188,20 +200,42 @@ export default function RestaurantDetail() {
       {getTotalItems() > 0 && (
         <View style={styles.cartButtonContainer}>
           <TouchableOpacity 
-            style={styles.cartButton}
-            onPress={() => router.push('/customer/cart')}
+            style={[styles.cartButton, (!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)) && styles.cartButtonDisabled]}
+            onPress={() => {
+              if (!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)) return;
+              router.push('/customer/cart');
+            }}
+            disabled={!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)}
           >
             <View style={styles.cartInfo}>
               <ShoppingCart size={20} color="#FFFFFF" />
               <Text style={styles.cartCount}>{getTotalItems()}</Text>
             </View>
-            <Text style={styles.cartText}>View Cart</Text>
+            <Text style={styles.cartText}>
+              {!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours) ? 'Closed' : 'View Cart'}
+            </Text>
             <Text style={styles.cartTotal}>${getCartTotalForItems().toFixed(2)}</Text>
           </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>
   );
+}
+
+function isRestaurantOpenNow(hours?: any[]): boolean {
+  if (!hours || hours.length === 0) return true; // fallback to open
+  const now = new Date();
+  const day = now.getDay(); // 0 Sunday
+  const today = hours.find((h) => h.day_of_week === day);
+  if (!today) return true;
+  if (today.is_closed) return false;
+  if (!today.open_time || !today.close_time) return true;
+  const [openH, openM] = today.open_time.split(':').map(Number);
+  const [closeH, closeM] = today.close_time.split(':').map(Number);
+  const openMinutes = openH * 60 + openM;
+  const closeMinutes = closeH * 60 + closeM;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  return nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
 }
 
 const styles = StyleSheet.create({
@@ -378,5 +412,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
+  },
+  cartButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+  closedBanner: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    borderWidth: 1,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 12,
+  },
+  closedTitle: {
+    fontFamily: 'Inter-SemiBold',
+    color: '#B91C1C',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  closedSubtitle: {
+    fontFamily: 'Inter-Regular',
+    color: '#991B1B',
+    fontSize: 12,
   },
 });

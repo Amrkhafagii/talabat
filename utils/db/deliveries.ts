@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import { Delivery } from '@/types/database';
 import { updateOrderStatus } from './orders';
+import { payoutDriverDelivery } from './wallets';
 
 async function getAvailableDeliveries(): Promise<Delivery[]> {
   const { data, error } = await supabase
@@ -189,6 +190,7 @@ async function updateDeliveryStatus(deliveryId: string, status: string): Promise
 
     if (delivery) {
       await updateOrderStatus(delivery.order_id, 'delivered');
+      await payoutDriverDelivery(deliveryId);
     }
   }
 

@@ -15,6 +15,7 @@ export default function CustomerWallet() {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -27,6 +28,7 @@ export default function CustomerWallet() {
 
     try {
       setLoading(true);
+      setError(null);
       const userWallets = await getWalletsByUser(user.id);
       const customerWallet = userWallets.find(w => w.type === 'customer') || userWallets[0];
       setWallets(customerWallet ? [customerWallet] : []);
@@ -39,6 +41,7 @@ export default function CustomerWallet() {
       }
     } catch (err) {
       console.error('Error loading wallet:', err);
+      setError('Unable to load wallet right now. Please pull to refresh.');
     } finally {
       setLoading(false);
     }
@@ -101,12 +104,23 @@ export default function CustomerWallet() {
             {wallet ? formatCurrency(wallet.balance) : formatCurrency(0)}
           </Text>
           <Text style={styles.balanceSubtext}>Customer wallet • {wallet?.currency || 'EGP'}</Text>
+          {!wallet && (
+            <Text style={styles.emptyText}>No wallet found yet. It will appear after your first transaction.</Text>
+          )}
         </View>
 
         <View style={styles.transactionsCard}>
           <Text style={styles.sectionTitle}>Transactions</Text>
-          {transactions.length === 0 ? (
-            <Text style={styles.emptyText}>No transactions yet.</Text>
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+          {transactions.length === 0 && !error ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No transactions yet</Text>
+              <Text style={styles.emptyText}>Your wallet activity will show up here after your first order.</Text>
+            </View>
           ) : (
             transactions.map(tx => (
               <View key={tx.id} style={styles.txRow}>
@@ -169,6 +183,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 16, fontFamily: 'Inter-SemiBold', color: '#111827', marginBottom: 8 },
   emptyText: { fontFamily: 'Inter-Regular', color: '#6B7280' },
+  emptyState: { gap: 6 },
+  emptyTitle: { fontFamily: 'Inter-SemiBold', color: '#111827', fontSize: 14 },
   txRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -183,4 +199,13 @@ const styles = StyleSheet.create({
   txAmount: { fontFamily: 'Inter-SemiBold', fontSize: 14 },
   positive: { color: '#10B981' },
   negative: { color: '#EF4444' },
+  errorBox: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  errorText: { fontFamily: 'Inter-Regular', color: '#B91C1C' },
 });

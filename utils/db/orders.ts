@@ -2,6 +2,7 @@ import { supabase } from '../supabase';
 import { Order, OrderFilters } from '@/types/database';
 import { getPushTokens } from './pushTokens';
 import { sendPushNotification } from '../push';
+import { payoutDriverDelivery } from './wallets';
 
 export async function createOrder(
   userId: string,
@@ -18,6 +19,21 @@ export async function createOrder(
   deliveryInstructions?: string,
   receiptUrl?: string
 ): Promise<{ data: Order | null; error: any }> {
+  // Prevent ordering from closed restaurants
+  const { data: restaurantStatus, error: restaurantError } = await supabase
+    .from('restaurants')
+    .select('is_open')
+    .eq('id', restaurantId)
+    .single();
+
+  if (restaurantError) {
+    return { data: null, error: restaurantError };
+  }
+
+  if (restaurantStatus && restaurantStatus.is_open === false) {
+    return { data: null, error: { message: 'Restaurant is closed' } };
+  }
+
   // Start a transaction
   const { data: order, error: orderError } = await supabase
     .from('orders')
@@ -34,7 +50,7 @@ export async function createOrder(
       payment_method: paymentMethod,
       delivery_instructions: deliveryInstructions,
       receipt_url: receiptUrl,
-      payment_status: receiptUrl ? 'pending' : 'pending_receipt',
+      payment_status: 'initiated',
       wallet_capture_status: 'pending',
       status: 'pending'
     })
@@ -74,11 +90,15 @@ async function notifyRestaurantNewOrder(restaurantId: string, orderId: string, t
   try {
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('owner_id,name')
+      .select('owner_id,name,is_open')
       .eq('id', restaurantId)
       .single();
 
     if (!restaurant?.owner_id) return;
+    if (restaurant.is_open === false) {
+      // Do not notify if restaurant is closed (order creation is already blocked)
+      return;
+    }
     const { data: tokens } = await getPushTokens([restaurant.owner_id]);
     await Promise.all((tokens || []).map(token => sendPushNotification(
       token,
@@ -230,6 +250,8 @@ export async function updateOrderStatus(orderId: string, status: string, additio
       updateData.cancelled_at = new Date().toISOString();
       if (additionalData?.cancellation_reason) {
         updateData.cancellation_reason = additionalData.cancellation_reason;
+      } else {
+        updateData.cancellation_reason = 'unspecified';
       }
       break;
   }

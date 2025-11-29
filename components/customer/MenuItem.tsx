@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Plus, Minus } from 'lucide-react-native';
 import Badge from '../ui/Badge';
 
-interface MenuItem {
+interface MenuItemData {
   id: string;
   name: string;
   description: string;
@@ -13,13 +13,19 @@ interface MenuItem {
 }
 
 interface MenuItemProps {
-  item: MenuItem;
+  item: MenuItemData;
   quantity: number;
   onAdd: () => void;
   onRemove: () => void;
+  disabled?: boolean;
 }
 
-export default function MenuItem({ item, quantity, onAdd, onRemove }: MenuItemProps) {
+export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = false }: MenuItemProps) {
+  const handleAdd = () => {
+    if (disabled) return;
+    onAdd();
+  };
+
   return (
     <View style={styles.menuItem}>
       <View style={styles.itemInfo}>
@@ -38,13 +44,21 @@ export default function MenuItem({ item, quantity, onAdd, onRemove }: MenuItemPr
               <Minus size={16} color="#FF6B35" />
             </TouchableOpacity>
             <Text style={styles.quantityText}>{quantity}</Text>
-            <TouchableOpacity style={styles.quantityButton} onPress={onAdd}>
-              <Plus size={16} color="#FF6B35" />
+            <TouchableOpacity
+              style={[styles.quantityButton, disabled && styles.disabledButton]}
+              onPress={handleAdd}
+              disabled={disabled}
+            >
+              <Plus size={16} color={disabled ? '#D1D5DB' : '#FF6B35'} />
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity style={styles.addButton} onPress={onAdd}>
-            <Plus size={20} color="#FFFFFF" />
+          <TouchableOpacity
+            style={[styles.addButton, disabled && styles.disabledAddButton]}
+            onPress={handleAdd}
+            disabled={disabled}
+          >
+            <Plus size={20} color={disabled ? '#9CA3AF' : '#FFFFFF'} />
           </TouchableOpacity>
         )}
       </View>
@@ -141,5 +155,11 @@ const styles = StyleSheet.create({
     color: '#FF6B35',
     minWidth: 20,
     textAlign: 'center',
+  },
+  disabledAddButton: {
+    backgroundColor: '#E5E7EB',
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { Tabs } from 'expo-router';
-import { router } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { Chrome as Home, ShoppingCart, Receipt, User } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 

@@ -13,6 +13,7 @@ import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import UserTypeSelector from '@/components/ui/UserTypeSelector';
 import { signupSchema, SignupFormData } from '@/utils/validation/schemas';
+import { supabase } from '@/utils/supabase';
 
 export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
@@ -78,28 +79,77 @@ export default function SignUp() {
           setFormError(error.message || 'An error occurred during sign up. Please try again.');
         }
       } else {
+        // If auto-confirm is enabled, sign the user in immediately to ensure we have a session for redirect.
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+        if (signInError) {
+          setFormError(signInError.message || 'Account created, but automatic sign-in failed. Please sign in manually.');
+          setLoading(false);
+          return;
+        }
+
+        // Ensure a restaurant record exists for restaurant signups
+        const { data: userResult } = await supabase.auth.getUser();
+        const userId = userResult?.user?.id;
+        if (userId && data.userType === 'restaurant') {
+          const { data: existing } = await supabase
+            .from('restaurants')
+            .select('id')
+            .eq('owner_id', userId)
+            .maybeSingle();
+
+          if (!existing) {
+            const defaultName = `${data.email.split('@')[0] || 'My'} Restaurant`;
+            await supabase
+              .from('restaurants')
+              .insert({
+                owner_id: userId,
+                name: defaultName,
+                cuisine: 'general',
+                delivery_time: '30-45 mins',
+                delivery_fee: 0,
+                minimum_order: 0,
+                image: '',
+                cover_image: '',
+                address: 'Pending address',
+                phone: null,
+                email: data.email,
+                is_promoted: false,
+                is_active: true,
+                is_open: false,
+                rating: 0,
+                total_reviews: 0,
+              })
+              .select()
+              .maybeSingle();
+          }
+        }
         Alert.alert(
           'Success',
-          'Account created successfully! Please check your email to verify your account.',
-          [{ 
-            text: 'OK', 
-            onPress: () => {
-              // Wait a moment for the auth context to update with userType
-              setTimeout(() => {
-                // Redirect to the specific role dashboard
-                if (data.userType === 'customer') {
-                  router.replace('/(tabs)/customer' as any);
-                } else if (data.userType === 'restaurant') {
-                  router.replace('/(tabs)/restaurant' as any);
-                } else if (data.userType === 'delivery') {
-                  router.replace('/(tabs)/delivery' as any);
-                } else {
-                  // Fallback to generic tabs
-                  router.replace('/(tabs)' as any);
-                }
-              }, 100);
+          'Account created successfully!',
+          [
+            { 
+              text: 'OK', 
+              onPress: () => {
+                // Wait a moment for the auth context to update with userType
+                setTimeout(() => {
+                  // Redirect to the specific role dashboard
+                  if (data.userType === 'customer') {
+                    router.replace('/(tabs)/customer' as any);
+                  } else if (data.userType === 'restaurant') {
+                    router.replace('/(tabs)/restaurant' as any);
+                  } else if (data.userType === 'delivery') {
+                    router.replace('/(tabs)/delivery' as any);
+                  } else {
+                    // Fallback to generic tabs
+                    router.replace('/(tabs)' as any);
+                  }
+                }, 100);
+              }
             }
-          }]
+          ]
         );
       }
     } catch (err) {

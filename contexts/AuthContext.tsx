@@ -119,7 +119,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Sign out locally and clear in-memory state
+    await supabase.auth.signOut({ scope: 'local' });
+    setUser(null);
+    setSession(null);
+    setUserType(null);
   };
 
   return (

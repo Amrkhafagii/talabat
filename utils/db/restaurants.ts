@@ -99,14 +99,14 @@ export async function getRestaurantByUserId(userId: string): Promise<Restaurant 
     .from('restaurants')
     .select('*')
     .eq('owner_id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error fetching user restaurant:', error);
     return null;
   }
 
-  return data;
+  return data ?? null;
 }
 
 export async function createRestaurant(

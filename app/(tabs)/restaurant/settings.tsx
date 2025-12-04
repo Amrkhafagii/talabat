@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Store, Clock, MapPin, Phone, Mail, Bell, CreditCard, Users, ChartBar as BarChart3, LogOut } from 'lucide-react-native';
@@ -7,69 +7,76 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getRestaurantByUserId } from '@/utils/database';
 import { Restaurant } from '@/types/database';
 
-const settingsOptions = [
-  {
-    id: 1,
-    title: 'Restaurant Information',
-    subtitle: 'Update name, description, and contact details',
-    icon: Store,
-    action: () => console.log('Restaurant Info'),
-  },
-  {
-    id: 2,
-    title: 'Operating Hours',
-    subtitle: 'Set your opening and closing times',
-    icon: Clock,
-    action: () => console.log('Operating Hours'),
-  },
-  {
-    id: 3,
-    title: 'Location & Delivery',
-    subtitle: 'Manage address and delivery settings',
-    icon: MapPin,
-    action: () => console.log('Location'),
-  },
-  {
-    id: 4,
-    title: 'Payment Settings',
-    subtitle: 'Configure payment methods and fees',
-    icon: CreditCard,
-    action: () => console.log('Payment'),
-  },
-  {
-    id: 5,
-    title: 'Staff Management',
-    subtitle: 'Add and manage restaurant staff',
-    icon: Users,
-    action: () => console.log('Staff'),
-  },
-  {
-    id: 6,
-    title: 'Analytics & Reports',
-    subtitle: 'View sales reports and analytics',
-    icon: BarChart3,
-    action: () => console.log('Analytics'),
-  },
-  {
-    id: 7,
-    title: 'Notifications',
-    subtitle: 'Configure order and system notifications',
-    icon: Bell,
-    action: () => console.log('Notifications'),
-  },
-  {
-    id: 8,
-    title: 'Wallet',
-    subtitle: 'View balance and payouts',
-    icon: CreditCard,
-    action: () => router.push('/restaurant/wallet' as any),
-  },
-];
-
 export default function RestaurantSettings() {
   const { user, signOut } = useAuth();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // If user becomes null (after sign out), go back to login
+    if (!user) {
+      router.replace('/(auth)/login' as any);
+    }
+  }, [user]);
+
+  const settingsOptions = useMemo(() => [
+    {
+      id: 1,
+      title: 'Restaurant Information',
+      subtitle: 'Update name, description, and contact details',
+      icon: Store,
+      action: () => router.push('/(tabs)/restaurant/index' as any),
+    },
+    {
+      id: 2,
+      title: 'Operating Hours',
+      subtitle: 'Set your opening and closing times',
+      icon: Clock,
+      action: () => router.push('/(tabs)/restaurant/index' as any),
+    },
+    {
+      id: 3,
+      title: 'Location & Delivery',
+      subtitle: 'Manage address and delivery settings',
+      icon: MapPin,
+      action: () => router.push('/(tabs)/restaurant/index' as any),
+    },
+    {
+      id: 4,
+      title: 'Payment Settings',
+      subtitle: 'Configure payment methods and fees',
+      icon: CreditCard,
+      action: () => router.push('/(tabs)/restaurant/wallet' as any),
+    },
+    {
+      id: 5,
+      title: 'Staff Management',
+      subtitle: 'Add and manage restaurant staff',
+      icon: Users,
+      action: () => router.push('/(tabs)/restaurant/orders' as any),
+    },
+    {
+      id: 6,
+      title: 'Analytics & Reports',
+      subtitle: 'View sales reports and analytics',
+      icon: BarChart3,
+      action: () => router.push('/(tabs)/restaurant/orders' as any),
+    },
+    {
+      id: 7,
+      title: 'Notifications',
+      subtitle: 'Configure order and system notifications',
+      icon: Bell,
+      action: () => router.push('/(tabs)/restaurant/orders' as any),
+    },
+    {
+      id: 8,
+      title: 'Wallet',
+      subtitle: 'View balance and payouts',
+      icon: CreditCard,
+      action: () => router.push('/(tabs)/restaurant/wallet' as any),
+    },
+  ], []);
 
   useEffect(() => {
     if (user) {
@@ -101,8 +108,13 @@ export default function RestaurantSettings() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
-            router.replace('/(auth)/login');
+            try {
+              await signOut();
+              router.replace('/(auth)/login' as any);
+            } catch (err) {
+              console.error('Sign out failed', err);
+              Alert.alert('Error', 'Could not sign out. Please try again.');
+            }
           },
         },
       ]
@@ -212,17 +224,26 @@ export default function RestaurantSettings() {
         <View style={styles.actionsSection}>
           <Text style={styles.sectionTitle}>Account</Text>
           
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => Alert.alert('Privacy Policy', 'Coming soon')}
+          >
             <Text style={styles.actionText}>Privacy Policy</Text>
             <Text style={styles.actionArrow}>›</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => Alert.alert('Terms of Service', 'Coming soon')}
+          >
             <Text style={styles.actionText}>Terms of Service</Text>
             <Text style={styles.actionArrow}>›</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => Alert.alert('Help & Support', 'Coming soon')}
+          >
             <Text style={styles.actionText}>Help & Support</Text>
             <Text style={styles.actionArrow}>›</Text>
           </TouchableOpacity>

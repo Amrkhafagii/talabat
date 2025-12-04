@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, Minus, CreditCard, MapPin, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, Plus, Minus, CreditCard, MapPin, ChevronDown, ShieldCheck } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMenuItemsByIds, createOrder, getUserAddresses } from '@/utils/database';
+import { getMenuItemsByIds, createOrder, getUserAddresses, getRestaurantById, getSubstitutionForItem, getAutoApplySubstitution } from '@/utils/database';
 import { MenuItem, UserAddress } from '@/types/database';
 import CartItemCard from '@/components/customer/CartItemCard';
+import { computeEtaBand } from '@/utils/db/trustedArrival';
+import { estimateTravelMinutes } from '@/utils/etaService';
 
 export default function Cart() {
   const { cart, updateQuantity, clearCart, getTotalItems } = useCart();
@@ -23,6 +25,14 @@ export default function Cart() {
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptUri, setReceiptUri] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [etaLabel, setEtaLabel] = useState<string | null>(null);
+  const [etaTrusted, setEtaTrusted] = useState<boolean>(false);
+  const [substitutionPrompts, setSubstitutionPrompts] = useState<
+    { item: MenuItem & { quantity: number }; substitute: MenuItem; maxDeltaPct?: number }[]
+  >([]);
+  const [substitutionDecisions, setSubstitutionDecisions] = useState<
+    { original_item_id: string; substitute_item_id?: string; decision: 'accept' | 'decline' | 'chat'; price_delta?: number; quantity?: number }[]
+  >([]);
 
   useEffect(() => {
     loadCartData();
@@ -48,8 +58,70 @@ export default function Cart() {
           .filter(Boolean) as (MenuItem & { quantity: number })[];
 
         setCartItems(itemsWithQuantity);
+
+        const restaurantId = itemsWithQuantity[0]?.restaurant_id;
+        if (restaurantId) {
+          const restaurant = await getRestaurantById(restaurantId);
+          const parsedDelivery = restaurant?.delivery_time ? parseInt(restaurant.delivery_time, 10) : NaN;
+          const travelMinutes = estimateTravelMinutes(
+            restaurant || {},
+            selectedAddress?.latitude && selectedAddress?.longitude ? selectedAddress : undefined,
+            {
+              weather: (process.env.EXPO_PUBLIC_WEATHER_SEVERITY as any) || 'normal',
+              traffic: 'moderate',
+            }
+          );
+          const prepP50 = !Number.isNaN(parsedDelivery) ? Math.max(10, Math.round(parsedDelivery * 0.4)) : 12;
+          const prepP90 = !Number.isNaN(parsedDelivery) ? Math.max(prepP50 + 6, Math.round(parsedDelivery * 0.65)) : 20;
+          const eta = computeEtaBand({
+            prepP50Minutes: prepP50,
+            prepP90Minutes: prepP90,
+            bufferMinutes: 4,
+            travelMinutes,
+            reliabilityScore: restaurant?.rating ? Math.min(restaurant.rating / 5, 1) : 0.9,
+            dataFresh: Boolean(restaurant?.updated_at),
+          });
+          const tooWideOrStale = eta.bandTooWide || eta.dataStale;
+          if (tooWideOrStale) {
+            setEtaLabel(restaurant?.delivery_time ? `${restaurant.delivery_time} min` : null);
+            setEtaTrusted(false);
+          } else {
+            setEtaLabel(`${eta.etaLowMinutes}-${eta.etaHighMinutes} min`);
+            setEtaTrusted(eta.trusted);
+          }
+        }
+
+        // Build substitution prompts for unavailable items
+        const prompts: { item: MenuItem & { quantity: number }; substitute: MenuItem; maxDeltaPct?: number }[] = [];
+        for (const item of itemsWithQuantity) {
+          if (item.is_available === false) {
+            const auto = await getAutoApplySubstitution(item.id);
+            if (auto) {
+              const priceDeltaPct = item.price > 0 ? ((auto.substitute.price - item.price) / item.price) * 100 : 0;
+              const allowedDelta = auto.rule.max_delta_pct ?? 15;
+              if (priceDeltaPct <= allowedDelta) {
+                applySubstitutionChoice(item, auto.substitute, true);
+              } else {
+                prompts.push({ item, substitute: auto.substitute, maxDeltaPct: auto.rule.max_delta_pct ?? undefined });
+              }
+            } else {
+              const prompt = await getSubstitutionForItem(item.id);
+              if (prompt) {
+                const priceDeltaPct = item.price > 0 ? ((prompt.substitute.price - item.price) / item.price) * 100 : 0;
+                const allowedDelta = prompt.rule.max_delta_pct ?? 15;
+                if (priceDeltaPct <= allowedDelta) {
+                  prompts.push({ item, substitute: prompt.substitute, maxDeltaPct: prompt.rule.max_delta_pct ?? undefined });
+                }
+              }
+            }
+          }
+        }
+        setSubstitutionPrompts(prompts);
       } else {
         setCartItems([]);
+        setEtaLabel(null);
+        setEtaTrusted(false);
+        setSubstitutionPrompts([]);
       }
 
       // Load user addresses if user is logged in
@@ -148,6 +220,65 @@ export default function Cart() {
     }
   };
 
+  const applySubstitutionChoice = (item: MenuItem & { quantity: number }, substitute: MenuItem | null, auto = false, decision: 'accept' | 'decline' | 'chat' = 'accept') => {
+    if (substitute) {
+      // Add substitute quantity and remove original
+      const currentSubQty = cart[substitute.id] || 0;
+      updateQuantity(substitute.id, currentSubQty + item.quantity);
+      updateQuantity(item.id, 0);
+      setCartItems(prev => {
+        const others = prev.filter(p => p.id !== item.id);
+        const existingSub = others.find(p => p.id === substitute.id);
+        if (existingSub) {
+          existingSub.quantity += item.quantity;
+          return [...others];
+        }
+        return [...others, { ...substitute, quantity: item.quantity }];
+      });
+      setSubstitutionDecisions(prev => {
+        const filtered = prev.filter(d => d.original_item_id !== item.id);
+        return [
+          ...filtered,
+          {
+            original_item_id: item.id,
+            substitute_item_id: substitute.id,
+            decision,
+            price_delta: (substitute.price - item.price) * item.quantity,
+            quantity: item.quantity,
+          },
+        ];
+      });
+    } else {
+      // Decline/refund path
+      updateQuantity(item.id, 0);
+      setCartItems(prev => prev.filter(p => p.id !== item.id));
+      setSubstitutionDecisions(prev => {
+        const filtered = prev.filter(d => d.original_item_id !== item.id);
+        return [
+          ...filtered,
+          {
+            original_item_id: item.id,
+            decision,
+            price_delta: -item.price * item.quantity,
+            quantity: item.quantity,
+          },
+        ];
+      });
+    }
+
+    if (!auto) {
+      setSubstitutionPrompts(prev => prev.filter(p => p.item.id !== item.id));
+    }
+  };
+
+  const handleDeclineSubstitution = (item: MenuItem & { quantity: number }) => {
+    applySubstitutionChoice(item, null, false, 'decline');
+  };
+
+  const handleChat = () => {
+    Alert.alert('Chat', 'Connecting you to support to review substitutions.');
+  };
+
   const handlePlaceOrder = async () => {
     if (!user) {
       Alert.alert('Error', 'Please sign in to place an order');
@@ -191,7 +322,10 @@ export default function Cart() {
         total,
         selectedPayment,
         selectedAddress.delivery_instructions,
-        receiptUri || undefined
+        receiptUri || undefined,
+        {
+          substitutions: substitutionDecisions,
+        }
       );
 
       if (error || !order) {
@@ -305,6 +439,41 @@ export default function Cart() {
         {/* Cart Items */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Items</Text>
+          {substitutionPrompts.map(prompt => (
+            <View key={`sub-${prompt.item.id}`} style={styles.substitutionCard}>
+              <Text style={styles.substitutionTitle}>Item unavailable</Text>
+              <Text style={styles.substitutionText}>
+                {prompt.item.name} is unavailable. We suggest {prompt.substitute.name} for ${prompt.substitute.price.toFixed(2)}.
+              </Text>
+              <View style={styles.subButtons}>
+                <TouchableOpacity style={[styles.subButton, styles.subAccept]} onPress={() => applySubstitutionChoice(prompt.item, prompt.substitute)}>
+                  <Text style={styles.subAcceptText}>Accept swap</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.subButton, styles.subDecline]} onPress={() => handleDeclineSubstitution(prompt.item)}>
+                  <Text style={styles.subDeclineText}>Decline/refund</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.subButton, styles.subChat]}
+                  onPress={() => {
+                    handleChat();
+                    setSubstitutionDecisions(prev => {
+                      const filtered = prev.filter(d => d.original_item_id !== prompt.item.id || d.decision !== 'chat');
+                      return [
+                        ...filtered,
+                        {
+                          original_item_id: prompt.item.id,
+                          substitute_item_id: prompt.substitute.id,
+                          decision: 'chat',
+                        },
+                      ];
+                    });
+                  }}
+                >
+                  <Text style={styles.subChatText}>Chat</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
           <View style={styles.itemsContainer}>
             {cartItems.map((item) => (
               <CartItemCard
@@ -359,6 +528,14 @@ export default function Cart() {
               <Text style={styles.totalLabel}>Total</Text>
               <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
             </View>
+            {etaLabel && (
+              <View style={[styles.etaBadge, etaTrusted ? styles.etaTrusted : styles.etaCaution]}>
+                <ShieldCheck size={14} color={etaTrusted ? '#065F46' : '#92400E'} />
+                <Text style={[styles.etaText, etaTrusted ? styles.etaTrustedText : styles.etaCautionText]}>
+                  {etaTrusted ? 'Trusted arrival' : 'Arrival estimate'} • {etaLabel}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -612,6 +789,85 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Inter-Bold',
     color: '#111827',
+  },
+  substitutionCard: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    gap: 6,
+  },
+  substitutionTitle: {
+    fontFamily: 'Inter-SemiBold',
+    color: '#92400E',
+    fontSize: 14,
+  },
+  substitutionText: {
+    fontFamily: 'Inter-Regular',
+    color: '#92400E',
+    fontSize: 13,
+  },
+  subButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  subButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  subAccept: {
+    backgroundColor: '#065F46',
+  },
+  subAcceptText: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter-SemiBold',
+  },
+  subDecline: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FBBF24',
+  },
+  subDeclineText: {
+    color: '#92400E',
+    fontFamily: 'Inter-SemiBold',
+  },
+  subChat: {
+    backgroundColor: '#E5E7EB',
+  },
+  subChatText: {
+    color: '#111827',
+    fontFamily: 'Inter-SemiBold',
+  },
+  etaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  etaTrusted: {
+    backgroundColor: '#ECFDF3',
+    borderColor: '#D1FAE5',
+  },
+  etaCaution: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  etaText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 13,
+  },
+  etaTrustedText: {
+    color: '#065F46',
+  },
+  etaCautionText: {
+    color: '#92400E',
   },
   bottomContainer: {
     backgroundColor: '#FFFFFF',

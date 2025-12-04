@@ -2,6 +2,7 @@ import { supabase } from '../supabase';
 import { Delivery } from '@/types/database';
 import { updateOrderStatus } from './orders';
 import { payoutDriverDelivery } from './wallets';
+import { createDeliveryEvent, logAudit } from './trustedArrival';
 
 async function getAvailableDeliveries(): Promise<Delivery[]> {
   const { data, error } = await supabase
@@ -132,67 +133,53 @@ async function acceptDelivery(deliveryId: string, driverId: string): Promise<boo
   return true;
 }
 
-async function updateDeliveryStatus(deliveryId: string, status: string): Promise<boolean> {
-  const updateData: any = { status };
-  
-  switch (status) {
-    case 'picked_up':
-      updateData.picked_up_at = new Date().toISOString();
-      break;
-    case 'on_the_way':
-      updateData.picked_up_at = updateData.picked_up_at || new Date().toISOString();
-      break;
-    case 'delivered':
-      updateData.delivered_at = new Date().toISOString();
-      break;
-    case 'cancelled':
-      updateData.cancelled_at = new Date().toISOString();
-      break;
-  }
-
-  const { error } = await supabase
-    .from('deliveries')
-    .update(updateData)
-    .eq('id', deliveryId);
+async function updateDeliveryStatus(
+  deliveryId: string,
+  status: string,
+  options?: { tempCheckPassed?: boolean; tempCheckPhotoUrl?: string; handoffConfirmed?: boolean }
+): Promise<boolean> {
+  const { error } = await supabase.rpc('update_delivery_status_safe', {
+    p_delivery_id: deliveryId,
+    p_status: status,
+    p_temp_check_passed: options?.tempCheckPassed ?? null,
+    p_temp_check_photo_url: options?.tempCheckPhotoUrl ?? null,
+    p_handoff_confirmed: options?.handoffConfirmed ?? null,
+  });
 
   if (error) {
-    console.error('Error updating delivery status:', error);
+    console.error('Error updating delivery status safely:', error);
     return false;
   }
 
-  // Update corresponding order status
+  // Update corresponding order status locally for UI coherence
   if (status === 'picked_up') {
-    const { data: delivery } = await supabase
-      .from('deliveries')
-      .select('order_id')
-      .eq('id', deliveryId)
-      .single();
-
-    if (delivery) {
-      await updateOrderStatus(delivery.order_id, 'picked_up');
-    }
+    await updateOrderStatusFromDelivery(deliveryId, 'picked_up');
   } else if (status === 'on_the_way') {
-    const { data: delivery } = await supabase
-      .from('deliveries')
-      .select('order_id')
-      .eq('id', deliveryId)
-      .single();
-
-    if (delivery) {
-      await updateOrderStatus(delivery.order_id, 'on_the_way');
-    }
+    await updateOrderStatusFromDelivery(deliveryId, 'on_the_way');
   } else if (status === 'delivered') {
-    const { data: delivery } = await supabase
-      .from('deliveries')
-      .select('order_id')
-      .eq('id', deliveryId)
-      .single();
-
-    if (delivery) {
-      await updateOrderStatus(delivery.order_id, 'delivered');
-      await payoutDriverDelivery(deliveryId);
-    }
+    await updateOrderStatusFromDelivery(deliveryId, 'delivered');
+    await payoutDriverDelivery(deliveryId);
   }
 
   return true;
+}
+
+async function updateOrderStatusFromDelivery(deliveryId: string, status: string) {
+  const { data: delivery } = await supabase
+    .from('deliveries')
+    .select('order_id')
+    .eq('id', deliveryId)
+    .single();
+
+  if (delivery?.order_id) {
+    await updateOrderStatus(delivery.order_id, status);
+  }
+}
+
+export async function confirmPickupWithTempCheck(deliveryId: string, passed: boolean, photoUrl?: string) {
+  return updateDeliveryStatus(deliveryId, 'picked_up', { tempCheckPassed: passed, tempCheckPhotoUrl: photoUrl });
+}
+
+export async function confirmDeliveryWithHandoff(deliveryId: string, confirmed: boolean) {
+  return updateDeliveryStatus(deliveryId, 'delivered', { handoffConfirmed: confirmed });
 }

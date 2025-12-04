@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
-import { MapPin, Clock, Phone, User, Store } from 'lucide-react-native';
+import { MapPin, Clock, Phone, User, Store, ShieldCheck } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
@@ -13,7 +13,8 @@ import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { formatOrderTime } from '@/utils/formatters';
 import { getOrderItems } from '@/utils/orderHelpers';
 import { supabase } from '@/utils/supabase';
-import { getDriverById } from '@/utils/database';
+import { getDriverById, grantDelayCreditIdempotent } from '@/utils/database';
+import { createDeliveryEvent, logAudit, computeEtaBand, getBackupCandidates, logRerouteDecision, getDeliveryEventsByOrder } from '@/utils/db/trustedArrival';
 
 const orderSteps = [
   { key: 'confirmed', label: 'Order Confirmed', icon: Store },
@@ -37,6 +38,97 @@ export default function TrackOrder() {
     longitude: number;
     updatedAt?: string;
   } | null>(null);
+  const [delayReason, setDelayReason] = useState<string | null>(null);
+  const [creditStatus, setCreditStatus] = useState<'idle' | 'issuing' | 'issued' | 'failed'>('idle');
+  const prepLoggedRef = useRef(false);
+  const driverLoggedRef = useRef(false);
+  const [backupPlan, setBackupPlan] = useState<{
+    restaurantName: string;
+    etaLabel: string;
+    restaurantId: string;
+  } | null>(null);
+  const [rerouteStatus, setRerouteStatus] = useState<'idle' | 'sent' | 'declined'>('idle');
+  const [safetyEvents, setSafetyEvents] = useState<{ temp?: string; handoff?: string }>({});
+
+  useEffect(() => {
+    const loadBackups = async () => {
+      if (!order?.restaurant_id) return;
+      const candidates = await getBackupCandidates(order.restaurant_id);
+      if (candidates.length === 0) return;
+      const first = candidates[0];
+      if (!first.backup_restaurant) return;
+      const deliveryTime = typeof first.backup_restaurant.delivery_time === 'string'
+        ? parseInt(first.backup_restaurant.delivery_time, 10)
+        : Number(first.backup_restaurant.delivery_time);
+      const band = computeEtaBand({
+        prepP50Minutes: deliveryTime ? Math.max(10, Math.round(deliveryTime * 0.4)) : 12,
+        prepP90Minutes: deliveryTime ? Math.max(16, Math.round(deliveryTime * 0.65)) : 20,
+        bufferMinutes: 4,
+        travelMinutes: deliveryTime ? Math.max(8, deliveryTime / 2) : 15,
+        reliabilityScore: first.backup_restaurant.rating ? Math.min(first.backup_restaurant.rating / 5, 1) : 0.9,
+      });
+      setBackupPlan({
+        restaurantName: first.backup_restaurant.name,
+        etaLabel: `${band.etaLowMinutes}-${band.etaHighMinutes} min`,
+        restaurantId: first.backup_restaurant.id,
+      });
+    };
+    loadBackups();
+  }, [order?.restaurant_id]);
+
+  useEffect(() => {
+    if (!order) return;
+    const now = Date.now();
+
+    const etaHigh = order.eta_confidence_high ? new Date(order.eta_confidence_high).getTime() : null;
+    const lastDriverUpdate = driverLocation?.updatedAt
+      ? new Date(driverLocation.updatedAt).getTime()
+      : order.delivery?.driver?.last_location_update
+        ? new Date(order.delivery.driver.last_location_update).getTime()
+        : null;
+
+    const isPrepPhase = ['pending', 'confirmed', 'preparing', 'ready'].includes(order.status);
+    const isDriverPhase = ['picked_up', 'on_the_way'].includes(order.status);
+
+    if (etaHigh && isPrepPhase && now > etaHigh && !prepLoggedRef.current) {
+      setDelayReason('Kitchen behind');
+      prepLoggedRef.current = true;
+      createDeliveryEvent({
+        order_id: order.id,
+        event_type: 'prep_delay_detected',
+        payload: { eta_high: order.eta_confidence_high },
+        idempotencyKey: `prep_delay_${order.id}`
+      });
+      logAudit('prep_delay_detected', 'orders', order.id, { eta_high: order.eta_confidence_high, idempotency_key: `prep_delay_${order.id}` });
+    } else if (isDriverPhase && lastDriverUpdate && now - lastDriverUpdate > 5 * 60 * 1000 && !driverLoggedRef.current) {
+      setDelayReason('Driver delay (traffic spike)');
+      driverLoggedRef.current = true;
+      createDeliveryEvent({
+        order_id: order.id,
+        driver_id: order.delivery?.driver_id,
+        event_type: 'driver_delay_detected',
+        payload: { last_update: lastDriverUpdate },
+        idempotencyKey: `driver_delay_${order.id}`
+      });
+      logAudit('driver_delay_detected', 'deliveries', order.delivery?.id, { order_id: order.id, last_update: lastDriverUpdate, idempotency_key: `driver_delay_${order.id}` });
+    } else if (!delayReason) {
+      setDelayReason(null);
+    }
+  }, [order, driverLocation, delayReason]);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      if (!order?.id) return;
+      const events = await getDeliveryEventsByOrder(order.id);
+      const temp = events.find(e => e.event_type === 'temp_check');
+      const handoff = events.find(e => e.event_type === 'handoff_confirmation');
+      setSafetyEvents({
+        temp: temp?.payload?.passed ? temp.created_at : undefined,
+        handoff: handoff?.payload?.confirmed ? handoff.created_at : undefined,
+      });
+    };
+    loadEvents();
+  }, [order?.id]);
 
   const getCurrentStepIndex = () => {
     if (!order) return -1;
@@ -150,6 +242,52 @@ export default function TrackOrder() {
 
   const currentStepIndex = getCurrentStepIndex();
   const driver = order.delivery?.driver;
+  const etaWindow = order.eta_confidence_low && order.eta_confidence_high
+    ? `${new Date(order.eta_confidence_low).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(order.eta_confidence_high).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    : order.eta_promised
+      ? new Date(order.eta_promised).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : null;
+  const etaBandWidth = order.eta_confidence_low && order.eta_confidence_high
+    ? (new Date(order.eta_confidence_high).getTime() - new Date(order.eta_confidence_low).getTime()) / (1000 * 60)
+    : null;
+  const etaLastUpdated = order.updated_at ? new Date(order.updated_at).getTime() : new Date(order.created_at).getTime();
+  const etaStillRelevant = order.eta_confidence_high
+    ? new Date(order.eta_confidence_high).getTime() > Date.now() + 2 * 60 * 1000
+    : false;
+  const etaFresh = Date.now() - etaLastUpdated < 30 * 60 * 1000;
+  const showTrustedEta = etaBandWidth !== null ? etaBandWidth <= 20 && etaStillRelevant && etaFresh : false;
+
+  const handleAcceptDelayCredit = async () => {
+    if (!order?.user_id) return;
+    setCreditStatus('issuing');
+    const creditAmount = 10; // flat goodwill credit
+    const ok = await grantDelayCreditIdempotent(order.user_id, creditAmount, 'delay_credit', `delay_${order.id}`, order.id);
+    if (ok) {
+      setCreditStatus('issued');
+      createDeliveryEvent({
+        order_id: order.id,
+        event_type: 'delay_credit_issued',
+        payload: { amount: creditAmount },
+        idempotencyKey: `delay_credit_${order.id}`
+      });
+      logAudit('delay_credit_issued', 'wallet_transactions', undefined, { amount: creditAmount, order_id: order.id, idempotency_key: `delay_credit_${order.id}` }, order.user_id);
+    } else {
+      setCreditStatus('failed');
+    }
+  };
+
+  const handleApproveReroute = async () => {
+    if (!order || !backupPlan) return;
+    setRerouteStatus('sent');
+    await logRerouteDecision(order.id, backupPlan.restaurantId, 'approve', 'user_approved');
+    Alert.alert('Plan B requested', `We will try rerouting to ${backupPlan.restaurantName}.`);
+  };
+
+  const handleDeclineReroute = async () => {
+    if (!order || !backupPlan) return;
+    setRerouteStatus('declined');
+    await logRerouteDecision(order.id, backupPlan.restaurantId, 'decline', 'user_stay');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -168,12 +306,67 @@ export default function TrackOrder() {
           </View>
           <Text style={styles.restaurantName}>{order.restaurant?.name}</Text>
           <Text style={styles.orderTime}>Ordered {formatOrderTime(order.created_at)}</Text>
+          {etaWindow && showTrustedEta && (
+            <View style={styles.trustedEta}>
+              <ShieldCheck size={16} color="#065F46" />
+              <Text style={styles.trustedEtaText}>Trusted arrival {etaWindow}</Text>
+            </View>
+          )}
+          {safetyEvents.temp && (
+            <Text style={styles.safetyLine}>
+              Temp check passed at {new Date(safetyEvents.temp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          )}
+          {safetyEvents.handoff && (
+            <Text style={styles.safetyLine}>
+              Handoff confirmed at {new Date(safetyEvents.handoff).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          )}
           {order.estimated_delivery_time && (
             <Text style={styles.estimatedTime}>
               Estimated delivery: {order.estimated_delivery_time}
             </Text>
           )}
         </Card>
+
+        {delayReason && (
+          <Card style={styles.delayCard}>
+            <View style={styles.delayHeader}>
+              <Text style={styles.delayTitle}>{delayReason}</Text>
+              <Text style={styles.delayBadge}>Monitoring</Text>
+            </View>
+            <Text style={styles.delayText}>
+              We spotted a risk to your ETA. You can accept a small credit while we keep pushing this order.
+            </Text>
+            <Button
+              title={creditStatus === 'issued' ? 'Credit applied' : creditStatus === 'issuing' ? 'Applying credit...' : 'Accept delay for credit'}
+              onPress={handleAcceptDelayCredit}
+              disabled={creditStatus === 'issuing' || creditStatus === 'issued'}
+              style={styles.delayButton}
+            />
+            {creditStatus === 'failed' && (
+              <Text style={styles.delayError}>Could not apply credit. Please try again.</Text>
+            )}
+            {backupPlan && (
+              <View style={styles.planB}>
+                <Text style={styles.planBTitle}>Plan B: {backupPlan.restaurantName}</Text>
+                <Text style={styles.planBSubtitle}>Ready in {backupPlan.etaLabel}. Original may slip past current window.</Text>
+                <View style={styles.planBActions}>
+                  <Button
+                    title={rerouteStatus === 'sent' ? 'Plan B requested' : 'Approve reroute'}
+                    onPress={handleApproveReroute}
+                    disabled={rerouteStatus === 'sent'}
+                  />
+                  <Button
+                    title="Stay and wait"
+                    variant="outline"
+                    onPress={handleDeclineReroute}
+                  />
+                </View>
+              </View>
+            )}
+          </Card>
+        )}
 
         {/* Order Progress */}
         <Card style={styles.progressCard}>
@@ -392,10 +585,94 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontFamily: 'Inter-Regular',
   },
+  trustedEta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+    padding: 10,
+    backgroundColor: '#ECFDF3',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  trustedEtaText: {
+    fontSize: 14,
+    color: '#065F46',
+    fontFamily: 'Inter-SemiBold',
+  },
+  safetyLine: {
+    fontSize: 12,
+    color: '#047857',
+    fontFamily: 'Inter-Medium',
+    marginTop: 4,
+  },
   estimatedTime: {
     fontSize: 14,
     color: '#FF6B35',
     fontFamily: 'Inter-SemiBold',
+    marginTop: 4,
+  },
+  delayCard: {
+    marginBottom: 16,
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+  },
+  delayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  delayTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#92400E',
+  },
+  delayBadge: {
+    fontSize: 12,
+    color: '#92400E',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    fontFamily: 'Inter-Medium',
+  },
+  delayText: {
+    fontSize: 14,
+    color: '#92400E',
+    fontFamily: 'Inter-Regular',
+    marginBottom: 12,
+  },
+  delayButton: {
+    marginBottom: 8,
+  },
+  delayError: {
+    fontSize: 12,
+    color: '#B91C1C',
+    fontFamily: 'Inter-Regular',
+  },
+  planB: {
+    marginTop: 12,
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 10,
+    gap: 6,
+  },
+  planBTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#111827',
+  },
+  planBSubtitle: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    color: '#374151',
+  },
+  planBActions: {
+    flexDirection: 'row',
+    gap: 8,
     marginTop: 4,
   },
   progressCard: {

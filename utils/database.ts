@@ -12,3 +12,8 @@ export * from './db/reviews';
 export * from './db/search';
 export * from './db/wallets';
 export * from './db/pushTokens';
+export * from './db/trustedArrival';
+export * from './db/substitutions';
+export * from './db/metrics';
+export * from './db/config';
+export * from './db/reroute';

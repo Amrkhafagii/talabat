@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Star, Clock, Heart } from 'lucide-react-native';
+import { Star, Clock, Heart, ShieldCheck } from 'lucide-react-native';
 import Card from '../ui/Card';
 
 interface Restaurant {
@@ -21,6 +21,8 @@ interface RestaurantCardProps {
   onFavoritePress: () => void;
   isFavorite: boolean;
   variant?: 'default' | 'promoted';
+  etaLabel?: string;
+  trusted?: boolean;
 }
 
 export default function RestaurantCard({
@@ -29,6 +31,8 @@ export default function RestaurantCard({
   onFavoritePress,
   isFavorite,
   variant = 'default',
+  etaLabel,
+  trusted = false,
 }: RestaurantCardProps) {
   if (variant === 'promoted') {
     return (
@@ -58,6 +62,14 @@ export default function RestaurantCard({
               <Clock size={14} color="#6B7280" />
               <Text style={styles.deliveryText}>{restaurant.deliveryTime} min</Text>
             </View>
+            {etaLabel && (
+              <View style={[styles.trustedBadge, trusted ? styles.trusted : styles.untrusted]}>
+                <ShieldCheck size={12} color={trusted ? '#065F46' : '#92400E'} />
+                <Text style={[styles.trustedText, trusted ? styles.trustedTextStrong : styles.untrustedText]}>
+                  {etaLabel}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -79,24 +91,32 @@ export default function RestaurantCard({
           </TouchableOpacity>
         </View>
         <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
-        <View style={styles.restaurantMeta}>
-          <View style={styles.rating}>
-            <Star size={14} color="#FFB800" fill="#FFB800" />
-            <Text style={styles.ratingText}>{restaurant.rating}</Text>
+          <View style={styles.restaurantMeta}>
+            <View style={styles.rating}>
+              <Star size={14} color="#FFB800" fill="#FFB800" />
+              <Text style={styles.ratingText}>{restaurant.rating}</Text>
+            </View>
+            <View style={styles.delivery}>
+              <Clock size={14} color="#6B7280" />
+              <Text style={styles.deliveryText}>{restaurant.deliveryTime} min</Text>
+            </View>
+            <Text style={styles.deliveryFee}>${restaurant.deliveryFee} delivery</Text>
+            {restaurant.distanceKm !== undefined && restaurant.distanceKm !== null && (
+              <Text style={styles.distanceText}>{restaurant.distanceKm.toFixed(1)} km</Text>
+            )}
+            {etaLabel && (
+              <View style={[styles.trustedBadge, trusted ? styles.trusted : styles.untrusted]}>
+                <ShieldCheck size={12} color={trusted ? '#065F46' : '#92400E'} />
+                <Text style={[styles.trustedText, trusted ? styles.trustedTextStrong : styles.untrustedText]}>
+                  {etaLabel}
+                </Text>
+              </View>
+            )}
           </View>
-          <View style={styles.delivery}>
-            <Clock size={14} color="#6B7280" />
-            <Text style={styles.deliveryText}>{restaurant.deliveryTime} min</Text>
-          </View>
-          <Text style={styles.deliveryFee}>${restaurant.deliveryFee} delivery</Text>
-          {restaurant.distanceKm !== undefined && restaurant.distanceKm !== null && (
-            <Text style={styles.distanceText}>{restaurant.distanceKm.toFixed(1)} km</Text>
-          )}
         </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
+      </TouchableOpacity>
+    );
+  }
 
 const styles = StyleSheet.create({
   promotedCard: {
@@ -218,5 +238,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     fontFamily: 'Inter-Regular',
+  },
+  trustedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 6,
+    gap: 4,
+  },
+  trusted: {
+    backgroundColor: '#ECFDF3',
+    borderColor: '#D1FAE5',
+    borderWidth: 1,
+  },
+  untrusted: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+  },
+  trustedText: {
+    fontSize: 11,
+    fontFamily: 'Inter-Medium',
+  },
+  trustedTextStrong: {
+    color: '#065F46',
+  },
+  untrustedText: {
+    color: '#92400E',
   },
 });

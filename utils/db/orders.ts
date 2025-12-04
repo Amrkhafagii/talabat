@@ -3,6 +3,15 @@ import { Order, OrderFilters } from '@/types/database';
 import { getPushTokens } from './pushTokens';
 import { sendPushNotification } from '../push';
 import { payoutDriverDelivery } from './wallets';
+import { computeEtaBand, etaTimestampsFromNow, getRestaurantSla, logAudit, createDeliveryEvent, weatherFactorFromSeverity } from './trustedArrival';
+
+type SubstitutionDecision = {
+  original_item_id: string;
+  substitute_item_id?: string;
+  decision: 'accept' | 'decline' | 'chat';
+  price_delta?: number;
+  quantity?: number;
+};
 
 export async function createOrder(
   userId: string,
@@ -17,12 +26,16 @@ export async function createOrder(
   total: number,
   paymentMethod: string,
   deliveryInstructions?: string,
-  receiptUrl?: string
+  receiptUrl?: string,
+  options?: {
+    etaContext?: { travelMinutes?: number; weatherSeverity?: 'normal' | 'rain' | 'storm'; actorId?: string };
+    substitutions?: SubstitutionDecision[];
+  }
 ): Promise<{ data: Order | null; error: any }> {
   // Prevent ordering from closed restaurants
   const { data: restaurantStatus, error: restaurantError } = await supabase
     .from('restaurants')
-    .select('is_open')
+    .select('is_open, delivery_time, rating, latitude, longitude')
     .eq('id', restaurantId)
     .single();
 
@@ -33,6 +46,26 @@ export async function createOrder(
   if (restaurantStatus && restaurantStatus.is_open === false) {
     return { data: null, error: { message: 'Restaurant is closed' } };
   }
+
+  // Compute ETA band (observe-only)
+  const sla = await getRestaurantSla(restaurantId);
+  const parsedDeliveryMinutes = typeof restaurantStatus?.delivery_time === 'string'
+    ? parseInt(restaurantStatus.delivery_time, 10)
+    : Number(restaurantStatus?.delivery_time);
+
+  const travelMinutes = etaContext?.travelMinutes
+    ?? (parsedDeliveryMinutes && !Number.isNaN(parsedDeliveryMinutes) ? Math.max(8, parsedDeliveryMinutes / 2) : 15);
+
+  const etaBand = computeEtaBand({
+    prepP50Minutes: sla?.prep_p50_minutes ?? 12,
+    prepP90Minutes: sla?.prep_p90_minutes ?? 20,
+    bufferMinutes: sla?.buffer_minutes ?? 5,
+    travelMinutes,
+    weatherSeverity: etaContext?.weatherSeverity ?? 'normal',
+    reliabilityScore: sla?.reliability_score ?? (restaurantStatus?.rating ? Math.min(restaurantStatus.rating / 5, 1) : 0.9),
+  });
+
+  const etaTimestamps = etaTimestampsFromNow(etaBand);
 
   // Start a transaction
   const { data: order, error: orderError } = await supabase
@@ -50,6 +83,9 @@ export async function createOrder(
       payment_method: paymentMethod,
       delivery_instructions: deliveryInstructions,
       receipt_url: receiptUrl,
+      eta_promised: etaTimestamps.eta_promised,
+      eta_confidence_low: etaTimestamps.eta_confidence_low,
+      eta_confidence_high: etaTimestamps.eta_confidence_high,
       payment_status: 'initiated',
       wallet_capture_status: 'pending',
       status: 'pending'
@@ -82,6 +118,62 @@ export async function createOrder(
 
   // Notify restaurant about new order
   notifyRestaurantNewOrder(restaurantId, order.id, total);
+
+  // Audit ETA computation (best-effort)
+  logAudit('eta_override', 'orders', order.id, {
+    eta_minutes: etaBand.etaMinutes,
+    eta_low: etaBand.etaLowMinutes,
+    eta_high: etaBand.etaHighMinutes,
+    trusted: etaBand.trusted,
+    weather_factor: etaBand.weatherFactor,
+    travel_minutes: travelMinutes,
+    source: 'checkout_compute',
+  }, etaContext?.actorId);
+
+  // Record substitution choices (best-effort, idempotent)
+  if (options?.substitutions && options.substitutions.length > 0) {
+    await Promise.all(options.substitutions.map(decision => {
+      // Validate substitution server-side
+      const { data: isValid, error: subError } = await supabase.rpc('validate_substitution_choice', {
+        p_restaurant_id: restaurantId,
+        p_original_item_id: decision.original_item_id,
+        p_substitute_item_id: decision.substitute_item_id ?? null,
+        p_quantity: decision.quantity ?? 1,
+        p_price_delta: decision.price_delta ?? 0
+      });
+      if (subError || isValid !== true) {
+        throw new Error('Invalid substitution choice');
+      }
+
+      const payload = {
+        decision: decision.decision,
+        original_item_id: decision.original_item_id,
+        substitute_item_id: decision.substitute_item_id,
+        price_delta: decision.price_delta,
+        quantity: decision.quantity,
+      };
+      const idem = `${order.id}_${decision.original_item_id}`;
+      createDeliveryEvent({
+        order_id: order.id,
+        event_type: 'substitution_choice',
+        payload,
+        idempotencyKey: idem,
+      });
+      logAudit('substitution_choice', 'order_items', order.id, { ...payload, idempotency_key: idem }, userId);
+      return Promise.resolve();
+    }));
+  }
+
+  // Centralize ETA write on server for consistency
+  await supabase.rpc('set_order_eta_from_components', {
+    p_order_id: order.id,
+    p_prep_p50: sla?.prep_p50_minutes ?? 12,
+    p_prep_p90: sla?.prep_p90_minutes ?? 20,
+    p_buffer: sla?.buffer_minutes ?? 5,
+    p_travel_minutes: travelMinutes,
+    p_weather_factor: weatherFactorFromSeverity(etaContext?.weatherSeverity ?? 'normal'),
+    p_reliability: sla?.reliability_score ?? (restaurantStatus?.rating ? Math.min(restaurantStatus.rating / 5, 1) : 0.9),
+  });
 
   return { data: order as Order, error: null };
 }

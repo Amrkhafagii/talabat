@@ -70,6 +70,8 @@ export interface MenuItem {
   is_popular: boolean;
   is_available: boolean;
   preparation_time: number;
+  sku?: string | null;
+  external_id?: string | null;
   calories?: number;
   allergens?: string[];
   ingredients?: string[];
@@ -78,6 +80,16 @@ export interface MenuItem {
   updated_at: string;
   restaurant?: Restaurant;
   category_info?: Category;
+}
+
+export interface BackupMapping {
+  id: string;
+  source_restaurant_id: string;
+  source_item_id: string;
+  target_restaurant_id: string;
+  target_item_id: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 export interface UserAddress {
@@ -118,6 +130,11 @@ export interface Order {
   receipt_url?: string;
   wallet_capture_status?: 'pending' | 'held' | 'released' | 'refunded' | 'failed';
   commission_amount?: number;
+  eta_promised?: string;
+  eta_confidence_low?: string;
+  eta_confidence_high?: string;
+  rerouted_from_order_id?: string;
+  reroute_status?: 'pending' | 'approved' | 'performed' | 'failed';
   confirmed_at?: string;
   prepared_at?: string;
   picked_up_at?: string;
@@ -316,4 +333,48 @@ export interface OrderFilters {
   restaurant?: string;
   minTotal?: number;
   maxTotal?: number;
+}
+
+// Trusted arrival + reliability
+export interface RestaurantSla {
+  restaurant_id: string;
+  prep_p50_minutes: number;
+  prep_p90_minutes: number;
+  reliability_score: number;
+  buffer_minutes: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ItemSubstitution {
+  id: string;
+  restaurant_id: string;
+  item_id: string;
+  substitute_item_id: string;
+  rule_type: string;
+  max_delta_pct?: number;
+  auto_apply: boolean;
+  notes?: string;
+  created_at: string;
+}
+
+export interface BackupRestaurant {
+  id: string;
+  restaurant_id: string;
+  backup_restaurant_id: string;
+  priority: number;
+  max_distance_km?: number;
+  cuisine_match?: boolean;
+  is_active: boolean;
+  created_at: string;
+  backup_restaurant?: Restaurant;
+}
+
+export interface DeliveryEvent {
+  id: number;
+  order_id: string;
+  driver_id?: string;
+  event_type: string;
+  payload?: Record<string, any>;
+  created_at: string;
 }

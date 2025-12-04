@@ -11,6 +11,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { getCategories, getRestaurants } from '@/utils/database';
 import { Category, Restaurant, RestaurantFilters } from '@/types/database';
 import { useLocationContext } from '@/contexts/LocationContext';
+import { computeEtaBand } from '@/utils/db/trustedArrival';
 
 export default function CustomerHome() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,6 +106,29 @@ export default function CustomerHome() {
   };
 
   const promotedRestaurants = restaurants.filter(r => r.is_promoted);
+
+  const computeRestaurantEta = (restaurant: Restaurant) => {
+    const parsedDelivery = restaurant.delivery_time ? parseInt(restaurant.delivery_time, 10) : NaN;
+    const travelMinutes = restaurant.distance_km
+      ? Math.max(8, Math.round(restaurant.distance_km * 3.2))
+      : 15;
+    const prepP50 = !Number.isNaN(parsedDelivery) ? Math.max(10, Math.round(parsedDelivery * 0.4)) : 12;
+    const prepP90 = !Number.isNaN(parsedDelivery) ? Math.max(prepP50 + 6, Math.round(parsedDelivery * 0.65)) : 20;
+    const band = computeEtaBand({
+      prepP50Minutes: prepP50,
+      prepP90Minutes: prepP90,
+      bufferMinutes: 4,
+      travelMinutes,
+      reliabilityScore: restaurant.rating ? Math.min(restaurant.rating / 5, 1) : 0.9,
+      dataFresh: Boolean(restaurant.updated_at),
+    });
+    const tooWideOrStale = band.bandTooWide || band.dataStale;
+    const fallbackLabel = restaurant.delivery_time ? `${restaurant.delivery_time} min` : 'ETA pending';
+    return {
+      label: tooWideOrStale ? fallbackLabel : `${band.etaLowMinutes}-${band.etaHighMinutes} min`,
+      trusted: !tooWideOrStale && band.trusted,
+    };
+  };
 
   if (loading) {
     return (
@@ -213,9 +237,13 @@ export default function CustomerHome() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Promoted</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.promotedContainer}>
-              {promotedRestaurants.map((restaurant) => (
+              {promotedRestaurants.map((restaurant) => {
+                const eta = computeRestaurantEta(restaurant);
+                return (
                 <RestaurantCard
                   key={restaurant.id}
+                  etaLabel={eta.label}
+                  trusted={eta.trusted}
                   restaurant={{
                     id: restaurant.id,
                     name: restaurant.name,
@@ -231,7 +259,8 @@ export default function CustomerHome() {
                   onFavoritePress={() => toggleFavorite(restaurant.id)}
                   isFavorite={isFavorite(restaurant.id)}
                 />
-              ))}
+                );
+              })}
             </ScrollView>
           </View>
         )}
@@ -245,9 +274,13 @@ export default function CustomerHome() {
             </TouchableOpacity>
           </View>
           <View style={styles.restaurantsContainer}>
-            {restaurants.map((restaurant) => (
+            {restaurants.map((restaurant) => {
+              const eta = computeRestaurantEta(restaurant);
+              return (
               <RestaurantCard
                 key={restaurant.id}
+                etaLabel={eta.label}
+                trusted={eta.trusted}
                 restaurant={{
                   id: restaurant.id,
                   name: restaurant.name,
@@ -262,7 +295,8 @@ export default function CustomerHome() {
                 onFavoritePress={() => toggleFavorite(restaurant.id)}
                 isFavorite={isFavorite(restaurant.id)}
               />
-            ))}
+              );
+            })}
           </View>
           
           {restaurants.length === 0 && (

@@ -72,3 +72,70 @@ export async function payoutDriverDelivery(deliveryId: string): Promise<{ status
   }
   return data as any;
 }
+
+export async function grantDelayCredit(userId: string, amount: number, reason: string): Promise<boolean> {
+  const wallets = await getWalletsByUser(userId);
+  const customerWallet = wallets.find(w => w.type === 'customer') || wallets[0];
+  if (!customerWallet) {
+    console.warn('No wallet found for delay credit');
+    return false;
+  }
+
+  const { error } = await supabase.from('wallet_transactions').insert({
+    wallet_id: customerWallet.id,
+    amount,
+    type: 'deposit',
+    status: 'completed',
+    reference: reason,
+    metadata: { source: 'delay_credit' },
+  });
+
+  if (error) {
+    console.error('Error granting delay credit:', error);
+    return false;
+  }
+
+  return true;
+}
+
+export async function grantDelayCreditIdempotent(userId: string, amount: number, reason: string, idempotencyKey: string, orderId?: string): Promise<boolean> {
+  const wallets = await getWalletsByUser(userId);
+  const customerWallet = wallets.find(w => w.type === 'customer') || wallets[0];
+  if (!customerWallet) {
+    console.warn('No wallet found for delay credit');
+    return false;
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('wallet_transactions')
+    .select('id')
+    .eq('wallet_id', customerWallet.id)
+    .eq('metadata->>idempotency_key', idempotencyKey)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error('Error checking existing delay credit:', existingError);
+    return false;
+  }
+
+  if (existing) {
+    return true;
+  }
+
+  const { error } = await supabase.from('wallet_transactions').insert({
+    wallet_id: customerWallet.id,
+    amount,
+    type: 'deposit',
+    status: 'completed',
+    reference: reason,
+    order_id: orderId ?? null,
+    metadata: { source: 'delay_credit', idempotency_key: idempotencyKey },
+  });
+
+  if (error) {
+    console.error('Error granting delay credit (idempotent):', error);
+    return false;
+  }
+
+  return true;
+}

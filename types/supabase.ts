@@ -1238,12 +1238,16 @@ export type Database = {
           delivery_fee: number | null
           delivery_instructions: string | null
           estimated_delivery_time: string | null
+          eta_confidence_high: string | null
+          eta_confidence_low: string | null
+          eta_promised: string | null
           id: string
           order_number: string | null
           payment_method: string | null
           payment_status: string | null
           picked_up_at: string | null
           prepared_at: string | null
+          rerouted_from_order_id: string | null
           restaurant_id: string | null
           status: string
           subtotal: number | null
@@ -1264,12 +1268,16 @@ export type Database = {
           delivery_fee?: number | null
           delivery_instructions?: string | null
           estimated_delivery_time?: string | null
+          eta_confidence_high?: string | null
+          eta_confidence_low?: string | null
+          eta_promised?: string | null
           id?: string
           order_number?: string | null
           payment_method?: string | null
           payment_status?: string | null
           picked_up_at?: string | null
           prepared_at?: string | null
+          rerouted_from_order_id?: string | null
           restaurant_id?: string | null
           status?: string
           subtotal?: number | null
@@ -1290,12 +1298,16 @@ export type Database = {
           delivery_fee?: number | null
           delivery_instructions?: string | null
           estimated_delivery_time?: string | null
+          eta_confidence_high?: string | null
+          eta_confidence_low?: string | null
+          eta_promised?: string | null
           id?: string
           order_number?: string | null
           payment_method?: string | null
           payment_status?: string | null
           picked_up_at?: string | null
           prepared_at?: string | null
+          rerouted_from_order_id?: string | null
           restaurant_id?: string | null
           status?: string
           subtotal?: number | null
@@ -1318,6 +1330,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_rerouted_from_order_id_fkey"
+            columns: ["rerouted_from_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -1394,6 +1413,222 @@ export type Database = {
           rating?: number | null
           total_reviews?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      restaurant_sla: {
+        Row: {
+          buffer_minutes: number
+          created_at: string | null
+          prep_p50_minutes: number
+          prep_p90_minutes: number
+          reliability_score: number
+          restaurant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          buffer_minutes?: number
+          created_at?: string | null
+          prep_p50_minutes?: number
+          prep_p90_minutes?: number
+          reliability_score?: number
+          restaurant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          buffer_minutes?: number
+          created_at?: string | null
+          prep_p50_minutes?: number
+          prep_p90_minutes?: number
+          reliability_score?: number
+          restaurant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_sla_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_substitutions: {
+        Row: {
+          auto_apply: boolean | null
+          created_at: string | null
+          id: string
+          item_id: string | null
+          max_delta_pct: number | null
+          notes: string | null
+          restaurant_id: string | null
+          rule_type: string | null
+          substitute_item_id: string | null
+        }
+        Insert: {
+          auto_apply?: boolean | null
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          max_delta_pct?: number | null
+          notes?: string | null
+          restaurant_id?: string | null
+          rule_type?: string | null
+          substitute_item_id?: string | null
+        }
+        Update: {
+          auto_apply?: boolean | null
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          max_delta_pct?: number | null
+          notes?: string | null
+          restaurant_id?: string | null
+          rule_type?: string | null
+          substitute_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_substitutions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_substitutions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_substitutions_substitute_item_id_fkey"
+            columns: ["substitute_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      backup_restaurants: {
+        Row: {
+          backup_restaurant_id: string | null
+          created_at: string | null
+          cuisine_match: boolean | null
+          id: string
+          is_active: boolean | null
+          max_distance_km: number | null
+          priority: number | null
+          restaurant_id: string | null
+        }
+        Insert: {
+          backup_restaurant_id?: string | null
+          created_at?: string | null
+          cuisine_match?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_distance_km?: number | null
+          priority?: number | null
+          restaurant_id?: string | null
+        }
+        Update: {
+          backup_restaurant_id?: string | null
+          created_at?: string | null
+          cuisine_match?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_distance_km?: number | null
+          priority?: number | null
+          restaurant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_restaurants_backup_restaurant_id_fkey"
+            columns: ["backup_restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backup_restaurants_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_events: {
+        Row: {
+          created_at: string | null
+          driver_id: string | null
+          event_type: string
+          id: number
+          order_id: string | null
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          driver_id?: string | null
+          event_type: string
+          id?: number
+          order_id?: string | null
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          driver_id?: string | null
+          event_type?: string
+          id?: number
+          order_id?: string | null
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_events_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string | null
+          detail: Json | null
+          id: number
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string | null
+          detail?: Json | null
+          id?: number
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string | null
+          detail?: Json | null
+          id?: number
+          record_id?: string | null
+          table_name?: string
         }
         Relationships: []
       }

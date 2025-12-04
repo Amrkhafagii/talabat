@@ -38,7 +38,7 @@ export default function DeliveryCard({
   const isActive = order.status === 'active';
 
   return (
-    <Card style={[styles.card, isActive && styles.activeCard]}>
+    <Card style={[styles.card, isActive ? styles.activeCard : undefined] as any}>
       <View style={styles.header}>
         <View>
           <Text style={styles.restaurantName}>{order.restaurantName}</Text>

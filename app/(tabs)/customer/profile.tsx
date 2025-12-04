@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, User, MapPin, CreditCard, Bell, CircleHelp as HelpCircle, LogOut, CreditCard as Edit, Plus } from 'lucide-react-native';
+import { ArrowLeft, MapPin, CreditCard, Bell, CircleHelp as HelpCircle, LogOut, CreditCard as Edit, Plus } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile, getUserAddresses } from '@/utils/database';
@@ -30,7 +30,7 @@ const profileOptions = [
     id: 4,
     title: 'Wallet',
     icon: CreditCard,
-    action: () => router.push('/customer/wallet'),
+    action: () => router.push('/customer/wallet' as any),
   },
 ];
 
@@ -76,7 +76,7 @@ export default function Profile() {
           style: 'destructive',
           onPress: async () => {
             await signOut();
-            router.replace('/(auth)/welcome');
+            router.replace('/(auth)/welcome' as any);
           },
         },
       ]

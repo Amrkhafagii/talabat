@@ -17,3 +17,4 @@ export * from './db/substitutions';
 export * from './db/metrics';
 export * from './db/config';
 export * from './db/reroute';
+export * from './db/adminOps';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, Navigation, RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react-native';
+import { MapPin, RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
 import Header from '@/components/ui/Header';
@@ -36,19 +36,11 @@ export default function LocationTracking() {
   }, [user]);
 
   useEffect(() => {
-    let locationSubscription: Location.LocationSubscription | null = null;
-
     if (isTracking && driver) {
       startLocationTracking();
     } else {
       stopLocationTracking();
     }
-
-    return () => {
-      if (locationSubscription) {
-        locationSubscription.remove();
-      }
-    };
   }, [isTracking, driver]);
 
   const loadDriverData = async () => {

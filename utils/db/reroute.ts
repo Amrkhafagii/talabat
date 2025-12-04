@@ -30,3 +30,32 @@ export async function rerouteOrder(orderId: string, backupRestaurantId: string, 
 
   return { ok: true, newOrderId };
 }
+
+export type BackupMapping = {
+  id: string;
+  source_item_id: string;
+  target_item_id: string;
+  target_restaurant_id: string;
+  is_active: boolean;
+  source_item?: { id: string; name: string };
+  target_item?: { id: string; name: string };
+};
+
+export async function listBackupMappings(restaurantId: string): Promise<BackupMapping[]> {
+  const { data, error } = await supabase
+    .from('backup_mappings')
+    .select(`
+      *,
+      source_item:source_item_id(id,name),
+      target_item:target_item_id(id,name)
+    `)
+    .eq('source_restaurant_id', restaurantId)
+    .eq('is_active', true)
+    .limit(200);
+
+  if (error) {
+    console.warn('listBackupMappings error', error);
+    return [];
+  }
+  return (data as any[]) || [];
+}

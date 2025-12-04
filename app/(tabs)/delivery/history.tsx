@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, DollarSign, Clock, MapPin, Star, TrendingUp, Filter } from 'lucide-react-native';
+import { DollarSign, Clock, MapPin, Star, TrendingUp, Filter } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';

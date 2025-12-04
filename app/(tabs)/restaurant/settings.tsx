@@ -62,7 +62,7 @@ const settingsOptions = [
     title: 'Wallet',
     subtitle: 'View balance and payouts',
     icon: CreditCard,
-    action: () => router.push('/restaurant/wallet'),
+    action: () => router.push('/restaurant/wallet' as any),
   },
 ];
 

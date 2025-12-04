@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, Minus, CreditCard, MapPin, ChevronDown, ShieldCheck } from 'lucide-react-native';
+import { ArrowLeft, CreditCard, MapPin, ChevronDown, ShieldCheck } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 
@@ -63,8 +63,9 @@ export default function Cart() {
         if (restaurantId) {
           const restaurant = await getRestaurantById(restaurantId);
           const parsedDelivery = restaurant?.delivery_time ? parseInt(restaurant.delivery_time, 10) : NaN;
+          if (!restaurant) return;
           const travelMinutes = estimateTravelMinutes(
-            restaurant || {},
+            restaurant,
             selectedAddress?.latitude && selectedAddress?.longitude ? selectedAddress : undefined,
             {
               weather: (process.env.EXPO_PUBLIC_WEATHER_SEVERITY as any) || 'normal',
@@ -178,7 +179,8 @@ export default function Cart() {
 
   const deliveryFee = 2.99;
   const tax = getSubtotal() * 0.08;
-  const total = getSubtotal() + deliveryFee + tax;
+  const platformFee = getSubtotal() * 0.10;
+  const total = getSubtotal() + deliveryFee + tax + platformFee;
 
   const handleSelectAddress = () => {
     if (addresses.length === 0) {
@@ -187,12 +189,12 @@ export default function Cart() {
         'You need to add a delivery address first.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Add Address', onPress: () => router.push('/customer/add-address') }
+          { text: 'Add Address', onPress: () => router.push('/customer/add-address' as any) }
         ]
       );
     } else {
       // Show address selection modal or navigate to address selection screen
-      router.push('/customer/select-address');
+      router.push('/customer/select-address' as any);
     }
   };
 
@@ -339,11 +341,11 @@ export default function Cart() {
           [
             {
               text: 'View Orders',
-              onPress: () => router.push('/customer/orders')
+            onPress: () => router.push('/customer/orders' as any)
             },
             {
               text: 'Continue Shopping',
-              onPress: () => router.push('/customer/')
+              onPress: () => router.push('/(tabs)/customer' as any)
             }
           ]
         );
@@ -389,7 +391,7 @@ export default function Cart() {
           <Text style={styles.emptyText}>Add some delicious items to get started!</Text>
           <TouchableOpacity 
             style={styles.shopButton}
-            onPress={() => router.push('/customer/')}
+            onPress={() => router.push('/(tabs)/customer' as any)}
           >
             <Text style={styles.shopButtonText}>Start Shopping</Text>
           </TouchableOpacity>
@@ -511,6 +513,7 @@ export default function Cart() {
         {/* Order Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Summary</Text>
+          <Text style={styles.sectionHint}>You pay once; includes platform service fee and delivery.</Text>
           <View style={styles.summaryContainer}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
@@ -523,6 +526,10 @@ export default function Cart() {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Tax</Text>
               <Text style={styles.summaryValue}>${tax.toFixed(2)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Platform fee (10%)</Text>
+              <Text style={styles.summaryValue}>${platformFee.toFixed(2)}</Text>
             </View>
             <View style={[styles.summaryRow, styles.totalRow]}>
               <Text style={styles.totalLabel}>Total</Text>
@@ -758,7 +765,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     gap: 12,
+  },
+  sectionHint: {
+    color: '#6B7280',
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    marginBottom: 6,
   },
   summaryRow: {
     flexDirection: 'row',

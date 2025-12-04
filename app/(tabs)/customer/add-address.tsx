@@ -99,7 +99,6 @@ export default function AddAddress() {
       // Get current position
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
-        timeout: 15000,
       });
 
       const { latitude, longitude } = location.coords;
@@ -149,15 +148,16 @@ export default function AddAddress() {
     } catch (error) {
       console.error('Error getting location:', error);
       let errorMessage = 'Failed to get your current location. ';
-      
-      if (error.code === 'E_LOCATION_TIMEOUT') {
+
+      const err = error as any;
+      if (err?.code === 'E_LOCATION_TIMEOUT') {
         errorMessage += 'Location request timed out. Please try again.';
-      } else if (error.code === 'E_LOCATION_UNAVAILABLE') {
+      } else if (err?.code === 'E_LOCATION_UNAVAILABLE') {
         errorMessage += 'Location services are not available.';
       } else {
         errorMessage += 'Please check your location settings and try again.';
       }
-      
+
       setLocationError(errorMessage);
       Alert.alert('Location Error', errorMessage);
     } finally {

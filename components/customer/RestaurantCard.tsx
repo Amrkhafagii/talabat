@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Star, Clock, Heart, ShieldCheck } from 'lucide-react-native';
-import Card from '../ui/Card';
 
 interface Restaurant {
   id: string;

@@ -57,7 +57,7 @@ export default function EditProfile() {
       
       const updates: Partial<UserType> = {
         full_name: fullName.trim(),
-        phone: phone.trim() || null,
+        phone: phone.trim() || undefined,
         updated_at: new Date().toISOString(),
       };
 

@@ -68,18 +68,18 @@ export default function Login() {
           : (userType as UserType) || 'customer';
 
         if (userError || !userData.user) {
-          router.replace('/(tabs)');
+          router.replace('/(tabs)' as any);
           return;
         }
 
         if (resolvedUserType === 'customer') {
-          router.replace('/(tabs)/customer');
+          router.replace('/(tabs)/customer' as any);
         } else if (resolvedUserType === 'restaurant') {
-          router.replace('/(tabs)/restaurant');
+          router.replace('/(tabs)/restaurant' as any);
         } else if (resolvedUserType === 'delivery') {
-          router.replace('/(tabs)/delivery');
+          router.replace('/(tabs)/delivery' as any);
         } else {
-          router.replace('/(tabs)');
+          router.replace('/(tabs)' as any);
         }
       }
     } catch (err) {

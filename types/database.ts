@@ -121,14 +121,45 @@ export interface Order {
   tax_amount: number;
   tip_amount: number;
   total: number;
+  platform_fee?: number | null;
+  restaurant_net?: number | null;
+  total_charged?: number | null;
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
-  payment_status: 'initiated' | 'hold' | 'captured' | 'refunded' | 'failed' | 'voided';
+  payment_status:
+    | 'payment_pending'
+    | 'paid_pending_review'
+    | 'paid'
+    | 'initiated'
+    | 'hold'
+    | 'captured'
+    | 'refunded'
+    | 'failed'
+    | 'voided';
   payment_method: string;
+  customer_payment_txn_id?: string | null;
   delivery_address: string;
   delivery_instructions?: string;
   estimated_delivery_time?: string;
   receipt_url?: string;
   wallet_capture_status?: 'pending' | 'held' | 'released' | 'refunded' | 'failed';
+  chargeback_flag?: boolean;
+  restaurant_payout_status?: 'pending' | 'initiated' | 'paid' | 'failed';
+  restaurant_payout_ref?: string | null;
+  restaurant_payout_attempts?: number | null;
+  restaurant_payout_last_error?: string | null;
+  restaurant_payout_next_retry_at?: string | null;
+  driver_payout_status?: 'pending' | 'initiated' | 'paid' | 'failed';
+  driver_payout_ref?: string | null;
+  driver_payout_attempts?: number | null;
+  driver_payout_last_error?: string | null;
+  driver_payout_next_retry_at?: string | null;
+  delivery_fee_paid_at?: string | null;
+  payment_proof_attempts?: number | null;
+  payment_proof_last_attempt?: string | null;
+  payment_reported_amount?: number | null;
+  payment_auto_verified?: boolean | null;
+  payment_txn_duplicate?: boolean | null;
+  payment_review_notes?: string | null;
   commission_amount?: number;
   eta_promised?: string;
   eta_confidence_low?: string;
@@ -214,6 +245,9 @@ export interface Delivery {
   delivery_notes?: string;
   payout_status?: 'pending' | 'paid' | 'failed';
   payout_at?: string;
+  driver_payout_handle?: string | null;
+  driver_payout_status?: 'pending' | 'initiated' | 'paid' | 'failed' | null;
+  driver_payout_ref?: string | null;
   created_at: string;
   updated_at: string;
   order?: Order;

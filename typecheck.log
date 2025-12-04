@@ -1,0 +1,4 @@
+
+> bolt-expo-starter@1.0.0 typecheck
+> tsc --noEmit --skipLibCheck --pretty false
+

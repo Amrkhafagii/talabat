@@ -102,7 +102,6 @@ export default function CustomerLayout() {
         name="filters"
         options={{
           href: null,
-          presentation: 'modal',
         }}
       />
       <Tabs.Screen

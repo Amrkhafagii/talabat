@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Clock, CircleCheck as CheckCircle, Truck, MapPin } from 'lucide-react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Clock, Truck, MapPin } from 'lucide-react-native';
 import Card from '../ui/Card';
 import OrderStatusBadge from '../common/OrderStatusBadge';
 import Button from '../ui/Button';
@@ -27,7 +27,7 @@ export default function OrderCard({ order, onTrack, onReorder }: OrderCardProps)
   const isActive = !['delivered', 'cancelled'].includes(order.status);
 
   return (
-    <Card style={[styles.orderCard, isActive && styles.activeCard]}>
+    <Card style={[styles.orderCard, isActive ? styles.activeCard : undefined] as any}>
       {/* Order Header */}
       <View style={styles.orderHeader}>
         <View>

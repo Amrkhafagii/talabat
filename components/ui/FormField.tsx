@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ViewStyle, TextStyle, StyleProp, TextInputProps } from 'react-native';
 import { Control, Controller, FieldPath, FieldValues } from 'react-hook-form';
 
 interface FormFieldProps<T extends FieldValues> {
@@ -10,12 +10,13 @@ interface FormFieldProps<T extends FieldValues> {
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad' | 'decimal-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  autoComplete?: string;
+  autoComplete?: TextInputProps['autoComplete'];
+  textContentType?: TextInputProps['textContentType'];
   multiline?: boolean;
   numberOfLines?: number;
   maxLength?: number;
-  style?: ViewStyle;
-  inputStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
   disabled?: boolean;
   rightElement?: React.ReactNode;
 }
@@ -29,6 +30,7 @@ export default function FormField<T extends FieldValues>({
   keyboardType = 'default',
   autoCapitalize = 'sentences',
   autoComplete,
+  textContentType,
   multiline = false,
   numberOfLines = 1,
   maxLength,
@@ -44,17 +46,19 @@ export default function FormField<T extends FieldValues>({
       render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
         <View style={[styles.container, style]}>
           <Text style={styles.label}>{label}</Text>
-          <View style={[
-            styles.inputContainer,
-            error && styles.inputError,
-            disabled && styles.inputDisabled
-          ]}>
+          <View
+            style={[
+              styles.inputContainer,
+              error ? styles.inputError : undefined,
+              disabled ? styles.inputDisabled : undefined,
+            ]}
+          >
             <TextInput
               style={[
                 styles.input,
-                multiline && styles.multilineInput,
-                rightElement && styles.inputWithRightElement,
-                inputStyle
+                multiline ? styles.multilineInput : undefined,
+                rightElement ? styles.inputWithRightElement : undefined,
+                inputStyle,
               ]}
               placeholder={placeholder}
               value={value}
@@ -64,6 +68,7 @@ export default function FormField<T extends FieldValues>({
               keyboardType={keyboardType}
               autoCapitalize={autoCapitalize}
               autoComplete={autoComplete}
+              textContentType={textContentType}
               autoCorrect={false}
               multiline={multiline}
               numberOfLines={numberOfLines}

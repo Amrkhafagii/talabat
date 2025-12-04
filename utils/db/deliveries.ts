@@ -80,7 +80,7 @@ export async function getDriverDeliveryHistory(
 
   // Apply date filters based on period
   const now = new Date();
-  let startDate: Date;
+  let startDate: Date | undefined;
 
   switch (period) {
     case 'today':

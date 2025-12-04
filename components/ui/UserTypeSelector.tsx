@@ -233,7 +233,8 @@ export default function UserTypeSelector({ selectedType, onSelect }: UserTypeSel
 
   // Animation for card selection
   const animateCardSelection = (cardId: string, isSelected: boolean) => {
-    const animations = animationValues[cardId];
+    const animations = animationValues[cardId as keyof typeof animationValues];
+    if (!animations) return;
     
     if (isSelected) {
       // Selection animation sequence

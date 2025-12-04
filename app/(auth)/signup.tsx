@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { User, Store, Truck, Eye, EyeOff } from 'lucide-react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Location from 'expo-location';
@@ -88,14 +88,14 @@ export default function SignUp() {
               setTimeout(() => {
                 // Redirect to the specific role dashboard
                 if (data.userType === 'customer') {
-                  router.replace('/(tabs)/customer');
+                  router.replace('/(tabs)/customer' as any);
                 } else if (data.userType === 'restaurant') {
-                  router.replace('/(tabs)/restaurant');
+                  router.replace('/(tabs)/restaurant' as any);
                 } else if (data.userType === 'delivery') {
-                  router.replace('/(tabs)/delivery');
+                  router.replace('/(tabs)/delivery' as any);
                 } else {
                   // Fallback to generic tabs
-                  router.replace('/(tabs)');
+                  router.replace('/(tabs)' as any);
                 }
               }, 100);
             }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Plus, Search, Filter, CreditCard as Edit, Trash2, Eye, EyeOff, Star } from 'lucide-react-native';
+import { Plus, Filter } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import SearchBar from '@/components/ui/SearchBar';

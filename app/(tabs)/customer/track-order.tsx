@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
-import { MapPin, Clock, Phone, User, Store, ShieldCheck } from 'lucide-react-native';
+import { MapPin, Clock, User, Store, ShieldCheck } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
@@ -10,7 +10,7 @@ import Button from '@/components/ui/Button';
 import OrderStatusBadge from '@/components/common/OrderStatusBadge';
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
-import { formatOrderTime } from '@/utils/formatters';
+import { formatCurrency, formatOrderTime } from '@/utils/formatters';
 import { getOrderItems } from '@/utils/orderHelpers';
 import { supabase } from '@/utils/supabase';
 import { getDriverById, grantDelayCreditIdempotent } from '@/utils/database';
@@ -33,6 +33,7 @@ export default function TrackOrder() {
   });
 
   const order = orders[0];
+  const money = (val?: number | null) => formatCurrency(Number(val ?? 0));
   const [driverLocation, setDriverLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -49,6 +50,7 @@ export default function TrackOrder() {
   } | null>(null);
   const [rerouteStatus, setRerouteStatus] = useState<'idle' | 'sent' | 'declined'>('idle');
   const [safetyEvents, setSafetyEvents] = useState<{ temp?: string; handoff?: string }>({});
+  const [etaAlert, setEtaAlert] = useState<string | null>(null);
 
   useEffect(() => {
     const loadBackups = async () => {
@@ -78,6 +80,24 @@ export default function TrackOrder() {
 
   useEffect(() => {
     if (!order) return;
+    // Simple ETA health check: wide bands or stale timestamps
+    if (order.eta_confidence_low && order.eta_confidence_high) {
+      const low = new Date(order.eta_confidence_low).getTime();
+      const high = new Date(order.eta_confidence_high).getTime();
+      const bandMinutes = Math.abs(high - low) / 60000;
+      if (bandMinutes > 35) {
+        setEtaAlert('Arrival window is wide. We are monitoring for delays.');
+      } else {
+        setEtaAlert(null);
+      }
+    }
+    const createdAt = order.created_at ? new Date(order.created_at).getTime() : null;
+    if (createdAt) {
+      const ageMinutes = (Date.now() - createdAt) / 60000;
+      if (ageMinutes > 90 && !order.delivered_at && !order.cancelled_at) {
+        setEtaAlert('Order ETA data may be stale—expect potential delays.');
+      }
+    }
     const now = Date.now();
 
     const etaHigh = order.eta_confidence_high ? new Date(order.eta_confidence_high).getTime() : null;
@@ -164,7 +184,7 @@ export default function TrackOrder() {
           table: 'delivery_drivers',
           filter: `id=eq.${driverId}`,
         },
-        (payload) => {
+        (payload: any) => {
           const newRecord = payload.new as any;
           if (newRecord.current_latitude && newRecord.current_longitude) {
             setDriverLocation({
@@ -304,6 +324,7 @@ export default function TrackOrder() {
             <Text style={styles.orderNumber}>Order #{order.id.slice(-6).toUpperCase()}</Text>
             <OrderStatusBadge status={order.status} size="large" />
           </View>
+          {etaAlert && <Text style={styles.warningText}>{etaAlert}</Text>}
           <Text style={styles.restaurantName}>{order.restaurant?.name}</Text>
           <Text style={styles.orderTime}>Ordered {formatOrderTime(order.created_at)}</Text>
           {etaWindow && showTrustedEta && (
@@ -466,7 +487,7 @@ export default function TrackOrder() {
                   title="Open in Maps"
                   onPress={openDriverInMaps}
                   size="small"
-                  variant="ghost"
+                  variant="secondary"
                 />
               </View>
             )}
@@ -481,9 +502,24 @@ export default function TrackOrder() {
               <Text key={index} style={styles.orderItem}>• {item}</Text>
             ))}
           </View>
-          <View style={styles.orderTotal}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalAmount}>${order.total.toFixed(2)}</Text>
+          <View style={styles.chargeBreakdown}>
+            {[
+              { label: 'Subtotal', value: order.subtotal },
+              { label: 'Delivery', value: order.delivery_fee },
+              { label: 'Tax', value: order.tax_amount },
+              { label: 'Tip', value: order.tip_amount },
+              { label: 'Platform fee', value: order.platform_fee },
+            ].map(row => (
+              <View key={row.label} style={styles.chargeRow}>
+                <Text style={styles.chargeLabel}>{row.label}</Text>
+                <Text style={styles.chargeValue}>{money(row.value)}</Text>
+              </View>
+            ))}
+            <View style={styles.chargeDivider} />
+            <View style={styles.chargeRow}>
+              <Text style={styles.chargeTotalLabel}>Total charged</Text>
+              <Text style={styles.chargeTotalValue}>{money(order.total_charged ?? order.total)}</Text>
+            </View>
           </View>
         </Card>
 
@@ -817,21 +853,39 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 4,
   },
-  orderTotal: {
+  chargeBreakdown: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 12,
+    gap: 6,
+  },
+  chargeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
   },
-  totalLabel: {
-    fontSize: 16,
+  chargeLabel: {
+    fontSize: 13,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  chargeValue: {
+    fontSize: 13,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
   },
-  totalAmount: {
-    fontSize: 16,
+  chargeDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 4,
+  },
+  chargeTotalLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+  },
+  chargeTotalValue: {
+    fontSize: 14,
     fontFamily: 'Inter-Bold',
     color: '#111827',
   },
@@ -867,5 +921,10 @@ const styles = StyleSheet.create({
   },
   contactButton: {
     flex: 1,
+  },
+  warningText: {
+    color: '#92400E',
+    fontWeight: '600',
+    marginBottom: 6,
   },
 });

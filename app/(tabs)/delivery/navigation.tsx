@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Navigation, MapPin, Phone, Clock, Package, CircleCheck as CheckCircle, ArrowRight } from 'lucide-react-native';
+import { Navigation, MapPin, Phone, Package, CircleCheck as CheckCircle } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';

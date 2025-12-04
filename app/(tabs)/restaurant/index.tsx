@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Store, DollarSign, Clock, Star, TrendingUp, Bell, RefreshCw, Menu } from 'lucide-react-native';
+import { Store, DollarSign, Clock, Star, TrendingUp, Bell, RefreshCw } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 import StatCard from '@/components/common/StatCard';

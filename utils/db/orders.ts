@@ -32,6 +32,7 @@ export async function createOrder(
     substitutions?: SubstitutionDecision[];
   }
 ): Promise<{ data: Order | null; error: any }> {
+  const etaContext = options?.etaContext ?? {};
   // Prevent ordering from closed restaurants
   const { data: restaurantStatus, error: restaurantError } = await supabase
     .from('restaurants')
@@ -53,7 +54,7 @@ export async function createOrder(
     ? parseInt(restaurantStatus.delivery_time, 10)
     : Number(restaurantStatus?.delivery_time);
 
-  const travelMinutes = etaContext?.travelMinutes
+  const travelMinutes = etaContext.travelMinutes
     ?? (parsedDeliveryMinutes && !Number.isNaN(parsedDeliveryMinutes) ? Math.max(8, parsedDeliveryMinutes / 2) : 15);
 
   const etaBand = computeEtaBand({
@@ -67,34 +68,41 @@ export async function createOrder(
 
   const etaTimestamps = etaTimestampsFromNow(etaBand);
 
-  // Start a transaction
-  const { data: order, error: orderError } = await supabase
+  // Create order server-side to ensure ledger fields are computed consistently
+  const { data: orderId, error: createError } = await supabase.rpc('create_order_payment_pending', {
+    p_user_id: userId,
+    p_restaurant_id: restaurantId,
+    p_delivery_address_id: deliveryAddressId,
+    p_delivery_address: deliveryAddress,
+    p_subtotal: subtotal,
+    p_delivery_fee: deliveryFee,
+    p_tax_amount: taxAmount,
+    p_tip_amount: tipAmount,
+    p_payment_method: paymentMethod,
+    p_payment_ref: null,
+    p_receipt_url: receiptUrl ?? null,
+  });
+
+  if (createError || !orderId) {
+    return { data: null, error: createError };
+  }
+
+  const { data: order, error: orderUpdateError } = await supabase
     .from('orders')
-    .insert({
-      user_id: userId,
-      restaurant_id: restaurantId,
-      delivery_address_id: deliveryAddressId,
-      delivery_address: deliveryAddress,
-      subtotal,
-      delivery_fee: deliveryFee,
-      tax_amount: taxAmount,
-      tip_amount: tipAmount,
-      total,
-      payment_method: paymentMethod,
+    .update({
       delivery_instructions: deliveryInstructions,
-      receipt_url: receiptUrl,
       eta_promised: etaTimestamps.eta_promised,
       eta_confidence_low: etaTimestamps.eta_confidence_low,
       eta_confidence_high: etaTimestamps.eta_confidence_high,
-      payment_status: 'initiated',
       wallet_capture_status: 'pending',
-      status: 'pending'
+      status: 'pending',
     })
+    .eq('id', orderId as string)
     .select()
     .single();
 
-  if (orderError) {
-    return { data: null, error: orderError };
+  if (orderUpdateError) {
+    return { data: null, error: orderUpdateError };
   }
 
   // Create order items
@@ -132,7 +140,7 @@ export async function createOrder(
 
   // Record substitution choices (best-effort, idempotent)
   if (options?.substitutions && options.substitutions.length > 0) {
-    await Promise.all(options.substitutions.map(decision => {
+    await Promise.all(options.substitutions.map(async decision => {
       // Validate substitution server-side
       const { data: isValid, error: subError } = await supabase.rpc('validate_substitution_choice', {
         p_restaurant_id: restaurantId,
@@ -153,14 +161,13 @@ export async function createOrder(
         quantity: decision.quantity,
       };
       const idem = `${order.id}_${decision.original_item_id}`;
-      createDeliveryEvent({
+      await createDeliveryEvent({
         order_id: order.id,
         event_type: 'substitution_choice',
         payload,
         idempotencyKey: idem,
       });
-      logAudit('substitution_choice', 'order_items', order.id, { ...payload, idempotency_key: idem }, userId);
-      return Promise.resolve();
+      await logAudit('substitution_choice', 'order_items', order.id, { ...payload, idempotency_key: idem }, userId);
     }));
   }
 

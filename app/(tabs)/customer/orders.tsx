@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -145,7 +145,7 @@ export default function Orders() {
             </Text>
             <Button
               title="Explore Restaurants"
-              onPress={() => router.push('/customer/')}
+            onPress={() => router.push('/(tabs)/customer' as any)}
               style={styles.exploreButton}
             />
           </View>

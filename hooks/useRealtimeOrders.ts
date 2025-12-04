@@ -79,7 +79,7 @@ export function useRealtimeOrders({
               table: 'orders',
               filter: getFilter()
             },
-            (payload) => {
+            (payload: any) => {
               handleOrderChange(payload);
             }
           )
@@ -90,7 +90,7 @@ export function useRealtimeOrders({
               schema: 'public',
               table: 'deliveries',
             },
-            (payload) => {
+            (payload: any) => {
               handleDeliveryChange(payload);
             }
           )

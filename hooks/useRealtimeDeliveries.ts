@@ -110,7 +110,7 @@ export function useRealtimeDeliveries({
               schema: 'public',
               table: 'deliveries'
             },
-            (payload) => {
+            (payload: any) => {
               handleDeliveryChange(payload);
             }
           )

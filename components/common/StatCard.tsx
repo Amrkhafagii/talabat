@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import { Video as LucideIcon } from 'lucide-react-native';
 import Card from '../ui/Card';
 
 interface StatCardProps {
-  icon: LucideIcon;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
   value: string | number;
   label: string;
   iconColor?: string;

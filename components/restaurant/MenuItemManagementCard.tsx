@@ -31,7 +31,7 @@ export default function MenuItemManagementCard({
   onTogglePopular,
 }: MenuItemManagementCardProps) {
   return (
-    <Card style={[styles.card, !item.isAvailable && styles.unavailableCard]}>
+    <Card style={[styles.card, !item.isAvailable ? styles.unavailableCard : undefined] as any}>
       <View style={styles.content}>
         <Image source={{ uri: item.image }} style={styles.image} />
         

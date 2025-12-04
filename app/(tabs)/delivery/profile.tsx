@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Truck, User, MapPin, Star, DollarSign, Clock, Phone, Mail, CreditCard as Edit, LogOut } from 'lucide-react-native';
+import { Truck, MapPin, Star, DollarSign, Clock, CreditCard as Edit, LogOut } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '@/contexts/AuthContext';
@@ -105,11 +105,10 @@ export default function DeliveryProfile() {
         const updated = await updateDriverProfile(driver.id, {
           id_document_url: type === 'id' ? uploadedUrl : driver.id_document_url,
           license_document_url: type === 'license' ? uploadedUrl : driver.license_document_url,
-          documents_verified: false,
           background_check_status: 'pending',
           is_online: false,
           is_available: false,
-        });
+        } as any);
         if (updated) {
           setDriver(updated);
           Alert.alert('Uploaded', 'Document uploaded. Verification pending.');

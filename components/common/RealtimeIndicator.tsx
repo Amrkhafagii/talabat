@@ -17,8 +17,8 @@ export default function RealtimeIndicator({ show = true }: RealtimeIndicatorProp
     // Monitor connection status
     const channel = supabase.channel('connection-status');
     
-    channel
-      .on('system', {}, (payload) => {
+  channel
+    .on('system', {}, (payload: any) => {
         if (payload.type === 'connected') {
           setIsConnected(true);
           setLastUpdate(new Date());

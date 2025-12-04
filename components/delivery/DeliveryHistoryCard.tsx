@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { MapPin, Clock, Star, DollarSign } from 'lucide-react-native';
+import { MapPin, Clock, Star } from 'lucide-react-native';
 import Card from '../ui/Card';
 import { formatCurrency } from '@/utils/formatters';
 

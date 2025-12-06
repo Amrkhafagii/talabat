@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { money } from '@/utils/adminUi';
+import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { IOSBadge } from '@/components/ios/IOSBadge';
 
 type IssueRow = {
   id: string;
@@ -30,14 +32,22 @@ export function OrderIssues({ orders = [], deliveries = [], onSelectOrder, onSel
         orders.map((o) => (
           <TouchableOpacity
             key={o.id}
-            style={[styles.card, onSelectOrder ? styles.cardAction : null]}
+            style={{ marginBottom: iosSpacing.xs }}
             onPress={() => onSelectOrder && onSelectOrder(o.id)}
             accessibilityRole="button"
           >
-            <Text style={styles.title}>Order {o.id.slice(-6).toUpperCase()}</Text>
-            <Text style={styles.meta}>Issue: {o.issue}</Text>
-            <Text style={styles.meta}>Status: {o.status} • Payment: {o.payment_status}</Text>
-            {o.restaurant_id && <Text style={styles.meta}>Restaurant: {o.restaurant_id}</Text>}
+            <IOSCard padding="sm" style={onSelectOrder ? styles.cardAction : undefined}>
+              <View style={styles.rowHeader}>
+                <Text style={styles.title}>Order {o.id.slice(-6).toUpperCase()}</Text>
+                <IOSBadge label="Issue" tone="error" />
+              </View>
+              <Text style={styles.meta}>Issue: {o.issue}</Text>
+              <View style={styles.badgeRow}>
+                {o.status && <IOSBadge label={`Status: ${o.status}`} tone="info" />}
+                {o.payment_status && <IOSBadge label={`Payment: ${o.payment_status}`} tone="warning" />}
+              </View>
+              {o.restaurant_id && <Text style={styles.meta}>Restaurant: {o.restaurant_id}</Text>}
+            </IOSCard>
           </TouchableOpacity>
         ))
       )}
@@ -49,14 +59,21 @@ export function OrderIssues({ orders = [], deliveries = [], onSelectOrder, onSel
         deliveries.map((d) => (
           <TouchableOpacity
             key={d.id}
-            style={[styles.card, onSelectDelivery ? styles.cardAction : null]}
+            style={{ marginBottom: iosSpacing.xs }}
             onPress={() => onSelectDelivery && onSelectDelivery(d.order_id ?? d.id)}
             accessibilityRole="button"
           >
-            <Text style={styles.title}>Delivery {d.id.slice(-6).toUpperCase()}</Text>
-            <Text style={styles.meta}>Issue: {d.issue}</Text>
-            <Text style={styles.meta}>Status: {d.status}</Text>
-            {d.driver_id && <Text style={styles.meta}>Driver: {d.driver_id}</Text>}
+            <IOSCard padding="sm" style={onSelectDelivery ? styles.cardAction : undefined}>
+              <View style={styles.rowHeader}>
+                <Text style={styles.title}>Delivery {d.id.slice(-6).toUpperCase()}</Text>
+                <IOSBadge label="Issue" tone="error" />
+              </View>
+              <Text style={styles.meta}>Issue: {d.issue}</Text>
+              <View style={styles.badgeRow}>
+                {d.status && <IOSBadge label={`Status: ${d.status}`} tone="info" />}
+                {d.driver_id && <IOSBadge label={`Driver: ${d.driver_id.slice(0, 6)}`} tone="neutral" />}
+              </View>
+            </IOSCard>
           </TouchableOpacity>
         ))
       )}
@@ -65,10 +82,11 @@ export function OrderIssues({ orders = [], deliveries = [], onSelectOrder, onSel
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8, color: '#111827' },
-  helper: { color: '#6B7280', marginBottom: 8 },
-  card: { backgroundColor: '#fff', padding: 12, borderRadius: 10, marginBottom: 8 },
-  cardAction: { borderWidth: 1, borderColor: '#0F172A' },
-  title: { fontWeight: '700', fontSize: 14, marginBottom: 4 },
-  meta: { color: '#4B5563', fontSize: 13 },
+  sectionTitle: { ...iosTypography.headline, marginBottom: iosSpacing.xs },
+  helper: { ...iosTypography.caption, color: iosColors.secondaryText, marginBottom: iosSpacing.xs },
+  cardAction: { borderColor: iosColors.primary },
+  title: { ...iosTypography.subhead },
+  meta: { ...iosTypography.caption, color: iosColors.secondaryText },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: iosSpacing.xs, marginTop: iosSpacing.xs },
+  rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

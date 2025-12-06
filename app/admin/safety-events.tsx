@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/utils/supabase';
+import { AdminShell } from '@/components/admin/AdminShell';
+import { useAdminGate } from '@/hooks/useAdminGate';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { IOSBadge } from '@/components/ios/IOSBadge';
 
 type SafetyEvent = {
   id: number;
@@ -13,6 +17,7 @@ type SafetyEvent = {
 };
 
 export default function SafetyEventsAdmin() {
+  const { allowed, loading: gateLoading, signOut } = useAdminGate();
   const [events, setEvents] = useState<SafetyEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,54 +36,51 @@ export default function SafetyEventsAdmin() {
     load();
   }, []);
 
+  if (gateLoading || !allowed) return null;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Safety Events (recent)</Text>
+    <AdminShell title="Safety Events" onSignOut={signOut} headerVariant="ios">
+      <Text style={styles.header}>Recent safety checks</Text>
       {loading ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={iosColors.primary} />
         </View>
       ) : (
         <ScrollView>
           {events.map(ev => (
-            <View key={ev.id} style={styles.card}>
-              <Text style={styles.title}>{ev.event_type.replace('_', ' ')}</Text>
-              <Text style={styles.meta}>Order: {ev.order_id?.slice(0, 8) || '—'} • Driver: {ev.driver_id?.slice(0, 8) || '—'}</Text>
+            <IOSCard key={ev.id} padding="md" style={styles.card}>
+              <View style={styles.rowHeader}>
+                <Text style={styles.title}>{ev.event_type.replace('_', ' ')}</Text>
+                <IOSBadge label={new Date(ev.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} tone="neutral" />
+              </View>
+              <Text style={styles.meta}>Order: {ev.order_id?.slice(-6).toUpperCase() || '—'} • Driver: {ev.driver_id?.slice(-6).toUpperCase() || '—'}</Text>
               {ev.event_type === 'temp_check' && (
                 <Text style={styles.body}>Passed: {String(ev.payload?.passed)} {ev.payload?.photo_url ? '• Photo attached' : ''}</Text>
               )}
               {ev.event_type === 'handoff_confirmation' && (
                 <Text style={styles.body}>Confirmed: {String(ev.payload?.confirmed)}</Text>
               )}
-              <Text style={styles.meta}>At: {new Date(ev.created_at).toLocaleString()}</Text>
               {ev.payload?.photo_url && (
                 <TouchableOpacity onPress={() => {}} style={styles.linkBtn}>
-                  <Text style={styles.linkText}>{ev.payload.photo_url}</Text>
+                  <Text style={styles.linkText}>Open photo</Text>
                 </TouchableOpacity>
               )}
-            </View>
+            </IOSCard>
           ))}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </AdminShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB', padding: 16 },
-  header: { fontSize: 18, fontFamily: 'Inter-SemiBold', color: '#111827', marginBottom: 12 },
+  header: { ...iosTypography.subhead, color: iosColors.secondaryText, marginBottom: iosSpacing.sm },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 12,
-    marginBottom: 12,
-  },
-  title: { fontFamily: 'Inter-SemiBold', color: '#111827', fontSize: 14, marginBottom: 4 },
-  meta: { fontFamily: 'Inter-Regular', color: '#6B7280', fontSize: 12 },
-  body: { fontFamily: 'Inter-Regular', color: '#111827', fontSize: 13, marginVertical: 4 },
+  card: { marginBottom: iosSpacing.sm, borderRadius: iosRadius.lg },
+  rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { ...iosTypography.subhead },
+  meta: { ...iosTypography.caption, color: iosColors.secondaryText },
+  body: { ...iosTypography.body, color: iosColors.text, marginVertical: iosSpacing.xs },
   linkBtn: { marginTop: 4 },
-  linkText: { color: '#2563EB', fontFamily: 'Inter-Regular', fontSize: 12 },
+  linkText: { color: iosColors.primary, ...iosTypography.caption },
 });

@@ -1,6 +1,10 @@
 import React from 'react';
-import { View, TextInput, Text, TouchableOpacity } from 'react-native';
-import { styles } from '@/styles/adminMetrics';
+import { View, Text, StyleSheet, ViewStyle, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
+import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { IOSInput } from '@/components/ios/IOSInput';
+import { IOSPillButton } from '@/components/ios/IOSPillButton';
+import { IOSQuickLinkPill } from '@/components/ios/IOSQuickLinkPill';
+import { Filter, CreditCard, ClipboardList } from 'lucide-react-native';
 
 type Props = {
   search: string;
@@ -30,17 +34,23 @@ export function OrderFilters({
   onQuickReviews,
   onQuickPayouts,
 }: Props) {
+  const { width } = useWindowDimensions();
+  const isPhone = width < 400;
+
   return (
     <View style={{ gap: 8, marginBottom: 12 }}>
-      <Text style={styles.metaRow}>Load by order/user/restaurant id or filter by state</Text>
-      <TextInput
-        value={search}
-        onChangeText={onChangeSearch}
-        placeholder="Enter order/user/restaurant id"
-        style={styles.input}
-        autoCapitalize="none"
-      />
-      <View style={styles.buttonRow}>
+      <Text style={iosTypography.caption}>Load by order/user/restaurant id or filter by state</Text>
+      <View style={iosStyles.searchRow}>
+        <IOSInput
+          value={search}
+          onChangeText={onChangeSearch}
+          placeholder="Search Order, User, Restaurant"
+          autoCapitalize="none"
+          style={{ flex: 1, paddingLeft: iosSpacing.lg }}
+        />
+        <Filter size={18} color={iosColors.secondaryText} />
+      </View>
+      <View style={iosRow}>
         <Dropdown
           label="Delivery status"
           value={deliveryStatus}
@@ -54,22 +64,12 @@ export function OrderFilters({
           onChange={onChangePaymentStatus}
         />
       </View>
-      <TouchableOpacity style={[styles.button, styles.buttonPrimary]} onPress={onSubmit} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Loading…' : 'Apply'}</Text>
-      </TouchableOpacity>
+      <IOSPillButton label={loading ? 'Loading…' : 'Apply'} onPress={onSubmit} disabled={loading} size={isPhone ? 'xs' : 'md'} />
       {(onQuickReviews || onQuickPayouts) && (
-        <View style={styles.buttonRow}>
-          {onQuickReviews && (
-            <TouchableOpacity style={[styles.button, styles.outlineButton]} onPress={onQuickReviews}>
-              <Text style={styles.outlineButtonText}>Open Reviews</Text>
-            </TouchableOpacity>
-          )}
-          {onQuickPayouts && (
-            <TouchableOpacity style={[styles.button, styles.outlineButton]} onPress={onQuickPayouts}>
-              <Text style={styles.outlineButtonText}>Open Payouts</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[iosRow, { marginTop: iosSpacing.xs }]}>
+          {onQuickReviews && <IOSQuickLinkPill label="Quick Links: Reviews" onPress={onQuickReviews} icon={<ClipboardList size={18} color="#FFF" />} />}
+          {onQuickPayouts && <IOSQuickLinkPill label="Quick Links: Payouts" onPress={onQuickPayouts} icon={<CreditCard size={18} color="#FFF" />} />}
+        </ScrollView>
       )}
     </View>
   );
@@ -88,15 +88,18 @@ function Dropdown({
 }) {
   return (
     <View style={{ flex: 1 }}>
-      <Text style={styles.metaRow}>{label}</Text>
-      <View style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-        <Text style={styles.row}>{value}</Text>
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          {options.slice(0, 3).map(opt => (
-            <TouchableOpacity key={opt} onPress={() => onChange(opt)} style={[styles.badge, styles.badgeNeutral]}>
-              <Text style={[styles.badgeText, styles.badgeNeutralText]}>{opt}</Text>
-            </TouchableOpacity>
-          ))}
+      <Text style={iosTypography.caption}>{label}</Text>
+      <View style={iosStyles.dropdown}>
+        <Text style={iosStyles.dropdownValue}>{value}</Text>
+        <View style={iosStyles.dropdownOptions}>
+          {options.slice(0, 3).map(opt => {
+            const active = opt === value;
+            return (
+              <TouchableOpacity key={opt} onPress={() => onChange(opt)} style={[iosStyles.chip, active && iosStyles.chipActive]}>
+                <Text style={[iosStyles.chipText, active && iosStyles.chipTextActive]}>{opt}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     </View>
@@ -104,3 +107,31 @@ function Dropdown({
 }
 
 export default OrderFilters;
+
+const iosStyles = StyleSheet.create({
+  dropdown: {
+    backgroundColor: iosColors.surface,
+    borderRadius: iosRadius.md,
+    borderWidth: 1,
+    borderColor: iosColors.separator,
+    padding: iosSpacing.sm,
+  },
+  dropdownValue: { ...iosTypography.body, marginBottom: iosSpacing.xs },
+  dropdownOptions: { flexDirection: 'row', gap: iosSpacing.xs },
+  chip: {
+    paddingHorizontal: iosSpacing.sm,
+    paddingVertical: iosSpacing.xs,
+    borderRadius: iosRadius.pill,
+    backgroundColor: iosColors.chipBg,
+  },
+  chipActive: { backgroundColor: iosColors.primary },
+  chipText: { ...iosTypography.subhead, color: iosColors.secondaryText },
+  chipTextActive: { color: '#FFFFFF' },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: iosSpacing.xs,
+  },
+});
+
+const iosRow: ViewStyle = { flexDirection: 'row', justifyContent: 'space-between', gap: iosSpacing.xs };

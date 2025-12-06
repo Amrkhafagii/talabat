@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { AdminState } from '@/components/admin/AdminState';
 import { useAdminGate } from '@/hooks/useAdminGate';
@@ -15,6 +15,9 @@ import AdminGrid from '@/components/admin/AdminGrid';
 import AnalyticsFilters from '@/components/admin/AnalyticsFilters';
 import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
 import { styles } from '@/styles/adminMetrics';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { IOSChartPlaceholder } from '@/components/ios/IOSChartPlaceholder';
 
 export default function AdminAnalytics() {
   const { allowed, loading: gateLoading, signOut } = useAdminGate();
@@ -48,8 +51,12 @@ export default function AdminAnalytics() {
   if (gateLoading || !allowed) return null;
 
   return (
-    <AdminShell title="Analytics" onSignOut={signOut}>
-      <AdminGrid minColumnWidth={340}>
+    <AdminShell title="Analytics" onSignOut={signOut} headerVariant="ios">
+      <IOSCard padding="md" style={analytics.card}>
+        <View style={analytics.headerRow}>
+          <Text style={analytics.title}>Analytics Dashboard</Text>
+          <Text style={analytics.link} onPress={load}>Filter</Text>
+        </View>
         <AnalyticsFilters
           start={start}
           end={end}
@@ -61,30 +68,39 @@ export default function AdminAnalytics() {
           onChangeRestaurant={setRestaurantFilter}
           onApply={load}
         />
-        <AdminState loading={loading} emptyMessage="No analytics yet.">
-          <AnalyticsCharts
-            totalsCustomer={totals?.total_customer_paid || 0}
-            totalsPlatform={totals?.total_platform_fee || 0}
-            paidOrders={totals?.paid_orders || 0}
-            drivers={drivers}
-            restaurants={restaurants}
-          />
-        </AdminState>
-      </AdminGrid>
-      <View style={{ marginTop: styles.metaRow.fontSize ? 12 : 12 }}>
-        <AdminState loading={loading} emptyMessage="No additional analytics.">
-          {/* Placeholder for future charts/tables such as trend lines or cohort analysis */}
-          <View style={styles.sectionCard}>
-            <View style={styles.cardHeaderRow}>
-              <View>
-                <Text style={styles.sectionTitle}>Trends</Text>
-                <Text style={styles.metaRow}>Add line/bar charts here (spark placeholders).</Text>
-              </View>
+      </IOSCard>
+
+      <AdminGrid minColumnWidth={300}>
+        <IOSCard padding="md" style={analytics.card}>
+          <AdminState loading={loading} emptyMessage="No analytics yet.">
+            <AnalyticsCharts
+              totalsCustomer={totals?.total_customer_paid || 0}
+              totalsPlatform={totals?.total_platform_fee || 0}
+              paidOrders={totals?.paid_orders || 0}
+              drivers={drivers}
+              restaurants={restaurants}
+            />
+          </AdminState>
+        </IOSCard>
+        <IOSCard padding="md" style={analytics.card}>
+          <AdminState loading={loading} emptyMessage="No additional analytics.">
+            <View>
+              <Text style={analytics.sectionTitle}>Trends</Text>
+              <Text style={analytics.helper}>Future trends chart placeholder.</Text>
+              <IOSChartPlaceholder />
             </View>
-            <View style={{ height: 120, backgroundColor: '#F3F4F6', borderRadius: 10 }} />
-          </View>
-        </AdminState>
-      </View>
+          </AdminState>
+        </IOSCard>
+      </AdminGrid>
     </AdminShell>
   );
 }
+
+const analytics = StyleSheet.create({
+  card: { marginBottom: iosSpacing.md },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: iosSpacing.sm },
+  title: { ...iosTypography.headline },
+  link: { ...iosTypography.subhead, color: '#007AFF' },
+  sectionTitle: { ...iosTypography.headline, marginBottom: iosSpacing.xs },
+  helper: { ...iosTypography.caption, marginBottom: iosSpacing.sm },
+});

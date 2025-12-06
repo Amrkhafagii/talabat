@@ -1,6 +1,9 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, Text } from 'react-native';
-import { styles } from '@/styles/adminMetrics';
+import { View, Text, StyleSheet } from 'react-native';
+import { IOSInput } from '@/components/ios/IOSInput';
+import { IOSFilterSheet } from '@/components/ios/IOSFilterSheet';
+import { iosColors, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { Calendar, Search } from 'lucide-react-native';
 
 type Props = {
   start: string;
@@ -26,39 +29,54 @@ export function AnalyticsFilters({
   onApply,
 }: Props) {
   return (
-    <View style={styles.sectionCard}>
-      <Text style={styles.sectionTitle}>Filters</Text>
-      <View style={{ gap: 8 }}>
-        <TextInput
-          style={styles.input}
-          placeholder="Start (YYYY-MM-DD)"
+    <IOSFilterSheet title="Date Range" onApply={onApply}>
+      <View style={styles.row}>
+        <IOSInput
+          placeholder="Oct 1, 2023"
           value={start}
           onChangeText={onChangeStart}
-        />
-        <TextInput
           style={styles.input}
-          placeholder="End (YYYY-MM-DD)"
+        />
+        <Calendar size={18} color={iosColors.secondaryText} />
+      </View>
+      <View style={styles.row}>
+        <IOSInput
+          placeholder="Oct 31, 2023"
           value={end}
           onChangeText={onChangeEnd}
-        />
-        <TextInput
           style={styles.input}
-          placeholder="Driver user id (optional)"
+        />
+        <Calendar size={18} color={iosColors.secondaryText} />
+      </View>
+      <View style={styles.row}>
+        <IOSInput
+          placeholder="Search drivers..."
           value={driverFilter}
           onChangeText={onChangeDriver}
-        />
-        <TextInput
           style={styles.input}
-          placeholder="Restaurant id (optional)"
+        />
+        <Search size={18} color={iosColors.secondaryText} />
+      </View>
+      <View style={styles.row}>
+        <IOSInput
+          placeholder="Search restaurants..."
           value={restaurantFilter}
           onChangeText={onChangeRestaurant}
+          style={styles.input}
         />
-        <TouchableOpacity style={[styles.button, styles.buttonPrimary]} onPress={onApply}>
-          <Text style={styles.buttonText}>Apply filters</Text>
-        </TouchableOpacity>
+        <Search size={18} color={iosColors.secondaryText} />
       </View>
-    </View>
+    </IOSFilterSheet>
   );
 }
 
 export default AnalyticsFilters;
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: iosSpacing.xs,
+  },
+  input: { flex: 1, paddingRight: iosSpacing.md },
+});

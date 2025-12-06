@@ -8,10 +8,16 @@ import { useAdminGate } from '@/hooks/useAdminGate';
 import { retryRestaurantPayout, retryDriverPayout, retryDuePayouts, listWalletTransactionsForUser, settleWalletBalance } from '@/utils/db/adminOps';
 import { PayoutBalances } from '@/components/admin/PayoutBalances';
 import { AdminToast } from '@/components/admin/AdminToast';
-import { Text, Alert, View } from 'react-native';
+import { Text, Alert, View, StyleSheet, TouchableOpacity, useWindowDimensions, ScrollView } from 'react-native';
 import { styles } from '@/styles/adminMetrics';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { IOSSegmentedControl } from '@/components/ios/IOSSegmentedControl';
+import { IOSPillButton } from '@/components/ios/IOSPillButton';
+import { iosColors, iosShadow, iosSpacing, iosTypography, iosRadius } from '@/styles/iosTheme';
 
 export default function AdminPayouts() {
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 400;
   const params = useLocalSearchParams<{ section?: string; focus?: string }>();
   const { allowed, loading: gateLoading, signOut } = useAdminGate();
   const vm = useAdminMetricsCoordinator();
@@ -20,6 +26,8 @@ export default function AdminPayouts() {
   const sectionParam = typeof params.section === 'string' ? params.section : undefined;
   const focusSection = sectionParam === 'driver' || sectionParam === 'restaurant' || sectionParam === 'balances' ? sectionParam : undefined;
   const focusOrderId = typeof params.focus === 'string' ? params.focus : null;
+  const [queueFilter, setQueueFilter] = useState<'restaurant' | 'driver'>((focusSection as any) || 'restaurant');
+  const [showMenu, setShowMenu] = useState(false);
 
   const processDue = useCallback(async () => {
     Alert.alert('Process due retries?', 'This will trigger due retries for restaurant and driver payouts.', [
@@ -64,10 +72,14 @@ export default function AdminPayouts() {
   if (gateLoading || !allowed) return null;
 
   return (
-    <AdminShell title="Payouts" onSignOut={signOut}>
+    <AdminShell title="Payouts" onSignOut={signOut} headerVariant="ios">
       <AdminToast message={toast} tone="info" />
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Balances</Text>
+
+      <IOSCard padding="md" style={cardStyles.block}>
+        <View style={cardStyles.headerRow}>
+          <Text style={cardStyles.title}>Balances</Text>
+          <IOSPillButton label="Refresh" variant="ghost" size="sm" onPress={vm.refreshAll} />
+        </View>
         <AdminState
           loading={vm.payoutLoading}
           emptyMessage="No balances."
@@ -82,9 +94,44 @@ export default function AdminPayouts() {
             onViewTx={handleViewTx}
           />
         </AdminState>
-      </View>
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Queues</Text>
+      </IOSCard>
+
+      <IOSCard padding="md" style={cardStyles.block}>
+        <View style={cardStyles.headerRow}>
+          <Text style={cardStyles.title}>Queues</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[cardStyles.actionRow, isNarrow && { paddingHorizontal: iosSpacing.sm }]}
+          >
+            <IOSPillButton label="Process Due Retries" variant="ghost" size={isNarrow ? 'xs' : 'md'} onPress={processDue} />
+            <IOSPillButton label="Bulk Refresh" variant="ghost" size={isNarrow ? 'xs' : 'md'} onPress={vm.refreshAll} />
+            <TouchableOpacity onPress={() => setShowMenu((v) => !v)} style={cardStyles.moreButton} activeOpacity={0.8}>
+              <Text style={cardStyles.moreText}>More</Text>
+            </TouchableOpacity>
+          </ScrollView>
+          {showMenu && (
+            <View style={cardStyles.menu}>
+              <TouchableOpacity onPress={processDue} style={cardStyles.menuItem} activeOpacity={0.8}>
+                <Text style={cardStyles.menuText}>Process Due Retries</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={vm.refreshAll} style={cardStyles.menuItem} activeOpacity={0.8}>
+                <Text style={cardStyles.menuText}>Bulk Refresh</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: iosSpacing.sm }}>
+          <IOSSegmentedControl
+            segments={[
+              { key: 'restaurant', label: 'Restaurants', badge: vm.restaurantPayables?.length || 0 },
+              { key: 'driver', label: 'Drivers', badge: vm.driverPayables?.length || 0 },
+            ]}
+            value={queueFilter}
+            onChange={(k) => setQueueFilter(k)}
+            style={{ marginBottom: iosSpacing.sm, minWidth: isNarrow ? 300 : undefined }}
+          />
+        </ScrollView>
         <AdminState
           loading={vm.payoutLoading}
           error={null}
@@ -103,11 +150,39 @@ export default function AdminPayouts() {
             onRetryRestaurant={handleRetryRestaurant}
             onRetryDriver={handleRetryDriver}
             onProcessDue={processDue}
-            focusSection={focusSection}
+            focusSection={queueFilter}
             focusOrderId={focusOrderId}
           />
         </AdminState>
-      </View>
+      </IOSCard>
     </AdminShell>
   );
 }
+
+const cardStyles = StyleSheet.create({
+  block: { marginBottom: iosSpacing.md },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: iosSpacing.sm },
+  title: { ...iosTypography.headline },
+  actionRow: { flexDirection: 'row', gap: iosSpacing.xs, alignItems: 'center', paddingVertical: iosSpacing.xs },
+  moreButton: {
+    paddingHorizontal: iosSpacing.sm,
+    paddingVertical: iosSpacing.xs,
+    borderRadius: iosRadius.md,
+    backgroundColor: iosColors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: iosColors.separator,
+  },
+  moreText: { ...iosTypography.subhead, color: iosColors.secondaryText },
+  menu: {
+    position: 'absolute',
+    top: 36,
+    right: 0,
+    backgroundColor: iosColors.surface,
+    borderRadius: iosRadius.lg,
+    borderWidth: 1,
+    borderColor: iosColors.separator,
+    ...iosShadow.overlay,
+  },
+  menuItem: { paddingHorizontal: iosSpacing.md, paddingVertical: iosSpacing.sm },
+  menuText: { ...iosTypography.subhead },
+});

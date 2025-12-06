@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { AdminState } from '@/components/admin/AdminState';
@@ -14,6 +14,8 @@ import { getOrderAdminDetail, OrderAdminDetail } from '@/utils/db/adminOps';
 import { styles } from '@/styles/adminMetrics';
 import OrderFilters from '@/components/admin/OrderFilters';
 import AdminGrid from '@/components/admin/AdminGrid';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 
 export default function AdminOrders() {
   const { allowed, loading: gateLoading, signOut } = useAdminGate();
@@ -69,34 +71,53 @@ export default function AdminOrders() {
   }, [orders, paymentFilter, deliveryFilter, search]);
 
   return (
-    <AdminShell title="Orders & Deliveries" onSignOut={signOut}>
+    <AdminShell title="Orders & Deliveries" onSignOut={signOut} headerVariant="ios">
       <Text style={styles.helperText}>
         Order and delivery health. Alerts highlight issues like unpaid advanced orders or unverified drivers.
       </Text>
       <AdminToast message={error} tone="error" />
 
-      <AdminGrid minColumnWidth={520}>
-        <View style={[styles.sectionCard, { minHeight: 320 }]}>
-          <OrderFilters
-            search={search}
-            onChangeSearch={setSearch}
-            deliveryStatus={deliveryFilter}
-            onChangeDeliveryStatus={setDeliveryFilter}
-            paymentStatus={paymentFilter}
-            onChangePaymentStatus={setPaymentFilter}
-            onSubmit={() => loadOrder(search)}
-            loading={loadingOrder}
-            onQuickReviews={() => router.push({ pathname: '/admin/reviews', params: { q: search } })}
-            onQuickPayouts={() => router.push({ pathname: '/admin/payouts', params: { focus: search } })}
-          />
-        <AdminState
-          loading={reportsLoading}
-          emptyMessage="No alerts."
-          onAction={refreshReports}
-          actionLabel="Refresh alerts"
-          hint="If you expect alerts, verify ingest/reporting jobs."
-        >
-            <AlertsSnapshot snapshot={opsAlerts} />
+      <IOSCard padding="md" style={orderIos.card}>
+        <Text style={orderIos.title}>Search & Filters</Text>
+        <OrderFilters
+          search={search}
+          onChangeSearch={setSearch}
+          deliveryStatus={deliveryFilter}
+          onChangeDeliveryStatus={setDeliveryFilter}
+          paymentStatus={paymentFilter}
+          onChangePaymentStatus={setPaymentFilter}
+          onSubmit={() => loadOrder(search)}
+          loading={loadingOrder}
+          onQuickReviews={() => router.push({ pathname: '/admin/reviews', params: { q: search } })}
+          onQuickPayouts={() => router.push({ pathname: '/admin/payouts', params: { focus: search } })}
+        />
+      </IOSCard>
+
+      <IOSCard padding="md" style={orderIos.card}>
+        <Text style={orderIos.title}>Operational Alerts Snapshot</Text>
+        <AdminGrid minColumnWidth={140} gap={iosSpacing.sm}>
+          <View style={orderIos.alertTile}>
+            <Text style={orderIos.alertNumber}>{Math.max(orderIssues.length, (opsAlerts?.pending_beyond_sla.restaurant ?? 0) + (opsAlerts?.pending_beyond_sla.driver ?? 0))}</Text>
+            <Text style={orderIos.alertLabel}>Urgent Order Issues{'\n'}(Delay {opsAlerts?.pending_beyond_sla.threshold_hours ? `> ${opsAlerts.pending_beyond_sla.threshold_hours}h` : ''})</Text>
+          </View>
+          <View style={orderIos.alertTile}>
+            <Text style={[orderIos.alertNumber, { color: iosColors.warning }]}>{opsAlerts?.reconciliation_unmatched_48h ?? 0}</Text>
+            <Text style={orderIos.alertLabel}>Pending Payouts{'\n'}(&gt; 48h)</Text>
+          </View>
+        </AdminGrid>
+      </IOSCard>
+
+      <AdminGrid minColumnWidth={320}>
+        <IOSCard padding="md" style={[orderIos.card, { minHeight: 320 }]}>
+          <Text style={orderIos.title}>Alerts & Issues</Text>
+          <AdminState
+            loading={reportsLoading}
+            emptyMessage="No alerts."
+            onAction={refreshReports}
+            actionLabel="Refresh alerts"
+            hint="If you expect alerts, verify ingest/reporting jobs."
+          >
+            <AlertsSnapshot snapshot={opsAlerts} useIos />
           </AdminState>
           <OrderIssues
             orders={orderIssues}
@@ -110,14 +131,14 @@ export default function AdminOrders() {
               loadOrder(id);
             }}
           />
-        </View>
-        <View style={[styles.sectionCard, { minHeight: 320 }]}>
-          <Text style={styles.sectionTitle}>Cases</Text>
-          <AdminGrid minColumnWidth={380}>
+        </IOSCard>
+        <IOSCard padding="md" style={[orderIos.card, { minHeight: 320 }]}>
+          <Text style={orderIos.title}>Cases</Text>
+          <AdminGrid minColumnWidth={300}>
             <OrderAdminList orders={filteredOrders} onSelect={(id) => loadOrder(id)} />
             {selected && <OrderAdminDetailView order={selected} />}
           </AdminGrid>
-        </View>
+        </IOSCard>
       </AdminGrid>
 
       <View style={{ marginTop: 12 }}>
@@ -127,3 +148,15 @@ export default function AdminOrders() {
     </AdminShell>
   );
 }
+
+const orderIos = StyleSheet.create({
+  card: { marginBottom: iosSpacing.md },
+  title: { ...iosTypography.headline, marginBottom: iosSpacing.xs },
+  alertTile: {
+    backgroundColor: iosColors.surfaceAlt,
+    borderRadius: iosRadius.lg,
+    padding: iosSpacing.md,
+  },
+  alertNumber: { ...iosTypography.title2, color: iosColors.destructive, textAlign: 'center' },
+  alertLabel: { ...iosTypography.caption, color: iosColors.secondaryText, textAlign: 'center', marginTop: iosSpacing.xs },
+});

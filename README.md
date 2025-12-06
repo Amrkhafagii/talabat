@@ -14,7 +14,7 @@ This repo contains a multi-role marketplace app built with Expo Router and Supab
 - `hooks/` – Data/view-model hooks (e.g., `useAdminMetricsCoordinator`, `useAdminReports`).
 - `utils/db/` – Supabase RPC wrappers for admin ops, payouts, analytics.
 - `supabase/migrations/` – SQL migrations and RPC definitions.
-- `styles/` – Tokenized admin theme (`adminTheme.ts`, `adminMetrics.ts`).
+- `styles/` – iOS admin theme (`iosTheme.ts`, `adminMetrics.ts`).
 - `scripts/` – Utilities (env check, seed admin).
 - `tests/` – Contract (`tests/contract`) and smoke (`tests/smoke`) suites.
 

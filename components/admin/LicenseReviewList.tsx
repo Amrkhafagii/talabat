@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Alert, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert, TextInput, StyleSheet } from 'react-native';
 import * as Linking from 'expo-linking';
 import CopyChip from '@/app/components/CopyChip';
-import { styles } from '@/styles/adminMetrics';
+import { styles as adminStyles } from '@/styles/adminMetrics';
 import { makeBadgeRenderer } from '@/utils/adminUi';
 import type { DriverLicenseReview } from '@/utils/db/adminOps';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { IOSStatusChip } from '@/components/ios/IOSStatusChip';
+import { IOSPillButton } from '@/components/ios/IOSPillButton';
+import { IOSTableActionRow } from '@/components/ios/IOSTableActionRow';
+import { IOSSkeleton } from '@/components/ios/IOSSkeleton';
 
 export type LicenseReviewListProps = {
   items: DriverLicenseReview[];
@@ -14,7 +20,7 @@ export type LicenseReviewListProps = {
   onReject: (driverId: string, reason?: string) => void;
 };
 
-const renderBadge = makeBadgeRenderer(styles);
+const renderBadge = makeBadgeRenderer(adminStyles);
 const rejectReasons = [
   { key: 'blurry', label: 'Blurry' },
   { key: 'expired', label: 'Expired' },
@@ -53,94 +59,87 @@ export default function LicenseReviewList({ items, loading, statusText, onApprov
 
   return (
     <>
-      {statusText && <Text style={styles.status}>{statusText}</Text>}
+      {statusText && <Text style={adminStyles.status}>{statusText}</Text>}
       {items.length === 0 ? (
-        <Text style={styles.helperText}>No pending licenses right now. Refresh if you expect new drivers, or verify driver signup pipeline.</Text>
+        <Text style={adminStyles.helperText}>No pending licenses right now. Refresh if you expect new drivers, or verify driver signup pipeline.</Text>
       ) : (
         items.map(item => {
           const age = ageBadge(item.updated_at);
           return (
-            <View key={item.driver_id} style={styles.card}>
-              <View style={styles.cardHeaderRow}>
+            <IOSCard key={item.driver_id} padding="md" style={cardStyles.card}>
+              <View style={cardStyles.headerRow}>
                 <View>
-                  <Text style={styles.title}>{item.full_name || item.email || 'Driver'}</Text>
-                  <Text style={styles.metaRow}>Submitted: {item.updated_at ? new Date(item.updated_at).toLocaleString() : '—'}</Text>
-                  <Text style={styles.metaRow}>Driver ID: {item.driver_id}</Text>
-                  <Text style={styles.metaRow}>License: {item.license_number || '—'}</Text>
-                  {!item.payout_account_present && (
-                    <Text style={[styles.metaRow, styles.warningText]}>Missing payout info (Instapay). Ask driver to add before going live.</Text>
-                  )}
+                  <Text style={cardStyles.title}>{item.full_name || item.email || 'Driver'}</Text>
+                  <Text style={cardStyles.meta}>Submitted: {item.updated_at ? new Date(item.updated_at).toLocaleString() : '—'}</Text>
+                  <Text style={cardStyles.meta}>Driver ID: {item.driver_id}</Text>
                 </View>
-                <View style={styles.badgeRow}>
-                  {renderBadge('Pending', 'review')}
-                  {age && renderBadge(age.label, age.state)}
-                </View>
+                <IOSStatusChip label={age ? age.helper : 'Pending'} tone={age?.state === 'failed' ? 'error' : 'info'} />
               </View>
-              <Text style={styles.row}>License: {item.license_number || '—'} • {item.vehicle_type || 'vehicle'}</Text>
-              <Text style={styles.row}>Email: {item.email || '—'}</Text>
-              <Text style={styles.row}>Phone: {item.phone || '—'}</Text>
-              <Text style={styles.row}>Doc status: {item.doc_review_status || item.license_document_status || 'pending'}</Text>
+              <Text style={cardStyles.meta}>License: {item.license_number || '—'} • {item.vehicle_type || 'vehicle'}</Text>
+              <Text style={cardStyles.meta}>Email: {item.email || '—'}</Text>
+              <Text style={cardStyles.meta}>Phone: {item.phone || '—'}</Text>
+              {!item.payout_account_present && (
+                <Text style={[cardStyles.meta, cardStyles.warn]}>Missing payout info (Instapay). Ask driver to add before going live.</Text>
+              )}
               {item.license_document_url ? (
-                <TouchableOpacity style={styles.thumbRow} onPress={() => Linking.openURL(item.license_document_url!)}>
-                  <Image source={{ uri: item.license_document_url }} style={styles.thumb} />
-                  <Text style={styles.linkText}>Open document</Text>
+                <TouchableOpacity style={cardStyles.thumbRow} onPress={() => Linking.openURL(item.license_document_url!)}>
+                  <Image source={{ uri: item.license_document_url }} style={cardStyles.thumb} />
+                  <Text style={cardStyles.link}>Open document</Text>
                 </TouchableOpacity>
               ) : (
                 <CopyChip label="Document" value={item.license_document_url ?? undefined} />
               )}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+              <View style={cardStyles.docRow}>
                 {item.id_front_url ? (
-                  <TouchableOpacity style={styles.thumbRow} onPress={() => Linking.openURL(item.id_front_url!)}>
-                    <Text style={styles.linkText}>ID front</Text>
+                  <TouchableOpacity style={cardStyles.docLink} onPress={() => Linking.openURL(item.id_front_url!)}>
+                    <Text style={cardStyles.link}>ID front</Text>
                   </TouchableOpacity>
                 ) : (
-                  <Text style={[styles.helperText, styles.warningText]}>Missing ID front</Text>
+                  <Text style={[cardStyles.helper, cardStyles.warn]}>Missing ID front</Text>
                 )}
                 {item.id_back_url ? (
-                  <TouchableOpacity style={styles.thumbRow} onPress={() => Linking.openURL(item.id_back_url!)}>
-                    <Text style={styles.linkText}>ID back</Text>
+                  <TouchableOpacity style={cardStyles.docLink} onPress={() => Linking.openURL(item.id_back_url!)}>
+                    <Text style={cardStyles.link}>ID back</Text>
                   </TouchableOpacity>
                 ) : (
-                  <Text style={[styles.helperText, styles.warningText]}>Missing ID back</Text>
+                  <Text style={[cardStyles.helper, cardStyles.warn]}>Missing ID back</Text>
                 )}
                 {item.vehicle_document_url ? (
-                  <TouchableOpacity style={styles.thumbRow} onPress={() => Linking.openURL(item.vehicle_document_url!)}>
-                    <Text style={styles.linkText}>Vehicle doc</Text>
+                  <TouchableOpacity style={cardStyles.docLink} onPress={() => Linking.openURL(item.vehicle_document_url!)}>
+                    <Text style={cardStyles.link}>Vehicle doc</Text>
                   </TouchableOpacity>
                 ) : (
-                  <Text style={[styles.helperText, styles.warningText]}>Missing vehicle doc</Text>
+                  <Text style={[cardStyles.helper, cardStyles.warn]}>Missing vehicle doc</Text>
                 )}
               </View>
-              <Text style={styles.metaRow}>
+              <Text style={cardStyles.meta}>
                 {age ? `Age: ${age.label}` : 'Age: —'} • Audit: {item.doc_review_notes || 'None recorded'}
               </Text>
               <TextInput
                 value={notes[item.driver_id] ?? ''}
                 onChangeText={(val) => setNotes(prev => ({ ...prev, [item.driver_id]: val }))}
                 placeholder="Add note (optional) before deciding"
-                style={[styles.input, { marginTop: 8 }]}
+                style={[cardStyles.input, { marginTop: 8 }]}
                 multiline
               />
-              <View style={styles.buttonRow}>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                  {rejectReasons.map((r) => (
-                    <TouchableOpacity
-                      key={r.key}
-                      style={[styles.button, styles.buttonGhost, { paddingHorizontal: 10, paddingVertical: 6 }]}
-                      onPress={() => handleReject(item, r.key, r.label)}
-                    >
-                      <Text style={styles.secondaryButtonText}>{r.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonPrimary]}
-                  onPress={() => handleApprove(item)}
-                >
-                  <Text style={styles.buttonText}>Approve</Text>
-                </TouchableOpacity>
+              <IOSTableActionRow
+                title="Driver license review"
+                meta={`Doc status: ${item.doc_review_status || item.license_document_status || 'pending'}`}
+                onLeftPress={() => handleApprove(item)}
+                onRightPress={() => handleReject(item, 'reject', 'Reject')}
+              />
+              <View style={cardStyles.rejectRow}>
+                {rejectReasons.map((r) => (
+                  <IOSPillButton
+                    key={r.key}
+                    label={r.label}
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => handleReject(item, r.key, r.label)}
+                  />
+                ))}
               </View>
-            </View>
+            </IOSCard>
           );
         })
       )}
@@ -149,10 +148,30 @@ export default function LicenseReviewList({ items, loading, statusText, onApprov
 }
 
 const SkeletonCard = () => (
-  <View style={[styles.card, { opacity: 0.6 }]}> 
-    <View style={{ height: 12, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 8 }} />
-    <View style={{ height: 10, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 6, width: '80%' }} />
-    <View style={{ height: 10, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 6, width: '60%' }} />
-    <View style={{ height: 10, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 6, width: '50%' }} />
-  </View>
+  <IOSCard padding="md" style={{ opacity: 0.6 }}>
+    <IOSSkeleton rows={4} />
+  </IOSCard>
 );
+
+const cardStyles = StyleSheet.create({
+  card: { marginBottom: iosSpacing.md },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: iosSpacing.xs },
+  title: { ...iosTypography.headline },
+  meta: { ...iosTypography.caption, color: iosColors.secondaryText },
+  warn: { color: iosColors.destructive },
+  thumbRow: { flexDirection: 'row', alignItems: 'center', gap: iosSpacing.sm, marginVertical: iosSpacing.sm },
+  thumb: { width: 96, height: 60, borderRadius: iosRadius.sm, backgroundColor: iosColors.surfaceAlt },
+  link: { ...iosTypography.subhead, color: iosColors.primary },
+  helper: { ...iosTypography.caption, color: iosColors.secondaryText },
+  docRow: { flexDirection: 'row', flexWrap: 'wrap', gap: iosSpacing.xs, marginBottom: iosSpacing.xs },
+  docLink: { paddingHorizontal: iosSpacing.sm, paddingVertical: iosSpacing.xs, borderRadius: iosRadius.pill, backgroundColor: iosColors.surfaceAlt },
+  input: {
+    borderWidth: 1,
+    borderColor: iosColors.separator,
+    borderRadius: iosRadius.md,
+    padding: iosSpacing.sm,
+    backgroundColor: iosColors.surface,
+    ...iosTypography.body,
+  },
+  rejectRow: { flexDirection: 'row', flexWrap: 'wrap', gap: iosSpacing.xs, marginTop: iosSpacing.sm },
+});

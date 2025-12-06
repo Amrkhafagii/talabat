@@ -17,7 +17,7 @@ import {
   updateDriverOnlineStatus,
   getDriverStats
 } from '@/utils/database';
-import { DeliveryDriver, DeliveryStats } from '@/types/database';
+import { DeliveryDriver, DeliveryStats, Delivery } from '@/types/database';
 import { useDriverLocationTracking } from '@/hooks/useDriverLocationTracking';
 
 export default function DeliveryDashboard() {
@@ -65,8 +65,8 @@ export default function DeliveryDashboard() {
   }, [user]);
 
   useEffect(() => {
-    supabase.auth.getSession().then((session) => {
-      const claims = session.data.session?.user?.app_metadata;
+    supabase.auth.getSession().then(({ data }: Awaited<ReturnType<typeof supabase.auth.getSession>>) => {
+      const claims = data.session?.user?.app_metadata;
       console.log('[auth claims]', claims);
     });
   }, []);
@@ -202,7 +202,7 @@ export default function DeliveryDashboard() {
     }
   };
 
-  const handleUpdateDeliveryStatus = async (deliveryId: string, newStatus: string) => {
+  const handleUpdateDeliveryStatus = async (deliveryId: string, newStatus: Delivery['status']) => {
     try {
       const success = await updateDeliveryStatus(deliveryId, newStatus);
       

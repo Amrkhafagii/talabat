@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Alert, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert, TextInput, StyleSheet } from 'react-native';
 import * as Linking from 'expo-linking';
 import CopyChip from '@/app/components/CopyChip';
-import { styles } from '@/styles/adminMetrics';
+import { styles as adminStyles } from '@/styles/adminMetrics';
 import { makeBadgeRenderer } from '@/utils/adminUi';
 import type { MenuPhotoReview } from '@/utils/db/adminOps';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { IOSStatusChip } from '@/components/ios/IOSStatusChip';
+import { IOSPillButton } from '@/components/ios/IOSPillButton';
+import { IOSTableActionRow } from '@/components/ios/IOSTableActionRow';
+import { IOSSkeleton } from '@/components/ios/IOSSkeleton';
 
 export type PhotoReviewListProps = {
   items: MenuPhotoReview[];
@@ -14,7 +20,7 @@ export type PhotoReviewListProps = {
   onReject: (id: string, reason?: string) => void;
 };
 
-const renderBadge = makeBadgeRenderer(styles);
+const renderBadge = makeBadgeRenderer(adminStyles);
 const rejectReasons = [
   { key: 'blurry', label: 'Blurry' },
   { key: 'incomplete', label: 'Missing items' },
@@ -53,68 +59,62 @@ export default function PhotoReviewList({ items, loading, statusText, onApprove,
 
   return (
     <>
-      {statusText && <Text style={styles.status}>{statusText}</Text>}
+      {statusText && <Text style={adminStyles.status}>{statusText}</Text>}
       {items.length === 0 ? (
-        <Text style={styles.helperText}>No pending menu photos right now. Refresh or check menu upload pipeline if you expect new ones.</Text>
+        <Text style={adminStyles.helperText}>No pending menu photos right now. Refresh or check menu upload pipeline if you expect new ones.</Text>
       ) : (
         items.map(item => {
           const age = ageBadge(item.updated_at);
           return (
-            <View key={item.menu_item_id} style={styles.card}>
-              <View style={styles.cardHeaderRow}>
+            <IOSCard key={item.menu_item_id} padding="md" style={cardStyles.card}>
+              <View style={cardStyles.headerRow}>
                 <View>
-                  <Text style={styles.title}>{item.name}</Text>
-                  <Text style={styles.metaRow}>Restaurant: {item.restaurant_name}</Text>
-                  <Text style={styles.metaRow}>Updated: {item.updated_at ? new Date(item.updated_at).toLocaleString() : '—'}</Text>
+                  <Text style={cardStyles.title}>{item.name}</Text>
+                  <Text style={cardStyles.meta}>Restaurant: {item.restaurant_name}</Text>
+                  <Text style={cardStyles.meta}>Updated: {item.updated_at ? new Date(item.updated_at).toLocaleString() : '—'}</Text>
                   {!item.restaurant_has_payout && (
-                    <Text style={[styles.metaRow, styles.warningText]}>Restaurant payout info missing; flag before approval.</Text>
+                    <Text style={[cardStyles.meta, cardStyles.warn]}>Restaurant payout info missing; flag before approval.</Text>
                   )}
                 </View>
-                <View style={styles.badgeRow}>
-                  {renderBadge('Pending', 'review')}
-                  {age && renderBadge(age.label, age.state)}
-                </View>
+                <IOSStatusChip label={age ? age.helper : 'Pending'} tone={age?.state === 'failed' ? 'error' : 'info'} />
               </View>
               {item.image ? (
-                <TouchableOpacity style={styles.thumbRow} onPress={() => Linking.openURL(item.image)}>
-                  <Image source={{ uri: item.image }} style={styles.thumb} />
-                  <Text style={styles.linkText}>Open photo</Text>
+                <TouchableOpacity style={cardStyles.thumbRow} onPress={() => Linking.openURL(item.image)}>
+                  <Image source={{ uri: item.image }} style={cardStyles.thumb} />
+                  <Text style={cardStyles.link}>Open photo</Text>
                 </TouchableOpacity>
               ) : (
                 <CopyChip label="Photo" value={item.image} />
               )}
               {item.photo_approval_notes ? (
-                <Text style={[styles.row, styles.warningText]}>Notes: {item.photo_approval_notes}</Text>
+                <Text style={[cardStyles.meta, cardStyles.warn]}>Notes: {item.photo_approval_notes}</Text>
               ) : null}
-              <Text style={styles.metaRow}>{age ? `Age: ${age.label}` : 'Age: —'} • Audit: {item.photo_approval_notes || 'None recorded'}</Text>
-              <Text style={styles.metaRow}>Reason ideas: blurry / brand violation / missing items</Text>
+              <Text style={cardStyles.meta}>{age ? `Age: ${age.label}` : 'Age: —'} • Audit: {item.photo_approval_notes || 'None recorded'}</Text>
               <TextInput
                 value={notes[item.menu_item_id] ?? ''}
                 onChangeText={(val) => setNotes(prev => ({ ...prev, [item.menu_item_id]: val }))}
                 placeholder="Add note (optional) before deciding"
-                style={[styles.input, { marginTop: 8 }]}
+                style={[cardStyles.input, { marginTop: 8 }]}
                 multiline
               />
-              <View style={styles.buttonRow}>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                  {rejectReasons.map((r) => (
-                    <TouchableOpacity
-                      key={r.key}
-                      style={[styles.button, styles.buttonGhost, { paddingHorizontal: 10, paddingVertical: 6 }]}
-                      onPress={() => handleReject(item, r.key, r.label)}
-                    >
-                      <Text style={styles.secondaryButtonText}>{r.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonPrimary]}
-                  onPress={() => handleApprove(item)}
-                >
-                  <Text style={styles.buttonText}>Approve</Text>
-                </TouchableOpacity>
+              <IOSTableActionRow
+                title="Menu photo review"
+                meta={`Restaurant: ${item.restaurant_name}`}
+                onLeftPress={() => handleApprove(item)}
+                onRightPress={() => handleReject(item, 'reject', 'Reject')}
+              />
+              <View style={cardStyles.rejectRow}>
+                {rejectReasons.map((r) => (
+                  <IOSPillButton
+                    key={r.key}
+                    label={r.label}
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => handleReject(item, r.key, r.label)}
+                  />
+                ))}
               </View>
-            </View>
+            </IOSCard>
           );
         })
       )}
@@ -123,10 +123,27 @@ export default function PhotoReviewList({ items, loading, statusText, onApprove,
 }
 
 const SkeletonCard = () => (
-  <View style={[styles.card, { opacity: 0.6 }]}> 
-    <View style={{ height: 12, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 8 }} />
-    <View style={{ height: 10, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 6, width: '80%' }} />
-    <View style={{ height: 10, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 6, width: '60%' }} />
-    <View style={{ height: 10, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 6, width: '50%' }} />
-  </View>
+  <IOSCard padding="md" style={{ opacity: 0.6 }}>
+    <IOSSkeleton rows={4} />
+  </IOSCard>
 );
+
+const cardStyles = StyleSheet.create({
+  card: { marginBottom: iosSpacing.md },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: iosSpacing.xs },
+  title: { ...iosTypography.headline },
+  meta: { ...iosTypography.caption, color: iosColors.secondaryText },
+  warn: { color: iosColors.destructive },
+  thumbRow: { flexDirection: 'row', alignItems: 'center', gap: iosSpacing.sm, marginVertical: iosSpacing.sm },
+  thumb: { width: 96, height: 60, borderRadius: iosRadius.sm, backgroundColor: iosColors.surfaceAlt },
+  link: { ...iosTypography.subhead, color: iosColors.primary },
+  input: {
+    borderWidth: 1,
+    borderColor: iosColors.separator,
+    borderRadius: iosRadius.md,
+    padding: iosSpacing.sm,
+    backgroundColor: iosColors.surface,
+    ...iosTypography.body,
+  },
+  rejectRow: { flexDirection: 'row', flexWrap: 'wrap', gap: iosSpacing.xs, marginTop: iosSpacing.sm },
+});

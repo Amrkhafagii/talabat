@@ -11,7 +11,7 @@ export default function AdminMetrics() {
   if (loading || !allowed) return null;
 
   return (
-    <AdminShell title="Dashboard" onSignOut={signOut}>
+    <AdminShell title="Dashboard" onSignOut={signOut} headerVariant="ios">
       <AdminMetricsPage userEmail={user?.email ?? 'Admin'} onSignOut={signOut} {...viewModel} />
     </AdminShell>
   );

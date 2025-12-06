@@ -1,8 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Linking } from 'react-native';
-import CopyChip from '@/app/components/CopyChip';
-import { styles } from '@/styles/adminMetrics';
-import { makeBadgeRenderer, money, payoutBadgeState } from '@/utils/adminUi';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { styles as adminStyles } from '@/styles/adminMetrics';
+import { makeBadgeRenderer, money } from '@/utils/adminUi';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { IOSBadge } from '@/components/ios/IOSBadge';
+import { IOSPillButton } from '@/components/ios/IOSPillButton';
+import { IOSSegmentedControl } from '@/components/ios/IOSSegmentedControl';
+import { iosColors, iosSpacing, iosTypography, iosRadius } from '@/styles/iosTheme';
 import type { RestaurantPayable, DriverPayable } from '@/utils/db/adminOps';
 import AdminGrid from './AdminGrid';
 
@@ -22,7 +26,7 @@ export type PayoutQueuesProps = {
   onChangeSort?: (val: 'age' | 'amount' | 'attempts') => void;
 };
 
-const renderBadge = makeBadgeRenderer(styles);
+const renderBadge = makeBadgeRenderer(adminStyles);
 const statusLabel = (status?: string | null) => {
   const text = (status ?? 'pending').replace(/_/g, ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -67,10 +71,10 @@ export default function PayoutQueues({
   const driverGroups = groupByStatus(sortedDrivers);
   const renderGrouped = (groups: Record<string, any[]>, type: 'restaurant' | 'driver') =>
     Object.entries(groups).map(([status, items]) => (
-      <View key={`${type}-${status}`} style={[styles.tableCard, { marginBottom: 12 }]}>
-        <View style={[styles.tableRow, styles.tableRowMuted]}>
-          <Text style={styles.metaRow}>{statusLabel(status)}</Text>
-          <Text style={styles.metaRow}>{items.length} items</Text>
+      <IOSCard key={`${type}-${status}`} padding="md" style={{ marginBottom: iosSpacing.sm }}>
+        <View style={iosStyles.groupHeader}>
+          <Text style={iosStyles.meta}>{statusLabel(status)}</Text>
+          <IOSBadge label={`${items.length} items`} tone="neutral" />
         </View>
         {items.map((item) => {
           const isFocused = highlightOrderId && highlightOrderId === item.order_id;
@@ -78,14 +82,18 @@ export default function PayoutQueues({
           const nextRetry = type === 'restaurant' ? item.restaurant_payout_next_retry_at : item.driver_payout_next_retry_at;
           const payoutStatus = type === 'restaurant' ? item.restaurant_payout_status : item.driver_payout_status;
           return (
-            <View key={`${item.order_id}-${type === 'driver' ? item.driver_id : 'r'}`} style={[styles.tableRow, isFocused && styles.cardActive]}>
-              <Text style={styles.row}>Order {item.order_id.slice(-6).toUpperCase()}</Text>
-              <Text style={styles.metaRow}>Status: {statusLabel(payoutStatus)}</Text>
-              <Text style={styles.metaRow}>Next retry: {nextRetry ?? '—'}</Text>
-              {lastError ? <Text style={[styles.metaRow, styles.warningText]}>Last error: {lastError}</Text> : null}
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.button, styles.outlineButton, { minWidth: 140 }]}
+            <View key={`${item.order_id}-${type === 'driver' ? item.driver_id : 'r'}`} style={[iosStyles.rowCard, isFocused && iosStyles.rowFocused]}>
+              <View style={iosStyles.rowHeader}>
+                <Text style={iosStyles.rowTitle}>Order {item.order_id.slice(-6).toUpperCase()}</Text>
+                <IOSBadge label={statusLabel(payoutStatus)} tone="info" />
+              </View>
+              <Text style={iosStyles.meta}>Next retry: {nextRetry ?? '—'}</Text>
+              {lastError ? <Text style={[iosStyles.meta, iosStyles.warn]}>Last error: {lastError}</Text> : null}
+              <View style={iosStyles.actionRow}>
+                <IOSPillButton
+                  label={busy === item.order_id ? 'Retrying…' : 'Retry'}
+                  variant="ghost"
+                  size="sm"
                   onPress={async () => {
                     setBusy(item.order_id);
                     if (type === 'restaurant') await onRetryRestaurant(item.order_id, item.payout_ref ?? undefined);
@@ -93,28 +101,24 @@ export default function PayoutQueues({
                     setBusy(null);
                   }}
                   disabled={!!busy}
-                >
-                  <Text style={styles.outlineButtonText}>{busy === item.order_id ? 'Retrying…' : 'Retry'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.linkRow} onPress={() => onRefresh()}>
-                  <Text style={styles.linkText}>Open order</Text>
-                </TouchableOpacity>
+                />
+                <IOSPillButton label="Open order" variant="ghost" size="sm" onPress={() => onRefresh()} />
               </View>
             </View>
           );
         })}
-      </View>
+      </IOSCard>
     ));
   const renderRestaurant = () => (
-    <View style={styles.sectionCard} onLayout={undefined}>
-      <Text style={styles.sectionTitle}>Restaurant payables (pending)</Text>
-      <TouchableOpacity style={[styles.button, styles.outlineButton, { marginBottom: 10 }]} onPress={onRefresh} disabled={loading}>
-        <Text style={styles.outlineButtonText}>{loading ? 'Refreshing…' : 'Refresh payouts'}</Text>
+    <View style={adminStyles.sectionCard} onLayout={undefined}>
+      <Text style={adminStyles.sectionTitle}>Restaurant payables (pending)</Text>
+      <TouchableOpacity style={[adminStyles.button, adminStyles.outlineButton, { marginBottom: 10 }]} onPress={onRefresh} disabled={loading}>
+        <Text style={adminStyles.outlineButtonText}>{loading ? 'Refreshing…' : 'Refresh payouts'}</Text>
       </TouchableOpacity>
       {loading ? (
         <SkeletonCard />
       ) : sortedRestaurants.length === 0 ? (
-        <Text style={styles.helperText}>No pending restaurant payouts.</Text>
+        <Text style={adminStyles.helperText}>No pending restaurant payouts.</Text>
       ) : (
         renderGrouped(restGroups, 'restaurant')
       )}
@@ -122,12 +126,12 @@ export default function PayoutQueues({
   );
 
   const renderDriver = () => (
-    <View style={styles.sectionCard}>
-      <Text style={styles.sectionTitle}>Driver payables (pending)</Text>
+    <View style={adminStyles.sectionCard}>
+      <Text style={adminStyles.sectionTitle}>Driver payables (pending)</Text>
       {loading ? (
         <SkeletonCard />
       ) : sortedDrivers.length === 0 ? (
-        <Text style={styles.helperText}>No pending driver payouts.</Text>
+        <Text style={adminStyles.helperText}>No pending driver payouts.</Text>
       ) : (
         renderGrouped(driverGroups, 'driver')
       )}
@@ -138,41 +142,55 @@ export default function PayoutQueues({
 
   return (
     <>
-      <View style={styles.sortRow}>
-        <Text style={styles.metaRow}>Sort by</Text>
-        <View style={styles.filterChipRow}>
-          {(['age', 'amount', 'attempts'] as const).map((k) => (
-            <TouchableOpacity
-              key={k}
-              style={[styles.filterChip, sort === k && styles.filterChipActive]}
-              onPress={() => onChangeSort && onChangeSort(k)}
-            >
-              <Text style={[styles.filterChipText, sort === k && styles.filterChipTextActive]}>{k}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+      <View style={iosStyles.sortRow}>
+        <Text style={iosStyles.meta}>Sort by</Text>
+        <IOSSegmentedControl
+          segments={[
+            { key: 'age', label: 'Age' },
+            { key: 'amount', label: 'Amount' },
+            { key: 'attempts', label: 'Attempts' },
+          ]}
+          value={sort}
+          onChange={(k) => onChangeSort && onChangeSort(k)}
+          style={{ marginTop: iosSpacing.xs }}
+        />
       </View>
       {showDriverFirst ? renderDriver() : renderRestaurant()}
       {showDriverFirst ? renderRestaurant() : renderDriver()}
-      {opsStatus && <Text style={styles.status}>{opsStatus}</Text>}
-      <View style={[styles.buttonRow, { marginTop: 10 }]}>
-        <TouchableOpacity onPress={onProcessDue} style={[styles.button, styles.outlineButton]} disabled={!!busy}>
-          <Text style={styles.outlineButtonText}>{busy ? 'Processing…' : 'Process due payout retries'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onRefresh} style={[styles.button, styles.outlineButton]} disabled={loading}>
-          <Text style={styles.outlineButtonText}>{loading ? 'Refreshing…' : 'Bulk refresh'}</Text>
-        </TouchableOpacity>
+      {opsStatus && <Text style={iosStyles.status}>{opsStatus}</Text>}
+      <View style={iosStyles.actionRow}>
+        <IOSPillButton onPress={onProcessDue} label={busy ? 'Processing…' : 'Process due payout retries'} variant="ghost" disabled={!!busy} />
+        <IOSPillButton onPress={onRefresh} label={loading ? 'Refreshing…' : 'Bulk refresh'} variant="ghost" disabled={loading} />
       </View>
-      {retryStatus && <Text style={styles.status}>{retryStatus}</Text>}
+      {retryStatus && <Text style={iosStyles.status}>{retryStatus}</Text>}
     </>
   );
 }
 
 const SkeletonCard = () => (
-  <View style={[styles.card, { opacity: 0.6 }]}> 
-    <View style={{ height: 12, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 8 }} />
-    <View style={{ height: 10, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 6, width: '80%' }} />
-    <View style={{ height: 10, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 6, width: '60%' }} />
-    <View style={{ height: 10, backgroundColor: '#E5E7EB', borderRadius: 6, marginBottom: 6, width: '50%' }} />
-  </View>
+  <IOSCard padding="md" style={{ opacity: 0.6 }}>
+    <View style={{ height: 12, backgroundColor: iosColors.surfaceAlt, borderRadius: 6, marginBottom: 8 }} />
+    <View style={{ height: 10, backgroundColor: iosColors.surfaceAlt, borderRadius: 6, marginBottom: 6, width: '80%' }} />
+    <View style={{ height: 10, backgroundColor: iosColors.surfaceAlt, borderRadius: 6, marginBottom: 6, width: '60%' }} />
+    <View style={{ height: 10, backgroundColor: iosColors.surfaceAlt, borderRadius: 6, marginBottom: 6, width: '50%' }} />
+  </IOSCard>
 );
+
+const iosStyles = StyleSheet.create({
+  row: { paddingHorizontal: iosSpacing.md, paddingVertical: iosSpacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  meta: { ...iosTypography.caption, color: iosColors.secondaryText },
+  warn: { color: iosColors.destructive },
+  filterChipRow: { flexDirection: 'row', gap: iosSpacing.xs },
+  filterChip: { paddingHorizontal: iosSpacing.sm, paddingVertical: iosSpacing.xs, borderRadius: iosSpacing.xs, backgroundColor: '#E5E5EA' },
+  filterChipActive: { backgroundColor: iosColors.primary },
+  filterChipText: { ...iosTypography.caption },
+  filterChipTextActive: { color: '#FFFFFF' },
+  status: { ...iosTypography.caption, color: iosColors.secondaryText, marginTop: iosSpacing.xs },
+  groupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: iosSpacing.xs },
+  rowCard: { paddingVertical: iosSpacing.xs, borderBottomWidth: 1, borderBottomColor: iosColors.separator, gap: 2 },
+  rowFocused: { borderColor: iosColors.primary, borderWidth: 1, borderRadius: iosRadius.md, paddingHorizontal: iosSpacing.xs },
+  rowTitle: { ...iosTypography.subhead },
+  rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  actionRow: { flexDirection: 'row', gap: iosSpacing.xs, marginTop: iosSpacing.xs },
+  sortRow: { marginBottom: iosSpacing.sm },
+});

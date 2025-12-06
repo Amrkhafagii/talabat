@@ -1,9 +1,12 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { money } from '@/utils/adminUi';
 import type { OrderAdminDetail } from '@/utils/db/adminOps';
-import { styles as tokens } from '@/styles/adminMetrics';
+import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { IOSBadge } from '@/components/ios/IOSBadge';
+import { IOSPillButton } from '@/components/ios/IOSPillButton';
 
 type Props = {
   order: OrderAdminDetail;
@@ -39,32 +42,25 @@ export function OrderAdminDetailView({ order }: Props) {
   }, [order.events, order.delivery_events]);
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>Order {order.order_id.slice(-6).toUpperCase()}</Text>
-      <View style={styles.badges}>
-        <Badge label={`Payment: ${order.payment_status}`} tone="info" />
-        <Badge label={`Receipt: ${order.receipt_url ? 'Yes' : 'No'}`} tone={order.receipt_url ? 'success' : 'warn'} />
-        {order.state_issue && <Badge label="Issue" tone="error" />}
+    <IOSCard padding="md" style={styles.card}>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Order Case #{order.order_id.slice(-6).toUpperCase()}</Text>
+        <IOSBadge label="In Transit" tone="info" />
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payment & Payouts</Text>
-        <Text style={styles.meta}>Customer txn: {order.customer_payment_txn_id || '—'}</Text>
-        <Text style={styles.meta}>Platform fee: {money(ledger.platform_fee || 0)}</Text>
-        <Text style={styles.meta}>Restaurant net: {money(ledger.restaurant_net || 0)}</Text>
-        <Text style={styles.meta}>Driver earnings: {money(ledger.driver || 0)}</Text>
-        <Text style={styles.meta}>Restaurant payout: {order.restaurant_payout_status ?? 'pending'} ({order.restaurant_payout_attempts ?? 0} attempts)</Text>
-        <Text style={styles.meta}>Driver payout: {order.driver_payout_status ?? 'pending'} ({order.driver_payout_attempts ?? 0} attempts)</Text>
-        {order.restaurant_payout_last_error && <Text style={[styles.meta, styles.warning]}>Restaurant payout error: {order.restaurant_payout_last_error}</Text>}
-        {order.driver_payout_last_error && <Text style={[styles.meta, styles.warning]}>Driver payout error: {order.driver_payout_last_error}</Text>}
+        <Text style={styles.sectionTitle}>Order Case Details</Text>
+        <Text style={styles.meta}>User: {order.user_id || '—'}</Text>
+        <Text style={styles.meta}>Restaurant: {order.restaurant_id || '—'}</Text>
+        <Text style={styles.meta}>Status: {order.payment_status || '—'}</Text>
+        <Text style={styles.meta}>Issue: {order.state_issue || '—'}</Text>
+        <Text style={styles.meta}>Time: {order.created_at ? new Date(order.created_at).toLocaleString() : '—'}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Delivery</Text>
-        <Text style={styles.meta}>Status: {delivery.status || '—'}</Text>
-        <Text style={styles.meta}>Driver: {delivery.driver_id || '—'}</Text>
-        <Text style={styles.meta}>Driver verified: {delivery.driver_verified ? 'Yes' : 'No'}</Text>
-        <Text style={styles.meta}>Driver earnings: {money(delivery.driver_earnings || 0)}</Text>
+        <Text style={styles.sectionTitle}>Operational Alerts Snapshot</Text>
+        <Text style={styles.meta}>Delivery Status: {delivery.status || '—'}</Text>
+        <Text style={styles.meta}>Payment Status: {order.payment_status || '—'}</Text>
       </View>
 
       {timeline.length > 0 && (
@@ -84,50 +80,48 @@ export function OrderAdminDetailView({ order }: Props) {
           <Text style={styles.sectionTitle}>Next actions</Text>
           <View style={styles.actionRow}>
             {showPaymentLink && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.primary]}
+              <IOSPillButton
+                label="View in Reviews"
                 onPress={() =>
                   router.push({
                     pathname: '/admin/reviews',
                     params: { tab: 'payments', q: order.order_id },
                   })
                 }
-                accessibilityRole="button"
-              >
-                <Text style={[styles.actionText, styles.actionTextPrimary]}>Open payment review</Text>
-              </TouchableOpacity>
+                size="sm"
+              />
             )}
             {showPaymentLink && (
-              <TouchableOpacity
-                style={styles.actionButton}
+              <IOSPillButton
+                label="Manage Payouts"
+                variant="ghost"
+                size="sm"
                 onPress={() =>
                   router.push({
                     pathname: '/admin/reviews',
                     params: { tab: 'payments', q: `${order.order_id}` },
                   })
                 }
-                accessibilityRole="button"
-              >
-                <Text style={styles.actionText}>Request receipt</Text>
-              </TouchableOpacity>
+              />
             )}
             {showRestaurantPayoutLink && (
-              <TouchableOpacity
-                style={styles.actionButton}
+              <IOSPillButton
+                label="Restaurant payout"
+                variant="ghost"
+                size="sm"
                 onPress={() =>
                   router.push({
                     pathname: '/admin/payouts',
                     params: { section: 'restaurant', focus: order.order_id },
                   })
                 }
-                accessibilityRole="button"
-              >
-                <Text style={styles.actionText}>Restaurant payout</Text>
-              </TouchableOpacity>
+              />
             )}
             {showDriverPayoutLink && (
-              <TouchableOpacity
-                style={styles.actionButton}
+              <IOSPillButton
+                label="Driver payout"
+                variant="ghost"
+                size="sm"
                 disabled={!driverId}
                 onPress={() =>
                   router.push({
@@ -135,68 +129,25 @@ export function OrderAdminDetailView({ order }: Props) {
                     params: { section: 'driver', focus: order.order_id },
                   })
                 }
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !driverId }}
-              >
-                <Text style={[styles.actionText, !driverId && styles.disabledText]}>
-                  Driver payout
-                </Text>
-              </TouchableOpacity>
+              />
             )}
           </View>
         </View>
       )}
-    </View>
-  );
-}
-
-function Badge({ label, tone }: { label: string; tone: 'info' | 'success' | 'warn' | 'error' }) {
-  const palette: Record<typeof tone, { bg: string; text: string }> = {
-    info: { bg: '#DBEAFE', text: '#1D4ED8' },
-    success: { bg: '#ECFDF3', text: '#166534' },
-    warn: { bg: '#FEF3C7', text: '#92400E' },
-    error: { bg: '#FEE2E2', text: '#B91C1C' },
-  };
-  const colors = palette[tone] ?? palette.info;
-  return (
-    <View style={[styles.badge, { backgroundColor: colors.bg }]}>
-      <Text style={[styles.badgeText, { color: colors.text }]}>{label}</Text>
-    </View>
+    </IOSCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  title: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  meta: { color: '#4B5563', marginTop: 2, fontSize: 13 },
-  warning: { color: '#B91C1C' },
-  section: { marginTop: 12 },
-  drawerFooter: { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 8, marginTop: 16 },
-  sectionTitle: { fontWeight: '700', color: '#111827', marginBottom: 6 },
-  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  actionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#E5E7EB',
-  },
-  actionText: { color: '#111827', fontWeight: '600' },
-  disabledText: { color: '#9CA3AF' },
-  primary: { backgroundColor: '#0F172A' },
-  actionTextPrimary: { color: '#FFFFFF' },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-  },
-  badgeText: { fontWeight: '700', fontSize: 12 },
-  timelineRow: { marginBottom: 6 },
+  card: { borderRadius: iosRadius.xl },
+  title: { ...iosTypography.headline, marginBottom: iosSpacing.xs },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  meta: { ...iosTypography.caption, color: iosColors.secondaryText, marginTop: 2 },
+  warning: { color: iosColors.destructive },
+  section: { marginTop: iosSpacing.sm },
+  drawerFooter: { borderTopWidth: 1, borderTopColor: iosColors.separator, paddingTop: iosSpacing.xs, marginTop: iosSpacing.md },
+  sectionTitle: { ...iosTypography.subhead, marginBottom: iosSpacing.xs },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: iosSpacing.xs },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: iosSpacing.xs },
+  timelineRow: { marginBottom: iosSpacing.xs },
 });

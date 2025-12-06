@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import PaymentReviewList from '@/components/admin/PaymentReviewList';
 import LicenseReviewList from '@/components/admin/LicenseReviewList';
@@ -12,6 +12,9 @@ import { styles } from '@/styles/adminMetrics';
 import ReviewFilters from '@/components/admin/ReviewFilters';
 import AdminGrid from '@/components/admin/AdminGrid';
 import { AdminToast } from '@/components/admin/AdminToast';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { iosSpacing, iosTypography, iosColors } from '@/styles/iosTheme';
+import { IOSBadge } from '@/components/ios/IOSBadge';
 
 type SectionProps = ReturnType<typeof useAdminMetricsCoordinator> & { initialQuery?: string };
 
@@ -22,6 +25,8 @@ export default function AdminReviews() {
   const sharedQuery = typeof params.q === 'string' ? params.q : '';
   const tab = typeof params.tab === 'string' ? params.tab : 'payments';
   const [activeTab, setActiveTab] = useState<'payments' | 'licenses' | 'photos'>(tab as any);
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 400;
 
   useEffect(() => {
     if (tab === 'licenses' || tab === 'photos' || tab === 'payments') setActiveTab(tab);
@@ -30,27 +35,39 @@ export default function AdminReviews() {
   if (gateLoading || !allowed) return null;
 
   return (
-    <AdminShell title="Reviews" onSignOut={signOut}>
+    <AdminShell title="Reviews" onSignOut={signOut} headerVariant="ios">
       <AdminToast message={vm.status} tone="info" />
-      <TabStrip
-        active={activeTab}
-        onChange={setActiveTab}
-        counts={{
-          payments: vm.reviewQueue.length,
-          licenses: vm.licenseQueue.length,
-          photos: vm.photoQueue.length,
-        }}
-        risks={{
-          payments: vm.reviewQueue.some(vm.mismatch),
-          licenses: vm.licenseQueue.some((l) => !l.payout_account_present),
-          photos: vm.photoQueue.some((p) => !p.restaurant_has_payout),
-        }}
-      />
-      {activeTab === 'payments' && <PaymentsSection {...vm} initialQuery={!tab || tab === 'payments' ? sharedQuery : ''} />}
-      {activeTab === 'licenses' && (
-        <LicenseSection {...vm} initialQuery={tab === 'licenses' ? sharedQuery : ''} />
+      <IOSCard padding="md" style={reviewStyles.card}>
+        <TabStrip
+          active={activeTab}
+          onChange={setActiveTab}
+          counts={{
+            payments: vm.reviewQueue.length,
+            licenses: vm.licenseQueue.length,
+            photos: vm.photoQueue.length,
+          }}
+          risks={{
+            payments: vm.reviewQueue.some(vm.mismatch),
+            licenses: vm.licenseQueue.some((l) => !l.payout_account_present),
+            photos: vm.photoQueue.some((p) => !p.restaurant_has_payout),
+          }}
+        />
+      </IOSCard>
+      {activeTab === 'payments' && (
+        <IOSCard padding="md" style={reviewStyles.card}>
+          <PaymentsSection {...vm} initialQuery={!tab || tab === 'payments' ? sharedQuery : ''} />
+        </IOSCard>
       )}
-      {activeTab === 'photos' && <PhotoSection {...vm} initialQuery={tab === 'photos' ? sharedQuery : ''} />}
+      {activeTab === 'licenses' && (
+        <IOSCard padding="md" style={reviewStyles.card}>
+          <LicenseSection {...vm} initialQuery={tab === 'licenses' ? sharedQuery : ''} />
+        </IOSCard>
+      )}
+      {activeTab === 'photos' && (
+        <IOSCard padding="md" style={reviewStyles.card}>
+          <PhotoSection {...vm} initialQuery={tab === 'photos' ? sharedQuery : ''} />
+        </IOSCard>
+      )}
     </AdminShell>
   );
 }
@@ -66,36 +83,38 @@ function TabStrip({
   counts: Record<'payments' | 'licenses' | 'photos', number>;
   risks: Record<'payments' | 'licenses' | 'photos', boolean>;
 }) {
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 400;
   const items: Array<{ key: 'payments' | 'licenses' | 'photos'; label: string }> = [
     { key: 'payments', label: 'Payments' },
     { key: 'licenses', label: 'Driver docs' },
     { key: 'photos', label: 'Menu photos' },
   ];
   return (
-    <View style={[styles.sectionNav, { marginBottom: 12 }]}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ flexDirection: 'row', flexWrap: 'nowrap', gap: iosSpacing.xs }}
+    >
       {items.map((item) => {
         const selected = active === item.key;
         const risk = risks[item.key];
         return (
           <TouchableOpacity
             key={item.key}
-            style={[styles.navPill, selected && styles.navPillActive]}
+            style={[tabStyles.pill, isNarrow && tabStyles.pillPhone, selected && tabStyles.pillActive]}
             onPress={() => onChange(item.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
           >
-            <Text style={[styles.navPillText, selected && styles.navPillTextActive]}>
+            <Text style={[tabStyles.pillText, isNarrow && tabStyles.pillTextPhone, selected && tabStyles.pillTextActive]} numberOfLines={1} adjustsFontSizeToFit>
               {item.label} ({counts[item.key]})
             </Text>
-            {risk && (
-              <View style={[styles.badge, styles.badgeWarning, { marginTop: 4 }]}>
-                <Text style={[styles.badgeText, styles.badgeWarningText]}>Risk</Text>
-              </View>
-            )}
+            {risk && <IOSBadge label="Risk" tone="error" style={{ marginLeft: iosSpacing.xs }} />}
           </TouchableOpacity>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -258,6 +277,7 @@ function PaymentsSection({ initialQuery = '', ...vm }: SectionProps) {
         disablePrev={page === 0}
         disableNext={page >= totalPages - 1}
         pageLabel={`Page ${page + 1} / ${totalPages}`}
+        useIos
       />
       <View style={[styles.buttonRow, { marginTop: 4 }]}>
         <TouchableOpacity
@@ -349,6 +369,7 @@ function LicenseSection({ initialQuery = '', ...vm }: SectionProps) {
         disablePrev={page === 0}
         disableNext={page >= totalPages - 1}
         pageLabel={`Page ${page + 1} / ${totalPages}`}
+        useIos
       />
       <AdminState
         loading={vm.licenseLoading}
@@ -422,6 +443,7 @@ function PhotoSection({ initialQuery = '', ...vm }: SectionProps) {
         disablePrev={page === 0}
         disableNext={page >= totalPages - 1}
         pageLabel={`Page ${page + 1} / ${totalPages}`}
+        useIos
       />
       <AdminState
         loading={vm.photoLoading}
@@ -441,3 +463,31 @@ function PhotoSection({ initialQuery = '', ...vm }: SectionProps) {
     </View>
   );
 }
+
+const reviewStyles = StyleSheet.create({
+  card: { marginBottom: iosSpacing.md },
+  sectionTitle: { ...iosTypography.headline },
+});
+
+const tabStyles = StyleSheet.create({
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: iosSpacing.md,
+    paddingVertical: iosSpacing.sm,
+    borderRadius: 999,
+    backgroundColor: '#E5E5EA',
+  },
+  pillPhone: {
+    paddingHorizontal: iosSpacing.sm,
+    paddingVertical: iosSpacing.xs,
+  },
+  pillActive: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#0A84FF',
+  },
+  pillText: { ...iosTypography.subhead, color: iosColors.secondaryText },
+  pillTextPhone: { fontSize: 14 },
+  pillTextActive: { color: '#0A84FF', fontWeight: '600' },
+});

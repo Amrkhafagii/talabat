@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { styles } from '@/styles/adminMetrics';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ViewStyle, TextStyle, useWindowDimensions } from 'react-native';
+import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 
 export type NavItem = { key: string; label: string; href?: string; children?: NavItem[] };
 
@@ -9,7 +9,7 @@ type SectionNavProps = {
   onPress: (keyOrHref: string) => void;
   items?: NavItem[];
   scrollable?: boolean;
-  variant?: 'primary' | 'sub';
+  variant?: 'ios' | 'ios-sub';
 };
 
 const defaultItems: NavItem[] = [
@@ -36,18 +36,29 @@ function isActive(activeSection: string | null, item: NavItem) {
   );
 }
 
-function SectionNav({ activeSection, onPress, items = defaultItems, scrollable = false, variant = 'primary' }: SectionNavProps) {
-  const content = (
-    <View style={[styles.sectionNav, scrollable && styles.sectionNavScrollable]}>
+function SectionNav({ activeSection, onPress, items = defaultItems, scrollable = false, variant = 'ios' }: SectionNavProps) {
+  const { width } = useWindowDimensions();
+  const isPhone = width < 450;
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={[
+        iosNav.sectionNav,
+        iosNav.sectionNavScrollable,
+        variant === 'ios-sub' ? iosNav.subNav : null,
+      ]}
+    >
       {items.map(item => {
         const active = isActive(activeSection, item);
         return (
           <TouchableOpacity
             key={item.key}
             style={[
-              styles.navPill,
-              variant === 'sub' && styles.navPillSub,
-              active && styles.navPillActive,
+              iosNav.navPill,
+              isPhone && iosNav.navPillPhone,
+              variant === 'ios-sub' && iosNav.navPillSub,
+              active && iosNav.navPillActive,
             ]}
             onPress={() => onPress(item.href || item.key)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -56,34 +67,66 @@ function SectionNav({ activeSection, onPress, items = defaultItems, scrollable =
           >
             <Text
               style={[
-                styles.navPillText,
-                active && styles.navPillTextActive,
+                iosNav.navPillText,
+                active && iosNav.navPillTextActive,
+                isPhone && iosNav.navPillTextPhone,
               ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
-              {item.label}
+              {item.label || item.key}
             </Text>
           </TouchableOpacity>
         );
       })}
-    </View>
-  );
-
-  if (scrollable) {
-    return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[styles.sectionNav, styles.sectionNavScrollable]}
-      >
-        {content}
-      </ScrollView>
-    );
-  }
-
-  return (
-    <View style={variant === 'sub' ? styles.subNav : undefined}>{content}</View>
+    </ScrollView>
   );
 }
 
 export { SectionNav };
 export default SectionNav;
+
+type IosNavStyles = {
+  sectionNav: ViewStyle;
+  sectionNavScrollable: ViewStyle;
+  subNav: ViewStyle;
+  navPill: ViewStyle;
+  navPillPhone: ViewStyle;
+  navPillSub: ViewStyle;
+  navPillActive: ViewStyle;
+  navPillText: TextStyle;
+  navPillTextPhone: TextStyle;
+  navPillTextActive: TextStyle;
+};
+
+const iosNav = StyleSheet.create<IosNavStyles>({
+  sectionNav: { flexDirection: 'row', flexWrap: 'nowrap', gap: iosSpacing.xs, marginHorizontal: iosSpacing.sm, marginTop: iosSpacing.sm, marginBottom: iosSpacing.sm },
+  sectionNavScrollable: { paddingRight: iosSpacing.sm },
+  subNav: { marginTop: iosSpacing.xs },
+  navPill: {
+    paddingHorizontal: iosSpacing.md,
+    paddingVertical: iosSpacing.sm,
+    borderRadius: iosRadius.pill,
+    backgroundColor: '#E5E5EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    minHeight: 34,
+  },
+  navPillPhone: {
+    paddingHorizontal: iosSpacing.sm,
+    paddingVertical: iosSpacing.xs,
+    minHeight: 30,
+  },
+  navPillSub: {
+    paddingVertical: iosSpacing.xs,
+  },
+  navPillActive: {
+    backgroundColor: iosColors.surface,
+    borderWidth: 1,
+    borderColor: iosColors.primary,
+  },
+  navPillText: { ...iosTypography.subhead, color: iosColors.text, lineHeight: 18 },
+  navPillTextPhone: { fontSize: 13, lineHeight: 16 },
+  navPillTextActive: { color: iosColors.primary, fontWeight: '600' },
+});

@@ -5,7 +5,7 @@
 - Shared shell & navigation: `components/admin/AdminShell.tsx`, `SectionNav.tsx`, `AdminState.tsx`, `AdminToast.tsx`, `AdminWorkflow.tsx`.
 - Core dashboard views/cards: `AdminMetricsPage.tsx` (hero + approvals + payouts), `HeroStats.tsx`, `AlertsSnapshot.tsx`, `SettlementBlocks.tsx`, `PayoutBalances.tsx`, `PayoutQueues.tsx`, `PaymentReviewList.tsx`, `LicenseReviewList.tsx`, `PhotoReviewList.tsx`, `OrderIssues.tsx`, `OrderAdminList.tsx`, `OrderAdminDetailView.tsx`, `AgingPayables.tsx`, `ManualTools.tsx`, `RolloutConfig.tsx`, `PaymentsFilters.tsx`, `PayoutFilters.tsx`, `ActionBanner.tsx`.
 - Hooks: `hooks/useAdminGate.ts` (auth/claim guard), `useAdminOpsData.ts` (money/payables + approvals data), `useAdminReports.ts` (alerts/settlement/issues), `useAdminMetricsCoordinator.ts` (aggregates data + actions for metrics page).
-- Styles: `styles/adminMetrics.ts` (shared typography, colors, spacing, nav pills, cards, badges, fee grid, hero stats).
+- Styles: `styles/iosTheme.ts` and `styles/adminMetrics.ts` (iOS tokens and shared card/list/typography).
 
 ## Data dependencies (utils/db/adminOps.ts)
 - Reviews & approvals: `list_payment_review_queue`, `approve_payment_review`, `reject_payment_review`, `list_driver_license_reviews`, `review_driver_license`, `list_menu_photo_reviews`, `review_menu_photo`, `submit_payment_proof` (manual helper).
@@ -28,5 +28,5 @@
 - All other admin components/routes/hooks are <200 lines; keep new work modular (subcards, filter components) to stay under 700.
 
 ## Notes for next phases
-- Introduce layout primitives (responsive grid/tokens) without inflating `adminMetrics` styles; consider a dedicated `adminTheme.ts` to avoid hard-coded values.
+- Continue to rely on iOS tokens (`iosTheme.ts`) and shared `adminMetrics.ts` styles; avoid reintroducing legacy themes.
 - When expanding pages, extract section cards/components to keep route files slim and reusable across mobile/tablet/web breakpoints.

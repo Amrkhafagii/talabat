@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { IOSCard } from '@/components/ios/IOSCard';
+import { IOSBadge } from '@/components/ios/IOSBadge';
+import { IOSPillButton } from '@/components/ios/IOSPillButton';
+import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import { money } from '@/utils/adminUi';
 import type { PayoutBalance, WalletTx } from '@/utils/db/adminOps';
 
@@ -24,7 +28,7 @@ const sorters: Record<SortKey, (a: PayoutBalance, b: PayoutBalance) => number> =
 export function PayoutBalances({ balances, walletTx, onSettle, onViewTx }: Props) {
   const [sort, setSort] = useState<SortKey>('balance');
   if (balances.length === 0) {
-    return <Text style={styles.helper}>No balances found.</Text>;
+    return <Text style={styles.helperText}>No balances found.</Text>;
   }
   const sorted = useMemo(() => [...balances].sort(sorters[sort]), [balances, sort]);
 
@@ -45,73 +49,36 @@ export function PayoutBalances({ balances, walletTx, onSettle, onViewTx }: Props
 
   return (
     <View>
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>Balances</Text>
-        <View style={styles.sortRow}>
-          <Text style={styles.helper}>Sort</Text>
-          <TouchableOpacity style={[styles.badge, sort === 'balance' && styles.badgeActive]} onPress={() => setSort('balance')}>
-            <Text style={[styles.badgeText, sort === 'balance' && styles.badgeTextActive]}>Balance</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.badge, sort === 'type' && styles.badgeActive]} onPress={() => setSort('type')}>
-            <Text style={[styles.badgeText, sort === 'type' && styles.badgeTextActive]}>Wallet</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.badge, sort === 'age' && styles.badgeActive]} onPress={() => setSort('age')}>
-            <Text style={[styles.badgeText, sort === 'age' && styles.badgeTextActive]}>Age</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
       {sorted.map((b) => (
-        <View key={`${b.user_id}-${b.wallet_type}`} style={styles.card}>
-          <Text style={styles.row}>User: {b.user_id}</Text>
-          <Text style={styles.row}>Type: {b.wallet_type}</Text>
-          <Text style={styles.row}>Balance: {money(b.balance)}</Text>
-          <Text style={styles.row}>Instapay: {b.instapay_handle || '—'} ({b.instapay_channel || 'instapay'})</Text>
-          {(b as any)?.status === 'blocked' && (
-            <Text style={[styles.row, styles.blocked]}>Blocked account. Reason: {(b as any)?.block_reason || 'N/A'}</Text>
-          )}
-          {(b as any)?.ledger_events?.length ? (
-            <View style={{ marginTop: 6 }}>
-              <Text style={styles.txRow}>Recent ledger</Text>
-              {(b as any).ledger_events.slice(0, 3).map((evt: any, idx: number) => (
-                <Text key={idx} style={styles.txRow}>{evt.created_at}: {evt.type} {money(evt.amount)}</Text>
-              ))}
+        <IOSCard key={`${b.user_id}-${b.wallet_type}`} padding="md" style={styles.card}>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.title}>{b.wallet_type === 'restaurant' ? 'Restaurant Wallet' : 'Driver Wallet'}</Text>
+              <Text style={styles.helperText}>Pending: {money((b as any).pending ?? 0)}</Text>
             </View>
-          ) : null}
-          <View style={styles.actions}>
-            <TouchableOpacity style={styles.btn} onPress={() => onViewTx(b.user_id, b.wallet_type)}>
-              <Text style={styles.btnText}>View tx</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, styles.primary]} onPress={() => confirmSettle(b)}>
-              <Text style={[styles.btnText, styles.primaryText]}>Settle</Text>
-            </TouchableOpacity>
+            <IOSBadge label={`Balance ${money(b.balance)}`} tone={(b.balance ?? 0) < 0 ? 'error' : 'info'} />
           </View>
-          {walletTx[b.user_id]?.filter(tx => tx.wallet_type === b.wallet_type).slice(0,5).map((tx) => (
-            <Text key={tx.created_at+tx.reference} style={styles.txRow}>
-              {tx.created_at}: {tx.type} {money(tx.amount)} ({tx.status}) ref:{tx.reference || '—'}
-            </Text>
-          ))}
-        </View>
+          <Text style={styles.balanceValue}>${money(b.balance)}</Text>
+          <Text style={styles.helperText}>Instapay: {b.instapay_handle || '—'} ({b.instapay_channel || 'instapay'})</Text>
+          {(b as any)?.status === 'blocked' && (
+            <Text style={[styles.helperText, styles.blocked]}>Blocked account. Reason: {(b as any)?.block_reason || 'N/A'}</Text>
+          )}
+          <View style={styles.actions}>
+            <IOSPillButton label="Settle Balance" size="sm" onPress={() => confirmSettle(b)} />
+            <IOSPillButton label="View Transactions" variant="ghost" size="sm" onPress={() => onViewTx(b.user_id, b.wallet_type)} />
+          </View>
+        </IOSCard>
       ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 16, fontWeight: '700', marginBottom: 8, color: '#111827' },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  sortRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  helper: { color: '#6B7280' },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 10 },
-  row: { color: '#111827', marginBottom: 4 },
-  txRow: { color: '#4B5563', fontSize: 12 },
-  blocked: { color: '#B91C1C' },
-  actions: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  btn: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E5E7EB' },
-  btnText: { color: '#111827', fontWeight: '600' },
-  primary: { backgroundColor: '#111827' },
-  primaryText: { color: '#fff' },
-  badge: { paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: '#F3F4F6' },
-  badgeActive: { backgroundColor: '#0F172A' },
-  badgeText: { fontWeight: '700', fontSize: 12, color: '#111827' },
-  badgeTextActive: { color: '#FFFFFF' },
+  title: { ...iosTypography.headline },
+  helperText: { ...iosTypography.caption, color: iosColors.secondaryText },
+  card: { marginBottom: iosSpacing.md, borderRadius: iosRadius.xl, gap: iosSpacing.xs },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  balanceValue: { ...iosTypography.title2 },
+  blocked: { color: iosColors.destructive },
+  actions: { flexDirection: 'row', gap: iosSpacing.xs, marginTop: iosSpacing.sm },
 });

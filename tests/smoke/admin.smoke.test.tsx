@@ -2,8 +2,20 @@ import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: any) => children,
+(vi as any).mock('react-native', () => import('../mocks/react-native/index.js'), { virtual: true });
+(vi as any).mock(
+  'react-native/Libraries/Utilities/codegenNativeComponent',
+  () => import('../mocks/react-native/Libraries/Utilities/codegenNativeComponent.js'),
+  { virtual: true }
+);
+(vi as any).mock('react-native-safe-area-context', () => import('../mocks/react-native-safe-area-context'), { virtual: true });
+(vi as any).mock('expo-clipboard', () => import('../mocks/expo-clipboard'), { virtual: true });
+(vi as any).mock('expo-modules-core', () => import('../mocks/expo-modules-core'), { virtual: true });
+(vi as any).mock('expo-constants', () => import('../mocks/expo-constants'), { virtual: true });
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { email: 'admin@test.com' }, signOut: vi.fn() }),
+  AuthProvider: ({ children }: any) => children,
 }));
 
 vi.mock('@/utils/database', () => {

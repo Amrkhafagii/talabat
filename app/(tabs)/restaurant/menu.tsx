@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, TextInput, Animated, Modal, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Plus, Filter } from 'lucide-react-native';
+import { useFocusEffect } from 'expo-router';
+import { Plus, Filter, ArrowUp, ArrowDown, Trash2, X } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import SearchBar from '@/components/ui/SearchBar';
@@ -11,15 +12,21 @@ import Button from '@/components/ui/Button';
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
-  getRestaurantByUserId, 
+  ensureRestaurantForUser, 
   getMenuItemsByRestaurant, 
   getCategories,
+  createCategory,
+  reorderCategories,
+  updateCategory,
   updateMenuItem,
-  deleteMenuItem
+  deleteMenuItem,
+  deleteCategory
 } from '@/utils/database';
 import { Restaurant, MenuItem, Category } from '@/types/database';
+import { reorderCategoryList, ensureOwnership, shouldRefetchOnFocus } from '@/utils/menuOrdering';
+import { logMutationError } from '@/utils/telemetry';
 
-const categoryFilters = ['All', 'Popular', 'Mains', 'Sides', 'Beverages', 'Desserts'];
+const baseCategoryFilters = ['All', 'Popular'];
 
 export default function MenuManagement() {
   const { user } = useAuth();
@@ -29,10 +36,20 @@ export default function MenuManagement() {
   const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [onlyPopular, setOnlyPopular] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const prevIdsRef = useRef<string[]>([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [renameDrafts, setRenameDrafts] = useState<Record<string, string>>({});
+  const [pendingCategories, setPendingCategories] = useState<Category[] | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -40,9 +57,17 @@ export default function MenuManagement() {
     }
   }, [user]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      if (shouldRefetchOnFocus(user?.id, restaurant?.id)) {
+        loadMenuItems((restaurant as Restaurant).id);
+      }
+    }, [user, restaurant])
+  );
+
   useEffect(() => {
     filterMenuItems();
-  }, [menuItems, searchQuery, selectedCategory]);
+  }, [menuItems, searchQuery, selectedCategory, onlyAvailable, onlyPopular]);
 
   const loadData = async () => {
     if (!user) return;
@@ -51,18 +76,18 @@ export default function MenuManagement() {
       setLoading(true);
       setError(null);
 
-      const [restaurantData, categoriesData] = await Promise.all([
-        getRestaurantByUserId(user.id),
-        getCategories()
-      ]);
-
+      const restaurantData = await ensureRestaurantForUser(user.id);
       if (!restaurantData) {
         setError('No restaurant found for this user');
         return;
       }
+      const categoriesData = await getCategories(restaurantData.id);
 
       setRestaurant(restaurantData);
       setCategories(categoriesData);
+      if (categoriesData.length > 0 && selectedCategory === 'All') {
+        setSelectedCategory('All');
+      }
 
       // Load menu items
       await loadMenuItems(restaurantData.id);
@@ -78,6 +103,13 @@ export default function MenuManagement() {
     try {
       const items = await getMenuItemsByRestaurant(restaurantId);
       setMenuItems(items);
+      const prevIds = prevIdsRef.current;
+      const newId = items.find(i => !prevIds.includes(i.id))?.id;
+      if (newId) {
+        setHighlightId(newId);
+        setTimeout(() => setHighlightId(null), 2500);
+      }
+      prevIdsRef.current = items.map(i => i.id);
     } catch (err) {
       console.error('Error loading menu items:', err);
     }
@@ -108,17 +140,35 @@ export default function MenuManagement() {
       if (selectedCategory === 'Popular') {
         filtered = filtered.filter(item => item.is_popular);
       } else {
-        filtered = filtered.filter(item => item.category === selectedCategory);
+        filtered = filtered.filter(item => item.category === selectedCategory || item.category_id === selectedCategory);
       }
+    }
+
+    if (onlyAvailable) {
+      filtered = filtered.filter(item => item.is_available);
+    }
+    if (onlyPopular) {
+      filtered = filtered.filter(item => item.is_popular);
     }
 
     setFilteredItems(filtered);
   };
 
   const handleToggleAvailability = async (itemId: string, isAvailable: boolean) => {
+    if (!restaurant) {
+      Alert.alert('Error', 'No restaurant found for this account');
+      return;
+    }
+
+    const item = menuItems.find(i => i.id === itemId);
+    if (!item || !ensureOwnership(restaurant.id, item.restaurant_id)) {
+      Alert.alert('Unauthorized', 'You can only update items from your restaurant.');
+      return;
+    }
+
     try {
-      const success = await updateMenuItem(itemId, { is_available: !isAvailable });
-      
+      const { success, error, errorCode } = await updateMenuItem(itemId, { is_available: !isAvailable }, restaurant.id);
+
       if (success) {
         setMenuItems(prev => 
           prev.map(item => 
@@ -127,19 +177,36 @@ export default function MenuManagement() {
               : item
           )
         );
+        showToast(!isAvailable ? 'Item marked available' : 'Item marked unavailable');
       } else {
-        Alert.alert('Error', 'Failed to update item availability');
+        const friendly = errorCode === '42501'
+          ? 'You cannot update items you do not own.'
+          : 'Failed to update item availability';
+        logMutationError('menu.updateAvailability.failed', { itemId, error, errorCode });
+        Alert.alert('Error', friendly);
       }
     } catch (err) {
       console.error('Error updating availability:', err);
+      logMutationError('menu.updateAvailability.failed', { itemId, err: String(err) });
       Alert.alert('Error', 'Failed to update item availability');
     }
   };
 
   const handleTogglePopular = async (itemId: string, isPopular: boolean) => {
+    if (!restaurant) {
+      Alert.alert('Error', 'No restaurant found for this account');
+      return;
+    }
+
+    const item = menuItems.find(i => i.id === itemId);
+    if (!item || !ensureOwnership(restaurant.id, item.restaurant_id)) {
+      Alert.alert('Unauthorized', 'You can only update items from your restaurant.');
+      return;
+    }
+
     try {
-      const success = await updateMenuItem(itemId, { is_popular: !isPopular });
-      
+      const { success, error, errorCode } = await updateMenuItem(itemId, { is_popular: !isPopular }, restaurant.id);
+
       if (success) {
         setMenuItems(prev => 
           prev.map(item => 
@@ -148,11 +215,17 @@ export default function MenuManagement() {
               : item
           )
         );
+        showToast(!isPopular ? 'Item marked popular' : 'Item unmarked popular');
       } else {
-        Alert.alert('Error', 'Failed to update popular status');
+        const friendly = errorCode === '42501'
+          ? 'You cannot update items you do not own.'
+          : 'Failed to update popular status';
+        logMutationError('menu.updatePopular.failed', { itemId, error, errorCode });
+        Alert.alert('Error', friendly);
       }
     } catch (err) {
       console.error('Error updating popular status:', err);
+      logMutationError('menu.updatePopular.failed', { itemId, err: String(err) });
       Alert.alert('Error', 'Failed to update popular status');
     }
   };
@@ -175,16 +248,22 @@ export default function MenuManagement() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const success = await deleteMenuItem(item.id);
-              
+              if (!restaurant) {
+                Alert.alert('Error', 'No restaurant found for this account');
+                return;
+              }
+
+              const { success, error } = await deleteMenuItem(item.id, restaurant.id);
+
               if (success) {
                 setMenuItems(prev => prev.filter(i => i.id !== item.id));
-                Alert.alert('Success', 'Menu item deleted successfully');
+                showToast('Item deleted');
               } else {
-                Alert.alert('Error', 'Failed to delete menu item');
+                Alert.alert('Error', error || 'Failed to delete menu item');
               }
             } catch (err) {
               console.error('Error deleting item:', err);
+              logMutationError('menu.delete.failed', { itemId: item.id, err: String(err) });
               Alert.alert('Error', 'Failed to delete menu item');
             }
           }
@@ -195,6 +274,121 @@ export default function MenuManagement() {
 
   const addNewItem = () => {
     router.push('/restaurant/add-menu-item');
+  };
+
+  const showToast = (message: string) => {
+    setToast(message);
+    Animated.timing(toastAnim, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setTimeout(() => {
+        Animated.timing(toastAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => setToast(null));
+      }, 1200);
+    });
+  };
+
+  const derivedCategoryFilters = [
+    ...baseCategoryFilters,
+    ...categories.map((c) => c.id),
+  ];
+
+  const getCategoryLabel = (value: string) => {
+    if (value === 'All' || value === 'Popular') return value;
+    const cat = categories.find((c) => c.id === value);
+    if (!cat) return value;
+    const scope = cat.restaurant_id ? 'Your restaurant' : 'Global';
+    return `${cat.name} • ${scope}`;
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    if (categories.some(c => c.name.toLowerCase() === newCategoryName.trim().toLowerCase())) {
+      Alert.alert('Duplicate', 'Category name already exists.');
+      return;
+    }
+    const { category, errorCode, errorMessage } = await createCategory({
+      name: newCategoryName.trim(),
+      emoji: '🍽️',
+      description: '',
+      restaurant_id: restaurant?.id ?? null,
+      is_active: true,
+      sort_order: (categories[categories.length - 1]?.sort_order || 0) + 1,
+    });
+    if (category) {
+      setCategories((prev) => [...prev, category]);
+      setSelectedCategory(category.id);
+      setNewCategoryName('');
+      showToast('Category added');
+    } else {
+      const friendly = errorCode === '42501'
+        ? 'You do not have permission to create categories for this restaurant.'
+        : 'Could not create category';
+      logMutationError('category.create.failed', { errorCode, errorMessage });
+      Alert.alert('Error', friendly);
+    }
+  };
+
+  const moveCategory = async (index: number, direction: 'up' | 'down') => {
+    const reordered = reorderCategoryList<Category>(categories, index, direction);
+    if (reordered === categories) return;
+    setPendingCategories(categories);
+    setCategories(reordered);
+    const ok = await reorderCategories(reordered.map((c) => ({ id: c.id, sort_order: c.sort_order })));
+    if (!ok) {
+      Alert.alert('Error', 'Failed to reorder categories');
+      logMutationError('category.reorder.failed', { reordered: reordered.map((c) => c.id) });
+      if (pendingCategories) setCategories(pendingCategories);
+    } else {
+      showToast('Categories reordered');
+    }
+  };
+
+  const handleUpdateCategoryName = async (id: string, name: string) => {
+    if (!name.trim()) {
+      Alert.alert('Name required', 'Please enter a category name.');
+      return;
+    }
+    if (categories.some(c => c.id !== id && c.name.toLowerCase() === name.trim().toLowerCase())) {
+      Alert.alert('Duplicate', 'Category name already exists.');
+      return;
+    }
+    setPendingCategories(categories);
+    setCategories((prev) => prev.map((c) => c.id === id ? { ...c, name } : c));
+    const ok = await updateCategory(id, { name });
+    if (!ok) {
+      Alert.alert('Error', 'Failed to rename category');
+      logMutationError('category.rename.failed', { id });
+      if (pendingCategories) setCategories(pendingCategories);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    Alert.alert('Delete category', 'Items will lose this category. Continue?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setPendingCategories(categories);
+          setCategories(prev => prev.filter(c => c.id !== id));
+          const ok = await deleteCategory(id);
+          if (!ok) {
+            Alert.alert('Error', 'Failed to delete category');
+            logMutationError('category.delete.failed', { id });
+            if (pendingCategories) setCategories(pendingCategories);
+          } else {
+            if (selectedCategory === id) setSelectedCategory('All');
+            showToast('Category deleted');
+          }
+        }
+      }
+    ]);
   };
 
   const getItemStats = () => {
@@ -242,11 +436,12 @@ export default function MenuManagement() {
         rightComponent={<RealtimeIndicator />}
       />
 
-      {/* Stats Bar */}
+      {/* Overview */}
+      <Text style={styles.sectionHeading}>Overview</Text>
       <View style={styles.statsBar}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{stats.total}</Text>
-          <Text style={styles.statLabel}>Total Items</Text>
+          <Text style={styles.statLabel}>Total</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={[styles.statNumber, { color: '#10B981' }]}>{stats.available}</Text>
@@ -262,49 +457,94 @@ export default function MenuManagement() {
         </View>
       </View>
 
-      {/* Search and Filters */}
-      <View style={styles.searchSection}>
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search menu items..."
-          style={styles.searchBar}
-        />
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Filter size={20} color="#6B7280" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.addButton} onPress={addNewItem}>
-          <Plus size={20} color="#FFFFFF" />
-        </TouchableOpacity>
+      {/* Filters */}
+      <View style={styles.stickyBar}>
+        <View style={styles.searchSection}>
+          <SearchBar
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search menu items..."
+            style={styles.searchBar}
+          />
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Filter size={20} color="#6B7280" />
+          </TouchableOpacity>
+          <Button title="Add Item" onPress={addNewItem} style={styles.addCta} />
+        </View>
+
+        {showFilters && (
+          <View style={styles.filtersContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {derivedCategoryFilters.map((categoryValue) => (
+                <TouchableOpacity
+                  key={categoryValue}
+                  style={[
+                    styles.categoryFilter,
+                    selectedCategory === categoryValue && styles.selectedCategoryFilter
+                  ]}
+                  onPress={() => setSelectedCategory(categoryValue)}
+                >
+                  <Text style={[
+                    styles.categoryFilterText,
+                    selectedCategory === categoryValue && styles.selectedCategoryFilterText
+                  ]}>
+                    {getCategoryLabel(categoryValue)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.manageCategoriesButton} onPress={() => setShowCategoryManager(true)}>
+              <Text style={styles.manageCategoriesText}>Manage categories</Text>
+            </TouchableOpacity>
+            <View style={styles.filterToggles}>
+              <View style={styles.toggleRow}>
+                <Text style={styles.toggleLabel}>Only available</Text>
+                <Switch value={onlyAvailable} onValueChange={setOnlyAvailable} />
+              </View>
+              <View style={styles.toggleRow}>
+                <Text style={styles.toggleLabel}>Only popular</Text>
+                <Switch value={onlyPopular} onValueChange={setOnlyPopular} />
+              </View>
+            </View>
+          </View>
+        )}
       </View>
 
-      {/* Category Filters */}
-      {showFilters && (
-        <View style={styles.filtersContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {categoryFilters.map((category) => (
-              <TouchableOpacity
-                key={category}
-                style={[
-                  styles.categoryFilter,
-                  selectedCategory === category && styles.selectedCategoryFilter
-                ]}
-                onPress={() => setSelectedCategory(category)}
-              >
-                <Text style={[
-                  styles.categoryFilterText,
-                  selectedCategory === category && styles.selectedCategoryFilterText
-                ]}>
-                  {category}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+      {/* Category Manager */}
+      <View style={styles.categoriesManager}>
+        <Text style={styles.sectionTitle}>Manage Categories</Text>
+        <View style={styles.addCategoryRow}>
+          <TextInput
+            style={[styles.categoryInput, styles.flex1]}
+            placeholder="New category"
+            value={newCategoryName}
+            onChangeText={setNewCategoryName}
+          />
+          <TouchableOpacity style={styles.addCategoryButton} onPress={handleCreateCategory}>
+            <Text style={styles.addCategoryButtonText}>Add</Text>
+          </TouchableOpacity>
         </View>
-      )}
+        {categories.map((cat, idx) => (
+          <View key={cat.id} style={styles.manageRow}>
+            <TextInput
+              style={[styles.categoryInput, styles.flex1]}
+              value={cat.name}
+              onChangeText={(val) => handleUpdateCategoryName(cat.id, val)}
+            />
+            <View style={styles.reorderButtons}>
+              <TouchableOpacity onPress={() => moveCategory(idx, 'up')} disabled={idx === 0}>
+                <ArrowUp size={18} color={idx === 0 ? '#D1D5DB' : '#111827'} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => moveCategory(idx, 'down')} disabled={idx === categories.length - 1}>
+                <ArrowDown size={18} color={idx === categories.length - 1 ? '#D1D5DB' : '#111827'} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </View>
 
       {/* Menu Items List */}
       <ScrollView 
@@ -330,10 +570,17 @@ export default function MenuManagement() {
                   description: item.description,
                   price: item.price,
                   image: item.image,
-                  category: item.category,
+                  category: item.category_info?.name || item.category,
                   isPopular: item.is_popular,
                   isAvailable: item.is_available,
-                  preparationTime: item.preparation_time
+                  isScheduled: Boolean(item.available_start_time || item.available_end_time),
+                  availabilityLabel: item.available_start_time && item.available_end_time
+                    ? `${item.available_start_time} - ${item.available_end_time}`
+                    : item.available_start_time || item.available_end_time || undefined,
+                  preparationTime: item.preparation_time,
+                  highlight: highlightId === item.id,
+                  photoStatus: item.photo_approval_status,
+                  photoNote: item.photo_approval_notes ?? null,
                 }}
                 onEdit={() => handleEditItem(item)}
                 onDelete={() => handleDeleteItem(item)}
@@ -363,9 +610,72 @@ export default function MenuManagement() {
                 style={styles.emptyButton}
               />
             )}
+            {(searchQuery || selectedCategory !== 'All') && (
+              <Button
+                title="Clear filters"
+                onPress={() => { setSearchQuery(''); setSelectedCategory('All'); }}
+                variant="outline"
+              />
+            )}
           </View>
         )}
       </ScrollView>
+      {toast && (
+        <Animated.View style={[styles.toast, { opacity: toastAnim }]}>
+          <Text style={styles.toastText}>{toast}</Text>
+        </Animated.View>
+      )}
+
+      {/* Category Manager Modal */}
+      <Modal visible={showCategoryManager} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Manage Categories</Text>
+              <TouchableOpacity onPress={() => setShowCategoryManager(false)}>
+                <X size={20} color="#111827" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>Global categories are shared; scoped ones belong to your restaurant.</Text>
+            <ScrollView>
+              {categories.map((cat, idx) => (
+                <View key={cat.id} style={styles.manageRow}>
+                  <Text style={styles.sortNumber}>{idx + 1}</Text>
+                  <TextInput
+                    style={[styles.categoryInput, styles.flex1]}
+                    value={renameDrafts[cat.id] ?? cat.name}
+                    onChangeText={(val) => setRenameDrafts(prev => ({ ...prev, [cat.id]: val }))}
+                    onBlur={() => handleUpdateCategoryName(cat.id, (renameDrafts[cat.id] ?? cat.name).trim())}
+                  />
+                  <Text style={styles.scopePill}>{cat.restaurant_id ? 'Your restaurant' : 'Global'}</Text>
+                  <View style={styles.reorderButtons}>
+                    <TouchableOpacity onPress={() => moveCategory(idx, 'up')} disabled={idx === 0}>
+                      <ArrowUp size={18} color={idx === 0 ? '#D1D5DB' : '#111827'} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => moveCategory(idx, 'down')} disabled={idx === categories.length - 1}>
+                      <ArrowDown size={18} color={idx === categories.length - 1 ? '#D1D5DB' : '#111827'} />
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity onPress={() => handleDeleteCategory(cat.id)} style={styles.deleteBtn}>
+                    <Trash2 size={16} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+            <View style={styles.addCategoryRow}>
+              <TextInput
+                style={[styles.categoryInput, styles.flex1]}
+                placeholder="New category name"
+                value={newCategoryName}
+                onChangeText={setNewCategoryName}
+              />
+              <TouchableOpacity style={styles.addCategoryButton} onPress={handleCreateCategory}>
+                <Text style={styles.addCategoryButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -419,6 +729,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
+  sectionWrapper: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  sectionHeading: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  stickyBar: {
+    backgroundColor: '#FFFFFF',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
   statItem: {
     flex: 1,
     alignItems: 'center',
@@ -442,6 +774,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     gap: 12,
   },
+  addCta: { minWidth: 110 },
   searchBar: {
     flex: 1,
     margin: 0,
@@ -462,12 +795,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  flex1: { flex: 1 },
   filtersContainer: {
     backgroundColor: '#FFFFFF',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  categoriesManager: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  categoryInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontFamily: 'Inter-Regular',
+    color: '#111827',
+  },
+  addCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  addCategoryButton: {
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  addCategoryButtonText: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter-SemiBold',
   },
   categoryFilter: {
     paddingHorizontal: 16,
@@ -487,12 +859,38 @@ const styles = StyleSheet.create({
   selectedCategoryFilterText: {
     color: '#FFFFFF',
   },
+  manageCategoriesButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+  },
+  manageCategoriesText: {
+    fontFamily: 'Inter-Medium',
+    color: '#111827',
+  },
+  filterToggles: {
+    marginTop: 10,
+    gap: 8,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  toggleLabel: {
+    fontFamily: 'Inter-Regular',
+    color: '#374151',
+  },
   content: {
     flex: 1,
   },
   itemsList: {
     paddingHorizontal: 20,
     paddingTop: 16,
+    paddingBottom: 80,
   },
   emptyState: {
     alignItems: 'center',
@@ -516,5 +914,80 @@ const styles = StyleSheet.create({
   },
   emptyButton: {
     marginTop: 16,
+  },
+  toast: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: '#111827',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '80%',
+    gap: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 18,
+    color: '#111827',
+  },
+  modalSubtitle: {
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  scopePill: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  deleteBtn: {
+    padding: 6,
+  },
+  sortNumber: {
+    width: 20,
+    textAlign: 'center',
+    fontFamily: 'Inter-SemiBold',
+    color: '#6B7280',
+  },
+  manageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  reorderButtons: {
+    flexDirection: 'row',
+    gap: 6,
   },
 });

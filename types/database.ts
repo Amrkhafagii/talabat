@@ -3,7 +3,7 @@ export interface User {
   email: string;
   full_name?: string;
   phone?: string;
-  user_type: 'customer' | 'restaurant' | 'delivery';
+  user_type: 'customer' | 'restaurant' | 'delivery' | 'admin';
   avatar_url?: string;
   created_at: string;
   updated_at: string;
@@ -14,6 +14,7 @@ export interface Category {
   name: string;
   emoji: string;
   description?: string;
+  restaurant_id?: string | null;
   is_active: boolean;
   sort_order: number;
   created_at: string;
@@ -29,6 +30,7 @@ export interface Restaurant {
   delivery_time: string;
   delivery_fee: number;
   minimum_order: number;
+  delivery_radius_km?: number;
   image: string;
   cover_image?: string;
   address: string;
@@ -76,10 +78,24 @@ export interface MenuItem {
   allergens?: string[];
   ingredients?: string[];
   sort_order: number;
+  photo_approval_status?: 'pending' | 'approved' | 'rejected';
+  photo_approval_notes?: string | null;
+  photo_reviewed_at?: string | null;
+  photo_reviewer?: string | null;
+  available_start_time?: string | null;
+  available_end_time?: string | null;
+  variants?: MenuItemOption[];
+  addons?: MenuItemOption[];
   created_at: string;
   updated_at: string;
   restaurant?: Restaurant;
   category_info?: Category;
+}
+
+export interface MenuItemOption {
+  name: string;
+  price: number;
+  available?: boolean;
 }
 
 export interface BackupMapping {
@@ -213,8 +229,16 @@ export interface DeliveryDriver {
   total_earnings: number;
   background_check_status: 'pending' | 'approved' | 'rejected';
   documents_verified: boolean;
-  id_document_url?: string;
-  license_document_url?: string;
+  id_document_url?: string | null;
+  id_front_url?: string | null;
+  id_back_url?: string | null;
+  vehicle_document_url?: string | null;
+  license_document_url?: string | null;
+  license_document_status?: 'pending' | 'approved' | 'rejected';
+  doc_review_status?: 'pending' | 'approved' | 'rejected';
+  doc_review_notes?: string | null;
+  doc_reviewed_at?: string | null;
+  license_verified_at?: string | null;
   payout_account?: Record<string, any>;
   verification_notes?: string;
   created_at: string;
@@ -236,7 +260,7 @@ export interface Delivery {
   estimated_duration_minutes?: number;
   delivery_fee: number;
   driver_earnings: number;
-  status: 'pending' | 'assigned' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
+  status: 'available' | 'assigned' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
   assigned_at?: string;
   picked_up_at?: string;
   delivered_at?: string;
@@ -301,7 +325,7 @@ export interface WalletTransaction {
   wallet_id: string;
   order_id?: string;
   amount: number;
-  type: 'deposit' | 'withdrawal' | 'escrow_hold' | 'escrow_release' | 'commission' | 'driver_payout' | 'psp_hold' | 'psp_capture' | 'refund';
+  type: 'deposit' | 'withdrawal' | 'escrow_hold' | 'escrow_release' | 'commission' | 'driver_payout' | 'psp_hold' | 'psp_capture' | 'refund' | 'payout_request';
   status: 'pending' | 'completed' | 'failed';
   reference?: string;
   metadata?: Record<string, any>;
@@ -359,6 +383,8 @@ export interface MenuItemFilters {
   available?: boolean;
   priceRange?: [number, number];
   search?: string;
+  approvedImagesOnly?: boolean;
+  includeUnapproved?: boolean;
 }
 
 export interface OrderFilters {

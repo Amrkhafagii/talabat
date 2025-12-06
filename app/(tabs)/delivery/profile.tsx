@@ -15,15 +15,36 @@ export default function DeliveryProfile() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState<'id' | 'license' | null>(null);
-  const [form, setForm] = useState({
+  const [uploading, setUploading] = useState<'id' | 'license' | 'id_front' | 'id_back' | 'vehicle' | null>(null);
+  const [form, setForm] = useState<{
+    license_number: string;
+    vehicle_type: DeliveryDriver['vehicle_type'];
+    vehicle_make: string;
+    vehicle_model: string;
+    vehicle_year: string;
+    vehicle_color: string;
+    license_plate: string;
+    payout_method: 'instapay';
+    payout_handle: string;
+    payout_type: 'account' | 'wallet';
+  }>({
     license_number: '',
-    vehicle_type: 'car' as DeliveryDriver['vehicle_type'],
+    vehicle_type: 'car',
     vehicle_make: '',
     vehicle_model: '',
     vehicle_year: '',
     vehicle_color: '',
     license_plate: '',
+    payout_method: 'instapay',
+    payout_handle: '',
+    payout_type: 'account',
+  });
+  const [bankForm, setBankForm] = useState({
+    bankName: '',
+    accountNumber: '',
+    iban: '',
+    instapayType: 'account',
+    instapayHandle: '',
   });
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -54,6 +75,16 @@ export default function DeliveryProfile() {
           vehicle_year: driverData.vehicle_year ? String(driverData.vehicle_year) : '',
           vehicle_color: driverData.vehicle_color || '',
           license_plate: driverData.license_plate || '',
+          payout_method: (driverData.payout_account as any)?.method || 'instapay',
+          payout_handle: (driverData.payout_account as any)?.handle || '',
+          payout_type: (driverData.payout_account as any)?.type || 'account',
+        });
+        setBankForm({
+          bankName: (driverData.payout_account as any)?.bankName || '',
+          accountNumber: (driverData.payout_account as any)?.accountNumber || '',
+          iban: (driverData.payout_account as any)?.iban || '',
+          instapayType: (driverData.payout_account as any)?.instapayType || 'account',
+          instapayHandle: (driverData.payout_account as any)?.instapayHandle || '',
         });
       }
     } catch (error) {
@@ -81,7 +112,7 @@ export default function DeliveryProfile() {
     );
   };
 
-  const pickAndUpload = async (type: 'id' | 'license') => {
+  const pickAndUpload = async (type: 'id' | 'license' | 'id_front' | 'id_back' | 'vehicle') => {
     if (!driver) return;
 
     try {
@@ -102,17 +133,27 @@ export default function DeliveryProfile() {
       if (!uploadedUrl) {
         Alert.alert('Upload Failed', 'Could not upload document. Please try again.');
       } else {
-        const updated = await updateDriverProfile(driver.id, {
-          id_document_url: type === 'id' ? uploadedUrl : driver.id_document_url,
-          license_document_url: type === 'license' ? uploadedUrl : driver.license_document_url,
-          background_check_status: 'pending',
-          is_online: false,
-          is_available: false,
-        } as any);
-        if (updated) {
-          setDriver(updated);
-          Alert.alert('Uploaded', 'Document uploaded. Verification pending.');
-        }
+        setDriver(prev => {
+          if (!prev) return prev;
+          switch (type) {
+            case 'license':
+              return {
+                ...prev,
+                license_document_url: uploadedUrl,
+                license_document_status: 'pending',
+                documents_verified: false,
+              } as any;
+            case 'id_front':
+              return { ...prev, id_front_url: uploadedUrl, documents_verified: false, doc_review_status: 'pending' } as any;
+            case 'id_back':
+              return { ...prev, id_back_url: uploadedUrl, documents_verified: false, doc_review_status: 'pending' } as any;
+            case 'vehicle':
+              return { ...prev, vehicle_document_url: uploadedUrl, documents_verified: false, doc_review_status: 'pending' } as any;
+            default:
+              return { ...prev, id_document_url: uploadedUrl } as any;
+          }
+        });
+        Alert.alert('Uploaded', 'Document uploaded. Verification pending.');
       }
     } catch (err) {
       console.error('Document upload error:', err);
@@ -161,6 +202,17 @@ export default function DeliveryProfile() {
         vehicle_year: form.vehicle_year ? Number(form.vehicle_year) : null as any,
         vehicle_color: form.vehicle_color || null as any,
         license_plate: form.license_plate || null as any,
+        payout_account: {
+          bankName: bankForm.bankName,
+          accountNumber: bankForm.accountNumber,
+          iban: bankForm.iban,
+          instapayType: bankForm.instapayType,
+          instapayHandle: bankForm.instapayHandle,
+          method: bankForm.instapayHandle ? 'instapay' : null,
+          handle: bankForm.instapayHandle || null,
+          channel: bankForm.instapayHandle ? 'instapay' : null,
+          type: bankForm.instapayType || 'account',
+        } as any,
       });
 
       if (updated) {
@@ -221,19 +273,19 @@ export default function DeliveryProfile() {
           <View style={styles.statusContainer}>
             <View style={[
               styles.statusBadge,
-              driver?.background_check_status === 'approved' && driver.documents_verified
+              driver?.documents_verified
                 ? styles.onlineStatus
                 : styles.offlineStatus
             ]}>
               <Text style={[
                 styles.statusText,
-                driver?.background_check_status === 'approved' && driver.documents_verified
+                driver?.documents_verified
                   ? styles.onlineText
                   : styles.offlineText
               ]}>
-                {driver?.background_check_status === 'approved' && driver.documents_verified
+                {driver?.documents_verified
                   ? 'Verified'
-                  : driver?.background_check_status === 'rejected'
+                  : driver?.doc_review_status === 'rejected'
                     ? 'Rejected'
                     : 'Pending Verification'}
             </Text>
@@ -244,7 +296,7 @@ export default function DeliveryProfile() {
               We verify your ID and vehicle documents before you can go online. Updates reset your status to pending.
             </Text>
             <Text style={styles.verificationBannerStatus}>
-              Background Check: {driver?.background_check_status || 'pending'} • Documents: {driver?.documents_verified ? 'verified' : 'not verified'}
+              Documents: {driver?.documents_verified ? 'verified' : 'not verified'}
             </Text>
           </View>
         </View>
@@ -301,7 +353,10 @@ export default function DeliveryProfile() {
                   </Text>
                 )}
                 <Text style={styles.verificationNote}>
-                  Status: {driver?.background_check_status || 'pending'} • Documents {driver?.documents_verified ? 'verified' : 'unverified'}
+                  Status: {driver?.documents_verified ? 'verified' : 'unverified'}
+                </Text>
+                <Text style={styles.verificationNote}>
+                  License photo: {driver?.license_document_status || 'pending'}
                 </Text>
                 <Text style={styles.verificationHelper}>
                   Update your profile and upload documents to get approved.
@@ -383,6 +438,62 @@ export default function DeliveryProfile() {
                   autoCapitalize="characters"
                 />
 
+                <Text style={styles.label}>Bank name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={bankForm.bankName}
+                  onChangeText={(text) => setBankForm({ ...bankForm, bankName: text })}
+                  placeholder="e.g., CIB"
+                />
+
+                <Text style={styles.label}>Account number</Text>
+                <TextInput
+                  style={styles.input}
+                  value={bankForm.accountNumber}
+                  onChangeText={(text) => setBankForm({ ...bankForm, accountNumber: text })}
+                  placeholder="Bank account number"
+                  keyboardType="number-pad"
+                />
+
+                <Text style={styles.label}>IBAN (optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={bankForm.iban}
+                  onChangeText={(text) => setBankForm({ ...bankForm, iban: text })}
+                  placeholder="IBAN"
+                  autoCapitalize="characters"
+                />
+
+                <Text style={styles.label}>Instapay type</Text>
+                <View style={styles.typeRow}>
+                  {(['account', 'wallet'] as const).map(type => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.typeChip,
+                        bankForm.instapayType === type && styles.typeChipActive
+                      ]}
+                      onPress={() => setBankForm({ ...bankForm, instapayType: type })}
+                    >
+                      <Text style={[
+                        styles.typeChipText,
+                        bankForm.instapayType === type && styles.typeChipTextActive
+                      ]}>
+                        {type === 'account' ? 'Account' : 'Wallet'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.label}>Instapay handle</Text>
+                <TextInput
+                  style={styles.input}
+                  value={bankForm.instapayHandle}
+                  onChangeText={(text) => setBankForm({ ...bankForm, instapayHandle: text })}
+                  placeholder="Enter your Instapay handle or number"
+                  keyboardType="number-pad"
+                />
+
                 <Text style={styles.verificationHelper}>
                   Submitting updates will set your account to pending until verified. Documents need manual review.
                 </Text>
@@ -397,23 +508,33 @@ export default function DeliveryProfile() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.cancelButton}
-                    onPress={() => {
-                      setEditing(false);
-                      setFormError(null);
-                      if (driver) {
-                        setForm({
-                          license_number: driver.license_number || '',
-                          vehicle_type: driver.vehicle_type || 'car',
-                          vehicle_make: driver.vehicle_make || '',
-                          vehicle_model: driver.vehicle_model || '',
-                          vehicle_year: driver.vehicle_year ? String(driver.vehicle_year) : '',
-                          vehicle_color: driver.vehicle_color || '',
-                          license_plate: driver.license_plate || '',
-                        });
-                      }
-                    }}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  onPress={() => {
+                    setEditing(false);
+                    setFormError(null);
+                    if (driver) {
+                      setForm({
+                        license_number: driver.license_number || '',
+                        vehicle_type: driver.vehicle_type || 'car',
+                        vehicle_make: driver.vehicle_make || '',
+                        vehicle_model: driver.vehicle_model || '',
+                        vehicle_year: driver.vehicle_year ? String(driver.vehicle_year) : '',
+                        vehicle_color: driver.vehicle_color || '',
+                        license_plate: driver.license_plate || '',
+                        payout_method: (driver as any)?.payout_account?.method || 'instapay',
+                        payout_handle: (driver as any)?.payout_account?.handle || '',
+                        payout_type: (driver as any)?.payout_account?.type || 'account',
+                      } as any);
+                      setBankForm({
+                        bankName: (driver as any)?.payout_account?.bankName || '',
+                        accountNumber: (driver as any)?.payout_account?.accountNumber || '',
+                        iban: (driver as any)?.payout_account?.iban || '',
+                        instapayType: (driver as any)?.payout_account?.instapayType || 'account',
+                        instapayHandle: (driver as any)?.payout_account?.instapayHandle || '',
+                      });
+                    }
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -421,35 +542,48 @@ export default function DeliveryProfile() {
           </View>
         </View>
 
-        {/* Document Upload Placeholder */}
+        {/* Document Uploads */}
         <View style={styles.vehicleSection}>
           <Text style={styles.sectionTitle}>Documents</Text>
           <View style={styles.vehicleCard}>
-            <Text style={styles.vehicleDetails}>Upload your ID and vehicle documents for verification.</Text>
-            {(driver?.id_document_url || driver?.license_document_url) && (
-              <View style={styles.docStatus}>
-                {driver?.id_document_url && (
-                  <Text style={styles.vehicleDetails}>ID uploaded ✓</Text>
-                )}
-                {driver?.license_document_url && (
-                  <Text style={styles.vehicleDetails}>License/Registration uploaded ✓</Text>
-                )}
-              </View>
-            )}
+            <Text style={styles.vehicleDetails}>Upload all required documents for verification.</Text>
+
+            <View style={styles.docStatus}>
+              <Text style={styles.vehicleDetails}>
+                License: {driver?.license_document_status || 'pending'}
+              </Text>
+              <Text style={styles.vehicleDetails}>
+                ID front/back: {(driver?.id_front_url && driver?.id_back_url) ? 'uploaded' : 'missing'}
+              </Text>
+              <Text style={styles.vehicleDetails}>
+                Vehicle ID: {driver?.vehicle_document_url ? 'uploaded' : 'missing'}
+              </Text>
+            </View>
+
             <View style={styles.docButtons}>
-              <TouchableOpacity style={styles.docButton} onPress={() => pickAndUpload('id')} disabled={!!uploading}>
-                <Text style={styles.docButtonText}>
-                  {uploading === 'id' ? 'Uploading...' : 'Upload ID'}
-                </Text>
-              </TouchableOpacity>
               <TouchableOpacity style={styles.docButton} onPress={() => pickAndUpload('license')} disabled={!!uploading}>
                 <Text style={styles.docButtonText}>
                   {uploading === 'license' ? 'Uploading...' : 'Upload License / Registration'}
                 </Text>
               </TouchableOpacity>
+              <TouchableOpacity style={styles.docButton} onPress={() => pickAndUpload('id_front')} disabled={!!uploading}>
+                <Text style={styles.docButtonText}>
+                  {uploading === 'id_front' ? 'Uploading...' : 'Upload ID Front'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.docButton} onPress={() => pickAndUpload('id_back')} disabled={!!uploading}>
+                <Text style={styles.docButtonText}>
+                  {uploading === 'id_back' ? 'Uploading...' : 'Upload ID Back'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.docButton} onPress={() => pickAndUpload('vehicle')} disabled={!!uploading}>
+                <Text style={styles.docButtonText}>
+                  {uploading === 'vehicle' ? 'Uploading...' : 'Upload Vehicle ID'}
+                </Text>
+              </TouchableOpacity>
             </View>
             <Text style={styles.verificationHelper}>
-              Files are stored in Supabase Storage bucket `driver-docs`. Review and approve in backoffice.
+              Files are stored in Supabase Storage bucket `driver-docs`. Admins review and approve before you can go online.
             </Text>
           </View>
         </View>
@@ -513,16 +647,6 @@ export default function DeliveryProfile() {
             <Text style={styles.infoLabel}>License number</Text>
             <Text style={styles.infoValue}>
               {driver?.license_number || 'Not provided'}
-            </Text>
-          </View>
-          
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Background check</Text>
-            <Text style={[
-              styles.infoValue,
-              { color: driver?.background_check_status === 'approved' ? '#10B981' : '#F59E0B' }
-            ]}>
-              {driver?.background_check_status === 'approved' ? 'Approved' : 'Pending'}
             </Text>
           </View>
           

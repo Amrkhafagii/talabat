@@ -2,22 +2,32 @@ import { supabase } from '../supabase';
 import { MenuItem, MenuItemFilters } from '@/types/database';
 
 export async function getMenuItemsByRestaurant(restaurantId: string, filters?: MenuItemFilters): Promise<MenuItem[]> {
+  const isUuid = (value: string) => /^[0-9a-fA-F-]{36}$/.test(value);
+
   let query = supabase
     .from('menu_items')
     .select(`
       *,
-      restaurant:restaurants(*)
+      restaurant:restaurants(*),
+      category_info:categories(*)
     `)
-    .eq('restaurant_id', restaurantId)
-    .eq('is_available', true);
+    .eq('restaurant_id', restaurantId);
 
   // Apply filters
   if (filters?.category) {
-    query = query.eq('category', filters.category);
+    if (isUuid(filters.category)) {
+      query = query.eq('category_id', filters.category);
+    } else {
+      query = query.eq('category', filters.category);
+    }
   }
 
   if (filters?.popular !== undefined) {
     query = query.eq('is_popular', filters.popular);
+  }
+
+  if (filters?.available !== undefined) {
+    query = query.eq('is_available', filters.available);
   }
 
   if (filters?.priceRange) {
@@ -27,6 +37,10 @@ export async function getMenuItemsByRestaurant(restaurantId: string, filters?: M
 
   if (filters?.search) {
     query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+  }
+
+  if (filters?.approvedImagesOnly) {
+    query = query.eq('photo_approval_status', 'approved');
   }
 
   // Order by popular first, then by sort order
@@ -48,7 +62,8 @@ export async function getMenuItemById(id: string): Promise<MenuItem | null> {
     .from('menu_items')
     .select(`
       *,
-      restaurant:restaurants(*)
+      restaurant:restaurants(*),
+      category_info:categories(*)
     `)
     .eq('id', id)
     .single();
@@ -68,9 +83,11 @@ export async function getMenuItemsByIds(ids: string[]): Promise<MenuItem[]> {
     .from('menu_items')
     .select(`
       *,
-      restaurant:restaurants(*)
+      restaurant:restaurants(*),
+      category_info:categories(*)
     `)
-    .in('id', ids);
+    .in('id', ids)
+    .eq('photo_approval_status', 'approved');
 
   if (error) {
     console.error('Error fetching menu items by IDs:', error);
@@ -80,43 +97,83 @@ export async function getMenuItemsByIds(ids: string[]): Promise<MenuItem[]> {
   return data || [];
 }
 
-export async function createMenuItem(menuItem: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> {
+export async function createMenuItem(menuItem: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; errorCode?: string; errorMessage?: string }> {
   const { error } = await supabase
     .from('menu_items')
-    .insert(menuItem);
+    .insert({
+      ...menuItem,
+      variants: menuItem.variants ?? [],
+      addons: menuItem.addons ?? [],
+      allergens: menuItem.allergens ?? [],
+      ingredients: menuItem.ingredients ?? [],
+      photo_approval_status: 'pending',
+      photo_approval_notes: null,
+    });
 
   if (error) {
     console.error('Error creating menu item:', error);
-    return false;
+    return { success: false, errorCode: (error as any).code, errorMessage: error.message };
   }
 
-  return true;
+  return { success: true };
 }
 
-export async function updateMenuItem(menuItemId: string, updates: Partial<MenuItem>): Promise<boolean> {
-  const { error } = await supabase
+export async function updateMenuItem(
+  menuItemId: string,
+  updates: Partial<MenuItem>,
+  restaurantId?: string
+): Promise<{ success: boolean; error?: string; errorCode?: string }> {
+  const imageChanged = Object.prototype.hasOwnProperty.call(updates, 'image');
+  const payload: any = {
+    ...updates,
+    variants: updates.variants ?? undefined,
+    addons: updates.addons ?? undefined,
+    allergens: updates.allergens ?? undefined,
+    ingredients: updates.ingredients ?? undefined,
+  };
+
+  if (imageChanged) {
+    payload.photo_approval_status = 'pending';
+    payload.photo_approval_notes = null;
+    payload.photo_reviewed_at = null;
+    payload.photo_reviewer = null;
+  }
+
+  let query = supabase
     .from('menu_items')
-    .update(updates)
+    .update(payload)
     .eq('id', menuItemId);
+
+  if (restaurantId) {
+    query = query.eq('restaurant_id', restaurantId);
+  }
+
+  const { error } = await query;
 
   if (error) {
     console.error('Error updating menu item:', error);
-    return false;
+    return { success: false, error: error.message, errorCode: (error as any).code };
   }
 
-  return true;
+  return { success: true };
 }
 
-export async function deleteMenuItem(menuItemId: string): Promise<boolean> {
-  const { error } = await supabase
+export async function deleteMenuItem(menuItemId: string, restaurantId?: string): Promise<{ success: boolean; error?: string }> {
+  let query = supabase
     .from('menu_items')
     .delete()
     .eq('id', menuItemId);
 
-  if (error) {
-    console.error('Error deleting menu item:', error);
-    return false;
+  if (restaurantId) {
+    query = query.eq('restaurant_id', restaurantId);
   }
 
-  return true;
+  const { error } = await query;
+
+  if (error) {
+    console.error('Error deleting menu item:', error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
 }

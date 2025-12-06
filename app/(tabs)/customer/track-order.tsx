@@ -17,12 +17,19 @@ import { getDriverById, grantDelayCreditIdempotent } from '@/utils/database';
 import { createDeliveryEvent, logAudit, computeEtaBand, getBackupCandidates, logRerouteDecision, getDeliveryEventsByOrder } from '@/utils/db/trustedArrival';
 
 const orderSteps = [
+  { key: 'pending', label: 'Order Placed', icon: Store },
   { key: 'confirmed', label: 'Order Confirmed', icon: Store },
   { key: 'preparing', label: 'Preparing Food', icon: Clock },
   { key: 'ready', label: 'Ready for Pickup', icon: MapPin },
   { key: 'picked_up', label: 'Out for Delivery', icon: User },
   { key: 'delivered', label: 'Delivered', icon: MapPin },
 ];
+
+const normalizeStatus = (status: string) => {
+  if (status === 'on_the_way') return 'picked_up';
+  if (status === 'pending') return 'pending';
+  return status;
+};
 
 export default function TrackOrder() {
   const params = useLocalSearchParams();
@@ -33,7 +40,9 @@ export default function TrackOrder() {
   });
 
   const order = orders[0];
+  const displayStatus = order ? normalizeStatus(order.status) : null;
   const money = (val?: number | null) => formatCurrency(Number(val ?? 0));
+  const canRequestRefund = order?.status === 'cancelled' && ['paid', 'captured'].includes(order.payment_status || '');
   const [driverLocation, setDriverLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -51,6 +60,8 @@ export default function TrackOrder() {
   const [rerouteStatus, setRerouteStatus] = useState<'idle' | 'sent' | 'declined'>('idle');
   const [safetyEvents, setSafetyEvents] = useState<{ temp?: string; handoff?: string }>({});
   const [etaAlert, setEtaAlert] = useState<string | null>(null);
+  const [refundRequested, setRefundRequested] = useState(false);
+  const [refundStatus, setRefundStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const loadBackups = async () => {
@@ -152,7 +163,9 @@ export default function TrackOrder() {
 
   const getCurrentStepIndex = () => {
     if (!order) return -1;
-    return orderSteps.findIndex(step => step.key === order.status);
+    const normalized = normalizeStatus(order.status);
+    const idx = orderSteps.findIndex(step => step.key === normalized);
+    return idx === -1 ? 0 : idx;
   };
 
   const fetchDriverLocation = useCallback(async (driverId: string) => {
@@ -222,6 +235,25 @@ export default function TrackOrder() {
     Linking.openURL(`tel:${phoneNumber}`).catch(() => {
       Alert.alert('Call Driver', 'Unable to start a call on this device.');
     });
+  };
+
+  const requestRefund = async () => {
+    if (!order || refundRequested) return;
+    try {
+      setRefundStatus('Requesting refund...');
+      const { error } = await supabase.rpc('enqueue_order_refund', {
+        p_order_id: order.id,
+        p_reason: 'Customer requested refund after cancellation',
+      });
+      if (error) throw error;
+      setRefundRequested(true);
+      setRefundStatus('Refund requested. Awaiting admin confirmation.');
+      Alert.alert('Refund requested', 'We sent your refund request to admin.');
+    } catch (err) {
+      console.error('Refund request failed', err);
+      setRefundStatus('Refund request failed. Please retry later.');
+      Alert.alert('Refund failed', 'Could not submit refund request. Please try again later.');
+    }
   };
 
   const openDriverInMaps = () => {
@@ -322,9 +354,21 @@ export default function TrackOrder() {
         <Card style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <Text style={styles.orderNumber}>Order #{order.id.slice(-6).toUpperCase()}</Text>
-            <OrderStatusBadge status={order.status} size="large" />
+            <OrderStatusBadge status={displayStatus || order.status} size="large" />
           </View>
           {etaAlert && <Text style={styles.warningText}>{etaAlert}</Text>}
+          {canRequestRefund && (
+            <View style={styles.refundBox}>
+              <Text style={styles.refundText}>Order cancelled after payment. You can request a refund.</Text>
+              <Button
+                title={refundRequested ? 'Refund requested' : 'Request refund'}
+                onPress={requestRefund}
+                disabled={refundRequested}
+                style={styles.refundButton}
+              />
+              {refundStatus && <Text style={styles.refundStatus}>{refundStatus}</Text>}
+            </View>
+          )}
           <Text style={styles.restaurantName}>{order.restaurant?.name}</Text>
           <Text style={styles.orderTime}>Ordered {formatOrderTime(order.created_at)}</Text>
           {etaWindow && showTrustedEta && (
@@ -926,5 +970,24 @@ const styles = StyleSheet.create({
     color: '#92400E',
     fontWeight: '600',
     marginBottom: 6,
+  },
+  refundBox: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+  },
+  refundText: {
+    color: '#7C2D12',
+    marginBottom: 8,
+    fontFamily: 'Inter-Regular',
+  },
+  refundButton: {
+    marginTop: 4,
+  },
+  refundStatus: {
+    color: '#4B5563',
+    marginTop: 6,
+    fontFamily: 'Inter-Regular',
   },
 });

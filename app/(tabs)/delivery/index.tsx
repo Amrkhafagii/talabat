@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Truck, DollarSign, Clock, CircleCheck as CheckCircle, RefreshCw, Navigation, MapPin, History, ChartBar as BarChart3 } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { supabase } from '@/utils/supabase';
 
 import StatCard from '@/components/common/StatCard';
 import DeliveryCard from '@/components/delivery/DeliveryCard';
@@ -17,6 +18,7 @@ import {
   getDriverStats
 } from '@/utils/database';
 import { DeliveryDriver, DeliveryStats } from '@/types/database';
+import { useDriverLocationTracking } from '@/hooks/useDriverLocationTracking';
 
 export default function DeliveryDashboard() {
   const { user } = useAuth();
@@ -33,6 +35,14 @@ export default function DeliveryDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    startTracking,
+    stopTracking,
+  } = useDriverLocationTracking({
+    driverId: driver?.id,
+    onError: setError,
+  });
 
   // Use realtime deliveries hook
   const {
@@ -55,10 +65,26 @@ export default function DeliveryDashboard() {
   }, [user]);
 
   useEffect(() => {
+    supabase.auth.getSession().then((session) => {
+      const claims = session.data.session?.user?.app_metadata;
+      console.log('[auth claims]', claims);
+    });
+  }, []);
+
+  useEffect(() => {
     if (driver) {
       loadStats();
     }
   }, [driver, deliveries]); // Reload stats when deliveries change
+
+  useEffect(() => {
+    if (!driver?.id) return;
+    if (driver.is_online) {
+      startTracking();
+    } else {
+      stopTracking();
+    }
+  }, [driver?.id, driver?.is_online, startTracking, stopTracking]);
 
   const loadDriverData = async () => {
     if (!user) return;
@@ -75,7 +101,6 @@ export default function DeliveryDashboard() {
           'PENDING-LICENSE',
           'car',
           {
-            background_check_status: 'pending',
             documents_verified: false
           }
         );
@@ -118,7 +143,7 @@ export default function DeliveryDashboard() {
   const toggleOnlineStatus = async () => {
     if (!driver) return;
 
-    if (driver.background_check_status !== 'approved' || !driver.documents_verified) {
+    if (!driver.documents_verified) {
       Alert.alert(
         'Verification Required',
         'Your account is pending verification. Please complete profile and upload documents before going online.'
@@ -128,12 +153,21 @@ export default function DeliveryDashboard() {
 
     try {
       const newStatus = !driver.is_online;
-      const success = await updateDriverOnlineStatus(driver.id, newStatus);
+      const res = await updateDriverOnlineStatus(driver.id, newStatus);
       
-      if (success) {
+      if (res.ok) {
         setDriver(prev => prev ? { ...prev, is_online: newStatus } : null);
+
+        if (newStatus) {
+          const trackingStarted = await startTracking();
+          if (!trackingStarted) {
+            Alert.alert('Location Required', 'Please enable location permissions to go online.');
+          }
+        } else {
+          stopTracking();
+        }
       } else {
-        Alert.alert('Error', 'Failed to update online status');
+        Alert.alert('Error', res.error || 'Failed to update online status');
       }
     } catch (err) {
       console.error('Error toggling online status:', err);
@@ -141,17 +175,29 @@ export default function DeliveryDashboard() {
     }
   };
 
-  const handleAcceptDelivery = async (deliveryId: string) => {
+  const handleAcceptDelivery = async (delivery: any) => {
+    console.log('[acceptDelivery] start', { id: delivery.id, status: delivery.status });
     try {
-      const success = await acceptDelivery(deliveryId);
+      const session = await supabase.auth.getSession();
+      console.log('[acceptDelivery] app_metadata', session.data.session?.user?.app_metadata);
+    } catch (claimErr) {
+      console.log('[acceptDelivery] failed to read claims', (claimErr as Error)?.message);
+    }
+    try {
+      const result = await acceptDelivery(delivery.id);
+      console.log('[acceptDelivery] result', result);
       
-      if (success) {
-        Alert.alert('Success', 'Delivery accepted! Head to the pickup location.');
+      if (result.ok) {
+        // Force-refresh lists so the delivery moves from "available" to "active"
+        await refetchDeliveries();
+        console.log('[acceptDelivery] refetch triggered for delivery', delivery.id);
       } else {
-        Alert.alert('Error', 'Failed to accept delivery. It may have been taken by another driver.');
+        Alert.alert('Error', result.message || 'Failed to accept delivery. It may have been taken by another driver.');
+        console.log('[acceptDelivery] failed', { id: delivery.id, message: result.message });
       }
     } catch (err) {
       console.error('Error accepting delivery:', err);
+      console.log('[acceptDelivery] exception', { id: delivery.id, error: (err as Error)?.message });
       Alert.alert('Error', 'Failed to accept delivery');
     }
   };
@@ -179,9 +225,53 @@ export default function DeliveryDashboard() {
     Alert.alert('Call Customer', `Would call: ${phone}`);
   };
 
-  const navigate = (address: string) => {
-    console.log('Navigate to:', address);
-    router.push('/delivery/navigation');
+  const openNavigationToDestination = async (address: string, latitude?: number | null, longitude?: number | null) => {
+    const hasCoords = typeof latitude === 'number' && typeof longitude === 'number';
+    const encodedAddress = encodeURIComponent(address);
+    const googleTarget = hasCoords ? `${latitude},${longitude}` : encodedAddress;
+
+    const googleUrl = Platform.select({
+      ios: `comgooglemaps://?daddr=${googleTarget}&directionsmode=driving`,
+      android: `google.navigation:q=${googleTarget}&mode=d`,
+      web: `https://maps.google.com/maps?daddr=${googleTarget}&dirflg=d`,
+    });
+
+    // Prefer coordinates for the web fallback when available
+    const fallbackTarget = hasCoords ? googleTarget : encodedAddress;
+    const fallbackUrl = Platform.select({
+      ios: `https://maps.google.com/maps?daddr=${fallbackTarget}&dirflg=d`,
+      android: `https://maps.google.com/maps?daddr=${fallbackTarget}&dirflg=d`,
+      web: `https://maps.google.com/maps?daddr=${fallbackTarget}&dirflg=d`,
+    });
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') {
+        window.open(googleUrl!, '_blank');
+      }
+      return;
+    }
+
+    try {
+      const supported = await Linking.canOpenURL(googleUrl!);
+      await Linking.openURL(supported ? googleUrl! : fallbackUrl!);
+    } catch (err) {
+      console.error('Error opening navigation:', err);
+      Alert.alert('Navigation', 'Unable to open navigation app');
+    }
+  };
+
+  const navigateToDelivery = (delivery: any) => {
+    const toNumberOrNull = (val: any) => {
+      const num = typeof val === 'number' ? val : parseFloat(val);
+      return Number.isFinite(num) ? num : null;
+    };
+
+    const isPickupPhase = delivery.status === 'assigned';
+    const targetAddress = isPickupPhase ? delivery.pickup_address : delivery.delivery_address;
+    const targetLat = toNumberOrNull(isPickupPhase ? delivery.pickup_latitude : delivery.delivery_latitude);
+    const targetLng = toNumberOrNull(isPickupPhase ? delivery.pickup_longitude : delivery.delivery_longitude);
+
+    openNavigationToDestination(targetAddress, targetLat, targetLng);
   };
 
   const formatDeliveryForCard = (delivery: any) => ({
@@ -191,7 +281,16 @@ export default function DeliveryDashboard() {
     customerPhone: '+1 (555) 123-4567',
     pickupAddress: delivery.pickup_address,
     deliveryAddress: delivery.delivery_address,
-    distance: delivery.distance_km ? `${delivery.distance_km} km` : '2.1 miles',
+    distance: (() => {
+      const kmValue =
+        typeof delivery.distance_km === 'number' && !Number.isNaN(delivery.distance_km)
+          ? delivery.distance_km
+          : (() => {
+              const parsed = typeof delivery.distance === 'number' ? delivery.distance : parseFloat(delivery.distance);
+              return Number.isFinite(parsed) ? parsed : null;
+            })();
+      return kmValue !== null ? `${kmValue.toFixed(1)} km` : '– km';
+    })(),
     estimatedTime: delivery.estimated_duration_minutes ? `${delivery.estimated_duration_minutes} min` : '15 min',
     payment: delivery.delivery_fee,
     items: delivery.order?.order_items?.map((item: any) => 
@@ -355,7 +454,7 @@ export default function DeliveryDashboard() {
                   key={delivery.id}
                   order={formatDeliveryForCard(delivery)}
                   onCall={() => callCustomer('+1 (555) 123-4567')}
-                  onNavigate={() => navigate(delivery.status === 'assigned' ? delivery.pickup_address : delivery.delivery_address)}
+                  onNavigate={() => navigateToDelivery(delivery)}
                   onPickup={delivery.status === 'assigned' ? () => handleUpdateDeliveryStatus(delivery.id, 'picked_up') : undefined}
                   onComplete={delivery.status === 'picked_up' ? () => handleUpdateDeliveryStatus(delivery.id, 'delivered') : undefined}
                 />
@@ -382,7 +481,7 @@ export default function DeliveryDashboard() {
                   <DeliveryCard
                     key={delivery.id}
                     order={formatDeliveryForCard(delivery)}
-                    onAccept={() => handleAcceptDelivery(delivery.id)}
+                    onAccept={() => handleAcceptDelivery(delivery)}
                   />
                 ))
               ) : (

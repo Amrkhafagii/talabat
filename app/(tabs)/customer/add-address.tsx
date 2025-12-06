@@ -27,6 +27,7 @@ export default function AddAddress() {
   const [saving, setSaving] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [geoCountry, setGeoCountry] = useState<string | undefined>(undefined);
 
   const {
     control,
@@ -48,6 +49,7 @@ export default function AddAddress() {
       isDefault: false,
       latitude: undefined,
       longitude: undefined,
+      country: '',
     },
   });
 
@@ -135,6 +137,11 @@ export default function AddAddress() {
           setValue('postalCode', address.postalCode);
         }
 
+        if (address.country) {
+          setValue('country', address.country);
+          setGeoCountry(address.country);
+        }
+
         Alert.alert(
           'Location Found',
           'Your current location has been used to fill in the address fields. Please review and adjust if needed.'
@@ -177,23 +184,30 @@ export default function AddAddress() {
         address_line_1: data.addressLine1,
         address_line_2: data.addressLine2 || undefined,
         city: data.city,
-        state: data.state.toUpperCase(),
-        postal_code: data.postalCode,
-        country: 'US',
+        state: data.state.trim(),
+        postal_code: data.postalCode?.trim() || '00000',
+        country: (data.country?.trim() || geoCountry || 'US'),
         is_default: data.isDefault || false,
         delivery_instructions: data.deliveryInstructions || undefined,
         latitude: data.latitude,
         longitude: data.longitude,
       };
 
-      const success = await createUserAddress(newAddress);
-      
-      if (success) {
+      const { address, errorCode, errorMessage } = await createUserAddress(newAddress);
+
+      if (address) {
         Alert.alert('Success', 'Address added successfully', [
           { text: 'OK', onPress: () => router.back() }
         ]);
       } else {
-        Alert.alert('Error', 'Failed to add address');
+        let friendly = 'Failed to add address';
+        if (errorCode === '42501') {
+          friendly = 'You do not have permission to add an address with this account.';
+        } else if (errorCode === '23505') {
+          friendly = 'You already have an address with this label. Choose a different label (e.g., Home 2).';
+        }
+        console.warn('createUserAddress failed', { errorCode, errorMessage });
+        Alert.alert('Error', friendly);
       }
     } catch (error) {
       console.error('Error adding address:', error);
@@ -280,7 +294,7 @@ export default function AddAddress() {
               control={control}
               name="city"
               label="City"
-              placeholder="New York"
+              placeholder="City"
               autoCapitalize="words"
               style={styles.flex1}
             />
@@ -288,21 +302,29 @@ export default function AddAddress() {
             <FormField
               control={control}
               name="state"
-              label="State"
-              placeholder="NY"
-              autoCapitalize="characters"
-              maxLength={2}
+              label="State / Region"
+              placeholder="State or Region"
+              autoCapitalize="words"
+              maxLength={50}
               style={[styles.flex1, styles.marginLeft]}
             />
           </View>
 
           <FormField
             control={control}
+            name="country"
+            label="Country"
+            placeholder="Country"
+            autoCapitalize="words"
+          />
+
+          <FormField
+            control={control}
             name="postalCode"
             label="Postal Code"
-            placeholder="10001"
-            keyboardType="numeric"
-            maxLength={10}
+            placeholder="Postal Code (optional)"
+            keyboardType="default"
+            maxLength={20}
           />
         </View>
 

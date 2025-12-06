@@ -22,22 +22,99 @@ export async function getPaymentReviewQueue(): Promise<PaymentReviewItem[]> {
   const { data, error } = await supabase.rpc('list_payment_review_queue');
   if (error) {
     console.warn('list_payment_review_queue error', error);
-    return [];
+    throw new Error(error.message || 'list_payment_review_queue failed');
   }
   return data || [];
 }
 
 export async function approvePaymentReview(orderId: string): Promise<boolean> {
   const { error } = await supabase.rpc('approve_payment_review', { p_order_id: orderId });
-  if (error) return false;
+  if (error) {
+    console.warn('approve_payment_review error', error);
+    throw new Error(error.message || 'approve_payment_review failed');
+  }
   await logAudit('payment_review_approved', 'orders', orderId);
   return true;
 }
 
 export async function rejectPaymentReview(orderId: string, reason?: string): Promise<boolean> {
   const { error } = await supabase.rpc('reject_payment_review', { p_order_id: orderId, p_reason: reason ?? 'rejected' });
-  if (error) return false;
+  if (error) {
+    console.warn('reject_payment_review error', error);
+    throw new Error(error.message || 'reject_payment_review failed');
+  }
   await logAudit('payment_review_rejected', 'orders', orderId, { reason });
+  return true;
+}
+
+export type DriverLicenseReview = {
+  driver_id: string;
+  user_id: string | null;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  license_number: string | null;
+  license_document_url: string | null;
+  license_document_status: string | null;
+  vehicle_type: string | null;
+  id_front_url?: string | null;
+  id_back_url?: string | null;
+  vehicle_document_url?: string | null;
+  doc_review_status?: string | null;
+  doc_review_notes?: string | null;
+  payout_account_present?: boolean | null;
+  updated_at: string;
+};
+
+export async function getDriverLicenseReviews(): Promise<DriverLicenseReview[]> {
+  const { data, error } = await supabase.rpc('list_driver_license_reviews');
+  if (error) {
+    console.warn('list_driver_license_reviews error', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function reviewDriverLicense(driverId: string, decision: 'approved' | 'rejected', notes?: string): Promise<boolean> {
+  const { error } = await supabase.rpc('review_driver_license', {
+    p_driver_id: driverId,
+    p_decision: decision,
+    p_notes: notes ?? null,
+  });
+  if (error) return false;
+  await logAudit('driver_license_review', 'delivery_drivers', driverId, { decision, notes });
+  return true;
+}
+
+export type MenuPhotoReview = {
+  menu_item_id: string;
+  restaurant_id: string;
+  restaurant_name: string;
+  name: string;
+  image: string;
+  photo_approval_status: string | null;
+  photo_approval_notes: string | null;
+  restaurant_has_payout?: boolean | null;
+  updated_at: string;
+};
+
+export async function getMenuPhotoReviews(): Promise<MenuPhotoReview[]> {
+  const { data, error } = await supabase.rpc('list_menu_photo_reviews');
+  if (error) {
+    console.warn('list_menu_photo_reviews error', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function reviewMenuPhoto(menuItemId: string, decision: 'approved' | 'rejected', notes?: string): Promise<boolean> {
+  const { error } = await supabase.rpc('review_menu_photo', {
+    p_menu_item_id: menuItemId,
+    p_decision: decision,
+    p_notes: notes ?? null,
+  });
+  if (error) return false;
+  await logAudit('menu_photo_review', 'menu_items', menuItemId, { decision, notes });
   return true;
 }
 
@@ -73,6 +150,12 @@ export async function submitPaymentProofManual(params: {
 export type RestaurantPayable = {
   order_id: string;
   restaurant_id: string;
+  restaurant_name: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  payout_method: string | null;
+  payout_handle: string | null;
   restaurant_net: number | null;
   tip_amount: number | null;
   payment_status: string | null;
@@ -110,9 +193,15 @@ export async function getRestaurantPayablesPending(filters?: RestaurantPayableFi
 export type DriverPayable = {
   order_id: string;
   driver_id: string | null;
+  driver_name: string | null;
+  driver_email: string | null;
+  driver_phone: string | null;
   driver_payout_handle: string | null;
+  payout_method: string | null;
+  payout_handle: string | null;
   delivery_fee: number | null;
   tip_amount: number | null;
+  driver_payable: number | null;
   payment_status: string | null;
   driver_payout_status: string | null;
   driver_payout_last_error: string | null;
@@ -216,6 +305,9 @@ export type OrderAdminDetail = {
   audits: any[];
   created_at: string;
   updated_at: string;
+  delivery?: any;
+  delivery_events?: any[];
+  state_issue?: string | null;
 };
 
 export async function getOrderAdminDetail(orderId: string): Promise<OrderAdminDetail | null> {
@@ -235,6 +327,29 @@ export type OpsAlertsSnapshot = {
   reconciliation_unmatched_48h: number;
   reconciliation_mismatches_by_restaurant: Record<string, number>;
 };
+export type OrderStateIssue = {
+  id: string;
+  status: string;
+  payment_status: string;
+  wallet_capture_status: string | null;
+  receipt_url: string | null;
+  restaurant_id: string | null;
+  user_id: string | null;
+  created_at: string | null;
+  issue: string;
+};
+
+export type DeliveryStateIssue = {
+  id: string;
+  order_id: string;
+  driver_id: string | null;
+  status: string;
+  driver_earnings: number | null;
+  updated_at: string | null;
+  documents_verified: boolean | null;
+  license_document_status: string | null;
+  issue: string;
+};
 
 export async function getOpsAlertsSnapshot(
   pendingHours = 24,
@@ -249,6 +364,24 @@ export async function getOpsAlertsSnapshot(
     return null;
   }
   return (data as OpsAlertsSnapshot) ?? null;
+}
+
+export async function listOrderStateIssues(): Promise<OrderStateIssue[]> {
+  const { data, error } = await supabase.rpc('list_order_state_issues');
+  if (error) {
+    console.warn('list_order_state_issues error', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function listDeliveryStateIssues(): Promise<DeliveryStateIssue[]> {
+  const { data, error } = await supabase.rpc('list_delivery_state_issues');
+  if (error) {
+    console.warn('list_delivery_state_issues error', error);
+    return [];
+  }
+  return data || [];
 }
 
 export async function markRestaurantPayoutManual(params: {
@@ -358,6 +491,127 @@ export type SettlementRow = {
   settlement_date?: string;
   channel?: string;
 };
+
+export type PayoutBalance = {
+  user_id: string;
+  wallet_type: string;
+  balance: number;
+  instapay_handle: string | null;
+  instapay_channel: string | null;
+};
+
+export async function listPayoutBalances(): Promise<PayoutBalance[]> {
+  const { data, error } = await supabase.rpc('list_payout_balances');
+  if (error) {
+    console.warn('list_payout_balances error', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function settleWalletBalance(userId: string, walletType: string, instapayHandle?: string): Promise<number | null> {
+  const { data, error } = await supabase.rpc('settle_wallet_balance', {
+    p_user_id: userId,
+    p_wallet_type: walletType,
+    p_instapay_handle: instapayHandle ?? null,
+  });
+  if (error) {
+    console.warn('settle_wallet_balance error', error);
+    return null;
+  }
+  return data as number;
+}
+
+export type WalletTx = {
+  wallet_id: string;
+  wallet_type: string;
+  amount: number;
+  type: string;
+  status: string;
+  reference: string | null;
+  created_at: string;
+};
+
+export async function listWalletTransactionsForUser(userId: string, walletType?: string): Promise<WalletTx[]> {
+  const { data, error } = await supabase.rpc('list_wallet_transactions_for_user', {
+    p_user_id: userId,
+    p_wallet_type: walletType ?? null,
+    p_limit: 50,
+  });
+  if (error) {
+    console.warn('list_wallet_transactions_for_user error', error);
+    return [];
+  }
+  return data || [];
+}
+
+export type AdminTotals = {
+  total_customer_paid: number;
+  total_platform_fee: number;
+  paid_orders: number;
+};
+
+export type DriverProfit = {
+  driver_id: string;
+  user_id: string | null;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  gross_driver_earnings: number;
+  refunds: number;
+  net_driver_profit: number;
+};
+
+export type RestaurantProfit = {
+  restaurant_id: string;
+  restaurant_name: string | null;
+  owner_id: string | null;
+  owner_name: string | null;
+  owner_email: string | null;
+  owner_phone: string | null;
+  gross_restaurant_net: number;
+  refunds: number;
+  net_restaurant_profit: number;
+};
+
+export async function getAdminTotals(params?: { start?: string; end?: string }): Promise<AdminTotals | null> {
+  const { data, error } = await supabase.rpc('admin_totals', {
+    p_start: params?.start ?? null,
+    p_end: params?.end ?? null,
+  });
+  if (error) {
+    console.warn('admin_totals error', error);
+    return null;
+  }
+  const row = data?.[0];
+  return row || null;
+}
+
+export async function getDriverProfit(params?: { start?: string; end?: string; driverUserId?: string | null }): Promise<DriverProfit[]> {
+  const { data, error } = await supabase.rpc('admin_driver_profit', {
+    p_start: params?.start ?? null,
+    p_end: params?.end ?? null,
+    p_driver_user_id: params?.driverUserId ?? null,
+  });
+  if (error) {
+    console.warn('admin_driver_profit error', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function getRestaurantProfit(params?: { start?: string; end?: string; restaurantId?: string | null }): Promise<RestaurantProfit[]> {
+  const { data, error } = await supabase.rpc('admin_restaurant_profit', {
+    p_start: params?.start ?? null,
+    p_end: params?.end ?? null,
+    p_restaurant_id: params?.restaurantId ?? null,
+  });
+  if (error) {
+    console.warn('admin_restaurant_profit error', error);
+    return [];
+  }
+  return data || [];
+}
 
 export async function reconcileSettlementImport(rows: SettlementRow[]): Promise<
   { ok: true; result: any[] } | { ok: false; error: string }

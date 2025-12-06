@@ -31,7 +31,6 @@ export function useRealtimeDeliveries({
             order:orders(
               *,
               restaurant:restaurants(*),
-              user:users(*),
               order_items(
                 *,
                 menu_item:menu_items(*)
@@ -53,14 +52,13 @@ export function useRealtimeDeliveries({
             order:orders(
               *,
               restaurant:restaurants(*),
-              user:users(*),
               order_items(
                 *,
                 menu_item:menu_items(*)
               )
             )
           `)
-          .eq('status', 'pending')
+          .eq('status', 'available')
           .order('created_at', { ascending: true });
 
         queries.push(availableQuery);
@@ -135,17 +133,28 @@ export function useRealtimeDeliveries({
               }
               return prevDeliveries;
 
-            case 'UPDATE':
-              if (newRecord.driver_id === driverId) {
+            case 'UPDATE': {
+              const isMine = newRecord.driver_id === driverId;
+              const wasMine = prevDeliveries.some(d => d.id === newRecord.id);
+
+              // If newly assigned to me, add it
+              if (!wasMine && isMine) {
+                return [newRecord, ...prevDeliveries];
+              }
+              // If it was mine and got unassigned/declined, drop it
+              if (wasMine && !isMine) {
+                return prevDeliveries.filter(delivery => delivery.id !== newRecord.id);
+              }
+              // If still mine, update fields
+              if (wasMine && isMine) {
                 return prevDeliveries.map(delivery => 
                   delivery.id === newRecord.id 
                     ? { ...delivery, ...newRecord }
                     : delivery
                 );
-              } else {
-                // Delivery was reassigned to another driver
-                return prevDeliveries.filter(delivery => delivery.id !== newRecord.id);
               }
+              return prevDeliveries;
+            }
 
             case 'DELETE':
               return prevDeliveries.filter(delivery => delivery.id !== oldRecord.id);
@@ -161,13 +170,13 @@ export function useRealtimeDeliveries({
         setAvailableDeliveries(prevAvailable => {
           switch (eventType) {
             case 'INSERT':
-              if (newRecord.status === 'pending') {
+              if (newRecord.status === 'available') {
                 return [newRecord, ...prevAvailable];
               }
               return prevAvailable;
 
             case 'UPDATE':
-              if (newRecord.status === 'pending') {
+              if (newRecord.status === 'available') {
                 const exists = prevAvailable.some(d => d.id === newRecord.id);
                 if (exists) {
                   return prevAvailable.map(delivery => 
@@ -202,11 +211,49 @@ export function useRealtimeDeliveries({
     };
   }, [driverId, includeAvailable, loadInitialDeliveries]);
 
-  const acceptDelivery = async (deliveryId: string) => {
-    if (!driverId) return false;
+  const acceptDelivery = async (deliveryId: string): Promise<{ ok: boolean; message?: string }> => {
+    if (!driverId) {
+      return { ok: false, message: 'Driver not loaded' };
+    }
+
+    const moveToActive = () => {
+      const acceptedDelivery = availableDeliveries.find(d => d.id === deliveryId);
+      setAvailableDeliveries(prev => prev.filter(delivery => delivery.id !== deliveryId));
+      setDeliveries(prev => {
+        const existing = prev.find(d => d.id === deliveryId);
+        const mergedDelivery = {
+          ...(acceptedDelivery || existing || {}),
+          id: deliveryId,
+          driver_id: driverId,
+          status: 'assigned' as const,
+          assigned_at: new Date().toISOString(),
+        } as Delivery;
+
+        if (existing) {
+          return prev.map(d => (d.id === deliveryId ? mergedDelivery : d));
+        }
+        return [mergedDelivery, ...prev];
+      });
+    };
 
     try {
-      const { error } = await supabase
+      // Preferred path: definer-secured RPC (works with RLS)
+      const { data, error } = await supabase.rpc('driver_claim_delivery', {
+        p_delivery_id: deliveryId
+      });
+
+      if (!error && data === true) {
+        moveToActive();
+        return { ok: true };
+      }
+
+      // If the RPC fails, log and attempt legacy fallback (helps when claims/RLS setup lags)
+      if (error && typeof error.message === 'string') {
+        console.warn('[acceptDelivery] RPC failed, attempting fallback', error.message);
+      }
+
+      // Fallback: legacy update for environments where the RPC isn't deployed yet
+      const { error: fallbackError } = await supabase
         .from('deliveries')
         .update({
           driver_id: driverId,
@@ -214,35 +261,51 @@ export function useRealtimeDeliveries({
           assigned_at: new Date().toISOString()
         })
         .eq('id', deliveryId)
-        .eq('status', 'pending');
+        .eq('status', 'available');
 
-      if (error) throw error;
-      return true;
-    } catch (err) {
+      if (!fallbackError) {
+        moveToActive();
+        // Align driver availability with RPC behavior
+        const { error: availabilityError } = await supabase
+          .from('delivery_drivers')
+          .update({ is_available: false })
+          .eq('id', driverId);
+        if (availabilityError) {
+          console.warn('[acceptDelivery] failed to set driver unavailable', availabilityError.message);
+        }
+        // Don’t surface the RPC error message when fallback succeeded
+        return { ok: true };
+      }
+
+      const reason = error?.message || fallbackError?.message || 'Unknown error';
+      setError('Failed to accept delivery');
+      return { ok: false, message: reason };
+    } catch (err: any) {
       console.error('Error accepting delivery:', err);
-      return false;
+      return { ok: false, message: err?.message || 'Failed to accept delivery' };
     }
   };
 
-  const updateDeliveryStatus = async (deliveryId: string, status: string) => {
+  const updateDeliveryStatus = async (deliveryId: string, status: Delivery['status']) => {
     try {
-      const updateData: any = { 
+      const now = new Date().toISOString();
+      const updateData: Partial<Delivery> = { 
         status,
-        updated_at: new Date().toISOString()
+        updated_at: now
       };
       
       switch (status) {
         case 'picked_up':
-          updateData.picked_up_at = new Date().toISOString();
+          updateData.picked_up_at = now;
           break;
         case 'on_the_way':
-          updateData.picked_up_at = updateData.picked_up_at || new Date().toISOString();
+          updateData.picked_up_at = updateData.picked_up_at || now;
           break;
         case 'delivered':
-          updateData.delivered_at = new Date().toISOString();
+          updateData.delivered_at = now;
           break;
         case 'cancelled':
-          updateData.cancelled_at = new Date().toISOString();
+          updateData.cancelled_at = now;
           break;
       }
 
@@ -252,6 +315,18 @@ export function useRealtimeDeliveries({
         .eq('id', deliveryId);
 
       if (error) throw error;
+
+      // Optimistically update local state so UI reacts immediately, even before realtime events land
+      const applyUpdate = (list: Delivery[]) =>
+        list.map(delivery => 
+          delivery.id === deliveryId
+            ? ({ ...delivery, ...updateData } as Delivery)
+            : delivery
+        );
+
+      setDeliveries(prev => applyUpdate(prev));
+      setAvailableDeliveries(prev => applyUpdate(prev));
+
       return true;
     } catch (err) {
       console.error('Error updating delivery status:', err);

@@ -5,7 +5,7 @@ async function createUserProfile(
   userId: string,
   email: string,
   fullName?: string,
-  userType: 'customer' | 'restaurant' | 'delivery' = 'customer'
+  userType: 'customer' | 'restaurant' | 'delivery' | 'admin' = 'customer'
 ): Promise<User | null> {
   const { data, error } = await supabase
     .from('users')

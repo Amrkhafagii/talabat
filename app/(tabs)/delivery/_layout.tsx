@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
-import { LayoutDashboard, History, DollarSign, User } from 'lucide-react-native';
+import { LayoutDashboard, History, DollarSign, User, Wallet } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert } from 'react-native';
+import { fetchInstapayStatus } from '@/utils/instapayCheck';
 
 export default function DeliveryLayout() {
   const { user, userType, loading } = useAuth();
@@ -28,6 +30,26 @@ export default function DeliveryLayout() {
       router.replace('/(auth)/login');
     }
   }, [user, userType, loading]);
+
+  useEffect(() => {
+    const guard = async () => {
+      if (!loading && user && userType === 'delivery') {
+        const ok = await fetchInstapayStatus(user.id, 'delivery');
+        if (!ok) {
+          Alert.alert(
+            'Instapay required',
+            'Add your Instapay handle to receive payouts.',
+            [
+              { text: 'Go to profile', onPress: () => router.push('/(tabs)/delivery/profile' as any) },
+              { text: 'Cancel', style: 'cancel' }
+            ],
+            { cancelable: false }
+          );
+        }
+      }
+    };
+    guard();
+  }, [loading, user, userType]);
 
   // Don't render anything while checking authentication or if user is not a delivery driver
   if (loading || !user || userType !== 'delivery') {
@@ -78,6 +100,15 @@ export default function DeliveryLayout() {
           title: 'Earnings',
           tabBarIcon: ({ size, color }) => (
             <DollarSign size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          title: 'Wallet',
+          tabBarIcon: ({ size, color }) => (
+            <Wallet size={size} color={color} />
           ),
         }}
       />

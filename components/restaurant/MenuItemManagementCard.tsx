@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { CreditCard as Edit, Trash2, Eye, EyeOff, Star, Clock } from 'lucide-react-native';
 import Card from '../ui/Card';
+import { deriveAvailabilityBadge } from '@/utils/menuOrdering';
 
 interface MenuItemManagement {
   id: string;
@@ -13,6 +14,11 @@ interface MenuItemManagement {
   isPopular: boolean;
   isAvailable: boolean;
   preparationTime: number;
+  isScheduled?: boolean;
+  availabilityLabel?: string;
+  highlight?: boolean;
+  photoStatus?: 'pending' | 'approved' | 'rejected';
+  photoNote?: string | null;
 }
 
 interface MenuItemManagementCardProps {
@@ -31,7 +37,11 @@ export default function MenuItemManagementCard({
   onTogglePopular,
 }: MenuItemManagementCardProps) {
   return (
-    <Card style={[styles.card, !item.isAvailable ? styles.unavailableCard : undefined] as any}>
+    <Card style={[
+      styles.card,
+      !item.isAvailable ? styles.unavailableCard : undefined,
+      item.highlight ? styles.highlightCard : undefined
+    ] as any}>
       <View style={styles.content}>
         <Image source={{ uri: item.image }} style={styles.image} />
         
@@ -45,23 +55,31 @@ export default function MenuItemManagementCard({
                   <Text style={styles.popularText}>Popular</Text>
                 </View>
               )}
-              <View style={[
-                styles.statusBadge,
-                item.isAvailable ? styles.availableBadge : styles.unavailableBadge
-              ]}>
-                <Text style={[
-                  styles.statusText,
-                  item.isAvailable ? styles.availableText : styles.unavailableText
-                ]}>
-                  {item.isAvailable ? 'Available' : 'Unavailable'}
-                </Text>
-              </View>
+              <StatusPill
+                isAvailable={item.isAvailable}
+                isScheduled={item.isScheduled}
+                availabilityLabel={item.availabilityLabel}
+              />
             </View>
           </View>
 
           <Text style={styles.description} numberOfLines={2}>
             {item.description}
           </Text>
+
+          {item.photoStatus && item.photoStatus !== 'approved' && (
+            <View style={styles.photoStatusRow}>
+              <Text
+                style={[
+                  styles.photoStatusText,
+                  item.photoStatus === 'pending' ? styles.photoStatusPending : styles.photoStatusRejected,
+                ]}
+                numberOfLines={1}
+              >
+                {item.photoStatus === 'pending' ? 'Waiting for admin approval' : 'Photo rejected - update required'}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.meta}>
             <Text style={styles.category}>{item.category}</Text>
@@ -121,11 +139,39 @@ export default function MenuItemManagementCard({
   );
 }
 
+function StatusPill({ isAvailable, isScheduled, availabilityLabel }: { isAvailable: boolean; isScheduled?: boolean; availabilityLabel?: string }) {
+  const badge = deriveAvailabilityBadge({ isAvailable, isScheduled, availabilityLabel });
+
+  if (badge.type === 'unavailable') {
+    return (
+      <View style={[styles.statusBadge, styles.unavailableBadge]}>
+        <Text style={[styles.statusText, styles.unavailableText]}>{badge.label}</Text>
+      </View>
+    );
+  }
+  if (badge.type === 'scheduled') {
+    return (
+      <View style={[styles.statusBadge, styles.scheduledBadge]}>
+        <Text style={[styles.statusText, styles.scheduledText]}>{badge.label}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.statusBadge, styles.availableBadge]}>
+      <Text style={[styles.statusText, styles.availableText]}>{badge.label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     marginBottom: 16,
     padding: 0,
     overflow: 'hidden',
+  },
+  highlightCard: {
+    borderWidth: 1.5,
+    borderColor: '#FF6B35',
   },
   unavailableCard: {
     opacity: 0.7,
@@ -187,6 +233,9 @@ const styles = StyleSheet.create({
   unavailableBadge: {
     backgroundColor: '#FEE2E2',
   },
+  scheduledBadge: {
+    backgroundColor: '#E0E7FF',
+  },
   statusText: {
     fontSize: 8,
     fontFamily: 'Inter-SemiBold',
@@ -197,12 +246,28 @@ const styles = StyleSheet.create({
   unavailableText: {
     color: '#EF4444',
   },
+  scheduledText: {
+    color: '#4338CA',
+  },
   description: {
     fontSize: 14,
     color: '#6B7280',
     fontFamily: 'Inter-Regular',
     lineHeight: 18,
     marginBottom: 8,
+  },
+  photoStatusRow: {
+    marginBottom: 8,
+  },
+  photoStatusText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+  },
+  photoStatusPending: {
+    color: '#92400E',
+  },
+  photoStatusRejected: {
+    color: '#B91C1C',
   },
   meta: {
     flexDirection: 'row',

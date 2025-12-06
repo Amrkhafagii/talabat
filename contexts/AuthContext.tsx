@@ -10,7 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userType: 'customer' | 'restaurant' | 'delivery', extraMetadata?: Record<string, any>) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  userType: 'customer' | 'restaurant' | 'delivery' | null;
+  userType: 'customer' | 'restaurant' | 'delivery' | 'admin' | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,8 +19,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userType, setUserType] = useState<'customer' | 'restaurant' | 'delivery' | null>(null);
+  const [userType, setUserType] = useState<'customer' | 'restaurant' | 'delivery' | 'admin' | null>(null);
   const mountedRef = useRef(true);
+
+  const validUserTypes = ['customer', 'restaurant', 'delivery', 'admin'];
+
+  const deriveUserType = async (sessionUser: User | null) => {
+    if (!mountedRef.current) return;
+    if (!sessionUser) {
+      setUserType(null);
+      setLoading(false);
+      return;
+    }
+
+    const metaType = (sessionUser as any)?.user_metadata?.user_type;
+    const appMetaType = (sessionUser as any)?.app_metadata?.user_type;
+    const claimedType = appMetaType || metaType;
+    if (claimedType && validUserTypes.includes(claimedType)) {
+      setUserType(claimedType as any);
+      setLoading(false);
+      return;
+    }
+
+    // Fallback to profile table when metadata is missing or invalid
+    const { data: profile } = await supabase
+      .from('users')
+      .select('user_type')
+      .eq('id', sessionUser.id)
+      .maybeSingle();
+
+    if (profile?.user_type && validUserTypes.includes(profile.user_type)) {
+      setUserType(profile.user_type as any);
+    } else {
+      setUserType('customer');
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     mountedRef.current = true;
@@ -31,16 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        // Get user type from metadata, default to 'customer' if not set
-        const userTypeFromMetadata = session.user.user_metadata?.user_type;
-        const validUserTypes = ['customer', 'restaurant', 'delivery'];
-        const finalUserType = validUserTypes.includes(userTypeFromMetadata) 
-          ? userTypeFromMetadata 
-          : 'customer';
-        setUserType(finalUserType);
-      }
-      setLoading(false);
+      deriveUserType(session?.user ?? null);
     });
 
     // Listen for auth changes
@@ -50,18 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         setSession(session);
         setUser(session?.user ?? null);
-        if (session?.user) {
-          // Get user type from metadata, default to 'customer' if not set
-          const userTypeFromMetadata = session.user.user_metadata?.user_type;
-          const validUserTypes = ['customer', 'restaurant', 'delivery'];
-          const finalUserType = validUserTypes.includes(userTypeFromMetadata) 
-            ? userTypeFromMetadata 
-            : 'customer';
-          setUserType(finalUserType);
-        } else {
-          setUserType(null);
-        }
-        setLoading(false);
+        deriveUserType(session?.user ?? null);
       }
     );
 

@@ -139,3 +139,20 @@ export async function grantDelayCreditIdempotent(userId: string, amount: number,
 
   return true;
 }
+
+export async function requestPayout(walletId: string, amount: number, metadata?: Record<string, any>): Promise<boolean> {
+  const { error } = await supabase.from('wallet_transactions').insert({
+    wallet_id: walletId,
+    amount: -Math.abs(amount),
+    type: 'payout_request',
+    status: 'pending',
+    reference: 'Restaurant payout request',
+    metadata: metadata ?? {},
+  });
+
+  if (error) {
+    console.error('Error requesting payout:', error);
+    return false;
+  }
+  return true;
+}

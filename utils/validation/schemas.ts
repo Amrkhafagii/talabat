@@ -97,16 +97,16 @@ export const addressSchema = z.object({
     .max(50, 'City must be less than 50 characters'),
   state: z
     .string()
-    .min(1, 'State is required')
-    .length(2, 'State must be 2 characters (e.g., NY)'),
+    .min(1, 'State/Region is required')
+    .max(50, 'State/Region must be less than 50 characters'),
   postalCode: z
     .string()
-    .min(1, 'Postal code is required')
-    .regex(/^\d{5}(-\d{4})?$/, 'Please enter a valid postal code'),
+    .max(20, 'Postal code must be less than 20 characters')
+    .optional(),
   country: z
     .string()
-    .min(1, 'Country is required')
-    .default('US'),
+    .max(56, 'Country name too long')
+    .optional(),
   deliveryInstructions: z
     .string()
     .max(200, 'Instructions must be less than 200 characters')

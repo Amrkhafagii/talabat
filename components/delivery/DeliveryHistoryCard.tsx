@@ -41,7 +41,7 @@ export default function DeliveryHistoryCard({ delivery }: DeliveryHistoryCardPro
         </View>
         <View style={styles.earnings}>
           <Text style={styles.earningsAmount}>{formatCurrency(delivery.earnings)}</Text>
-          {delivery.tip && delivery.tip > 0 && (
+          {typeof delivery.tip === 'number' && delivery.tip > 0 && (
             <Text style={styles.tipAmount}>+{formatCurrency(delivery.tip)} tip</Text>
           )}
         </View>

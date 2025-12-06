@@ -7,7 +7,7 @@ import OrderManagementCard from '@/components/restaurant/OrderManagementCard';
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
-import { getRestaurantByUserId, releaseOrderPayment, getPushTokens } from '@/utils/database';
+import { getRestaurantByUserId, releaseOrderPayment, getPushTokens, assignNearestDriverForOrder } from '@/utils/database';
 import { sendPushNotification } from '@/utils/push';
 import { Restaurant } from '@/types/database';
 import { formatOrderTime } from '@/utils/formatters';
@@ -57,17 +57,32 @@ export default function RestaurantOrders() {
     setRefreshing(false);
   };
 
-  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string, cancellationReason?: string) => {
     try {
-      const success = await updateOrderStatus(orderId, newStatus);
+      const success = await updateOrderStatus(orderId, newStatus, { cancellationReason });
       if (!success) {
         Alert.alert('Error', 'Failed to update order status');
-      } else if (newStatus === 'delivered') {
+        return;
+      }
+
+      if (newStatus === 'delivered') {
         await releaseOrderPayment(orderId);
         // Notify customer about delivery
         const { data: tokens } = await getPushTokens([orders.find(o => o.id === orderId)?.user_id || ''].filter(Boolean) as string[]);
         await Promise.all((tokens || []).map(token => sendPushNotification(token, 'Order Delivered', 'Your order has been delivered.', { orderId })));
-      } else if (['confirmed', 'preparing', 'ready'].includes(newStatus)) {
+      }
+
+      if (newStatus === 'ready') {
+        const assignment = await assignNearestDriverForOrder(orderId, 5);
+        if (!assignment.ok) {
+          Alert.alert(
+            'No nearby driver yet',
+            'We could not find an available driver within 5 km. The order will stay visible to drivers.'
+          );
+        }
+      }
+
+      if (['confirmed', 'preparing', 'ready'].includes(newStatus)) {
         const order = orders.find(o => o.id === orderId);
         if (order?.user_id) {
           const { data: tokens } = await getPushTokens([order.user_id]);
@@ -166,11 +181,11 @@ export default function RestaurantOrders() {
             <ActivityIndicator size="small" color="#FF6B35" />
             <Text style={styles.ordersLoadingText}>Loading orders...</Text>
           </View>
-        ) : displayOrders.length > 0 ? (
+          ) : displayOrders.length > 0 ? (
           <View style={styles.ordersContainer}>
             {displayOrders.map((order) => (
+              <View key={order.id}>
               <OrderManagementCard
-                key={order.id}
                 order={{
                   id: order.id,
                   orderNumber: `#${order.id.slice(-6).toUpperCase()}`,
@@ -182,11 +197,15 @@ export default function RestaurantOrders() {
                          order.status === 'ready' ? 'ready' : 'preparing',
                   time: formatOrderTime(order.created_at)
                 }}
-                onAccept={order.status === 'pending' ? () => handleUpdateOrderStatus(order.id, 'confirmed') : undefined}
-                onReject={order.status === 'pending' ? () => handleUpdateOrderStatus(order.id, 'cancelled') : undefined}
+                onAccept={order.status === 'pending' && order.payment_status === 'paid' ? () => handleUpdateOrderStatus(order.id, 'confirmed') : undefined}
+                onReject={order.status === 'pending' ? () => handleUpdateOrderStatus(order.id, 'cancelled', 'Restaurant rejected') : undefined}
                 onMarkReady={order.status === 'preparing' || order.status === 'confirmed' ? () => handleUpdateOrderStatus(order.id, 'ready') : undefined}
                 onMarkDelivered={order.status === 'ready' ? () => handleUpdateOrderStatus(order.id, 'picked_up') : undefined}
               />
+                {order.status === 'pending' && order.payment_status !== 'paid' && (
+                  <Text style={styles.paymentHold}>Waiting for admin to approve receipt before accepting.</Text>
+                )}
+              </View>
             ))}
           </View>
         ) : (
@@ -301,6 +320,13 @@ const styles = StyleSheet.create({
   },
   ordersContainer: {
     paddingHorizontal: 20,
+  },
+  paymentHold: {
+    marginTop: 4,
+    marginHorizontal: 4,
+    color: '#92400E',
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
   },
   ordersLoading: {
     flexDirection: 'row',

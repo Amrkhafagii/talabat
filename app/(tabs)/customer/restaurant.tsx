@@ -10,12 +10,13 @@ import MenuItem from '@/components/customer/MenuItem';
 import { useCart } from '@/hooks/useCart';
 import { getRestaurantById, getMenuItemsByRestaurant } from '@/utils/database';
 import { Restaurant, MenuItem as MenuItemType } from '@/types/database';
+import { isRestaurantOpenNow } from '@/utils/hours';
 
-const menuCategories = ['Popular', 'Mains', 'Sides', 'Beverages', 'Desserts'];
+const baseCategories = ['All', 'Popular', 'Mains', 'Sides', 'Beverages', 'Desserts'];
 
 export default function RestaurantDetail() {
   const params = useLocalSearchParams();
-  const [selectedCategory, setSelectedCategory] = useState('Popular');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [menuSearchQuery, setMenuSearchQuery] = useState('');
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
@@ -37,12 +38,19 @@ export default function RestaurantDetail() {
       setLoading(true);
       setError(null);
 
+      const filters: any = { available: true, approvedImagesOnly: true };
+      if (selectedCategory === 'Popular') {
+        filters.popular = true;
+      } else if (selectedCategory !== 'All') {
+        filters.category = selectedCategory;
+      }
+      if (menuSearchQuery) {
+        filters.search = menuSearchQuery;
+      }
+
       const [restaurantData, menuData] = await Promise.all([
         getRestaurantById(restaurantId),
-        getMenuItemsByRestaurant(restaurantId, {
-          category: selectedCategory,
-          search: menuSearchQuery || undefined
-        })
+        getMenuItemsByRestaurant(restaurantId, filters)
       ]);
 
       if (!restaurantData) {
@@ -146,7 +154,7 @@ export default function RestaurantDetail() {
         {/* Category Tabs */}
         <View style={styles.categoryTabs}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {menuCategories.map((category) => (
+            {baseCategories.map((category) => (
               <TouchableOpacity
                 key={category}
                 style={[
@@ -220,22 +228,6 @@ export default function RestaurantDetail() {
       )}
     </SafeAreaView>
   );
-}
-
-function isRestaurantOpenNow(hours?: any[]): boolean {
-  if (!hours || hours.length === 0) return true; // fallback to open
-  const now = new Date();
-  const day = now.getDay(); // 0 Sunday
-  const today = hours.find((h) => h.day_of_week === day);
-  if (!today) return true;
-  if (today.is_closed) return false;
-  if (!today.open_time || !today.close_time) return true;
-  const [openH, openM] = today.open_time.split(':').map(Number);
-  const [closeH, closeM] = today.close_time.split(':').map(Number);
-  const openMinutes = openH * 60 + openM;
-  const closeMinutes = closeH * 60 + closeM;
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  return nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
 }
 
 const styles = StyleSheet.create({

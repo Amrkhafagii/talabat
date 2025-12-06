@@ -108,7 +108,7 @@ export default function DeliveryCard({
           {onComplete && (
             <TouchableOpacity style={styles.completeButton} onPress={onComplete}>
               <CheckCircle size={18} color="#FFFFFF" />
-              <Text style={styles.completeButtonText}>Complete</Text>
+              <Text style={styles.completeButtonText}>Delivered to Customer</Text>
             </TouchableOpacity>
           )}
         </View>

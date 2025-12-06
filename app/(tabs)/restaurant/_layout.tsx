@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
-import { LayoutDashboard, BookOpen, Receipt, Settings } from 'lucide-react-native';
+import { LayoutDashboard, BookOpen, Receipt, Settings, BarChart3 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert } from 'react-native';
+import { fetchInstapayStatus } from '@/utils/instapayCheck';
 
 export default function RestaurantLayout() {
   const { user, userType, loading } = useAuth();
@@ -28,6 +30,26 @@ export default function RestaurantLayout() {
       router.replace('/(auth)/login');
     }
   }, [user, userType, loading]);
+
+  useEffect(() => {
+    const guard = async () => {
+      if (!loading && user && userType === 'restaurant') {
+        const ok = await fetchInstapayStatus(user.id, 'restaurant');
+        if (!ok) {
+          Alert.alert(
+            'Instapay required',
+            'Add your Instapay handle to receive payouts.',
+            [
+              { text: 'Go to wallet', onPress: () => router.push('/(tabs)/restaurant/wallet' as any) },
+              { text: 'Cancel', style: 'cancel' }
+            ],
+            { cancelable: false }
+          );
+        }
+      }
+    };
+    guard();
+  }, [loading, user, userType]);
 
   // Don't render anything while checking authentication or if user is not a restaurant
   if (loading || !user || userType !== 'restaurant') {
@@ -69,6 +91,15 @@ export default function RestaurantLayout() {
           title: 'Menu',
           tabBarIcon: ({ size, color }) => (
             <BookOpen size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="metrics"
+        options={{
+          title: 'Metrics',
+          tabBarIcon: ({ size, color }) => (
+            <BarChart3 size={size} color={color} />
           ),
         }}
       />

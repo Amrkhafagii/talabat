@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
 import { Chrome as Home, ShoppingCart, Receipt, User } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert } from 'react-native';
+import { fetchInstapayStatus } from '@/utils/instapayCheck';
 
 export default function CustomerLayout() {
   const { user, userType, loading } = useAuth();
@@ -28,6 +30,26 @@ export default function CustomerLayout() {
       router.replace('/(auth)/login');
     }
   }, [user, userType, loading]);
+
+  useEffect(() => {
+    const guard = async () => {
+      if (!loading && user && userType === 'customer') {
+        const ok = await fetchInstapayStatus(user.id, 'customer');
+        if (!ok) {
+          Alert.alert(
+            'Instapay required',
+            'Please add your Instapay details to continue.',
+            [
+              { text: 'Go to wallet', onPress: () => router.push('/(tabs)/customer/wallet' as any) },
+              { text: 'Cancel', style: 'cancel' }
+            ],
+            { cancelable: false }
+          );
+        }
+      }
+    };
+    guard();
+  }, [loading, user, userType]);
 
   // Don't render anything while checking authentication or if user is not a customer
   if (loading || !user || userType !== 'customer') {

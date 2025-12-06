@@ -20,6 +20,9 @@ export default function Index() {
           case 'delivery':
             router.replace('/(tabs)/delivery');
             break;
+          case 'admin':
+            router.replace('/admin/metrics');
+            break;
           default:
             // Fallback to customer dashboard if userType is not recognized
             router.replace('/(tabs)/customer');

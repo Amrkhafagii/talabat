@@ -15,6 +15,7 @@ export function useRealtimeOrders({
   driverId,
   orderIds
 }: UseRealtimeOrdersProps) {
+  const orderIdsKey = orderIds && orderIds.length > 0 ? orderIds.join(',') : '';
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export function useRealtimeOrders({
       if (userId) {
         query = query.eq('user_id', userId);
       } else if (restaurantId) {
-        query = query.eq('restaurant_id', restaurantId);
+        query = query.eq('restaurant_id', restaurantId).eq('payment_status', 'paid');
       } else if (orderIds && orderIds.length > 0) {
         query = query.in('id', orderIds);
       }
@@ -58,7 +59,7 @@ export function useRealtimeOrders({
     } finally {
       setLoading(false);
     }
-  }, [orderIds, restaurantId, userId]);
+  }, [orderIdsKey, restaurantId, userId]);
 
   useEffect(() => {
     let channel: any;
@@ -105,7 +106,7 @@ export function useRealtimeOrders({
     const getFilter = () => {
       if (userId) return `user_id=eq.${userId}`;
       if (restaurantId) return `restaurant_id=eq.${restaurantId}`;
-      if (orderIds && orderIds.length > 0) return `id=in.(${orderIds.join(',')})`;
+      if (orderIdsKey) return `id=in.(${orderIdsKey})`;
       return undefined;
     };
 
@@ -115,18 +116,25 @@ export function useRealtimeOrders({
       setOrders(prevOrders => {
         switch (eventType) {
           case 'INSERT':
-            // Check if this order should be included based on filters
             if (shouldIncludeOrder(newRecord)) {
               return [newRecord, ...prevOrders];
             }
             return prevOrders;
 
-          case 'UPDATE':
+          case 'UPDATE': {
+            const exists = prevOrders.some(o => o.id === newRecord.id);
+            if (!exists && shouldIncludeOrder(newRecord)) {
+              return [newRecord, ...prevOrders];
+            }
+            if (exists && !shouldIncludeOrder(newRecord)) {
+              return prevOrders.filter(order => order.id !== newRecord.id);
+            }
             return prevOrders.map(order => 
               order.id === newRecord.id 
                 ? { ...order, ...newRecord }
                 : order
             );
+          }
 
           case 'DELETE':
             return prevOrders.filter(order => order.id !== oldRecord.id);
@@ -154,7 +162,9 @@ export function useRealtimeOrders({
 
     const shouldIncludeOrder = (order: any) => {
       if (userId && order.user_id === userId) return true;
-      if (restaurantId && order.restaurant_id === restaurantId) return true;
+      if (restaurantId && order.restaurant_id === restaurantId) {
+        return order.payment_status === 'paid';
+      }
       if (orderIds && orderIds.includes(order.id)) return true;
       return false;
     };
@@ -166,19 +176,52 @@ export function useRealtimeOrders({
         supabase.removeChannel(channel);
       }
     };
-  }, [loadInitialOrders, orderIds?.join(','), restaurantId, userId]);
+  }, [loadInitialOrders, orderIdsKey, restaurantId, userId]);
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
+  const updateOrderStatus = async (
+    orderId: string,
+    status: string,
+    options?: { cancellationReason?: string }
+  ) => {
     try {
+      const requiresPaymentApproval = ['confirmed', 'preparing', 'ready', 'picked_up', 'on_the_way'].includes(status);
+
+      if (requiresPaymentApproval) {
+        const { data: orderPayment, error: paymentError } = await supabase
+          .from('orders')
+          .select('payment_status')
+          .eq('id', orderId)
+          .single();
+
+        if (paymentError || !orderPayment || orderPayment.payment_status !== 'paid') {
+          console.warn('Cannot update order status until receipt is approved', { orderId, status });
+          return false;
+        }
+      }
+
+      const updates: any = {
+        status,
+        updated_at: new Date().toISOString()
+      };
+      if (status === 'cancelled') {
+        updates.cancellation_reason = options?.cancellationReason || 'Restaurant cancelled';
+      }
+
       const { error } = await supabase
         .from('orders')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
+        .update(updates)
         .eq('id', orderId);
 
       if (error) throw error;
+
+      // If restaurant rejects/cancels, queue refund for admin review
+      if (status === 'cancelled') {
+        await supabase.rpc('enqueue_order_refund', {
+          p_order_id: orderId,
+          p_reason: updates.cancellation_reason || 'Restaurant cancelled',
+        });
+      }
+
       return true;
     } catch (err) {
       console.error('Error updating order status:', err);

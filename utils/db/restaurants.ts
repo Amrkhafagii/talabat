@@ -19,19 +19,7 @@ export async function getRestaurants(filters?: RestaurantFilters, options?: Rest
 
   let query = supabase
     .from('restaurants')
-    .select(`
-      *,
-      distance_km: (
-        case 
-          when ${hasLocation} then
-            6371 * acos(
-              cos(radians(${options?.lat ?? 0})) * cos(radians(latitude)) *
-              cos(radians(longitude) - radians(${options?.lng ?? 0})) +
-              sin(radians(${options?.lat ?? 0})) * sin(radians(latitude))
-            )
-          else null end
-      )
-    `)
+    .select('*')
     .eq('is_active', true);
 
   // Apply filters
@@ -55,11 +43,6 @@ export async function getRestaurants(filters?: RestaurantFilters, options?: Rest
     query = query.or(`name.ilike.%${filters.search}%,cuisine.ilike.%${filters.search}%`);
   }
 
-  // Distance filter and pagination
-  if (hasLocation) {
-    query = query.filter('distance_km', 'lte', maxDistanceKm);
-  }
-
   query = query.range(from, to);
 
   // Order by promoted first, then by rating
@@ -71,6 +54,32 @@ export async function getRestaurants(filters?: RestaurantFilters, options?: Rest
   if (error) {
     console.error('Error fetching restaurants:', error);
     return [];
+  }
+
+  // Compute distance client-side if location is provided
+  if (data && hasLocation) {
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const R = 6371;
+    const withDistance = data
+      .map((r: any) => {
+        if (r.latitude === null || r.longitude === null || r.latitude === undefined || r.longitude === undefined) {
+          return { ...r, distance_km: null };
+        }
+        const dLat = toRad((r.latitude as number) - (options!.lat as number));
+        const dLon = toRad((r.longitude as number) - (options!.lng as number));
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(options!.lat as number)) *
+            Math.cos(toRad(r.latitude as number)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const dist = R * c;
+        return { ...r, distance_km: dist };
+      })
+      .filter((r: any) => r.distance_km === null || r.distance_km <= maxDistanceKm);
+
+    return withDistance;
   }
 
   return data || [];
@@ -97,7 +106,10 @@ export async function getRestaurantById(id: string): Promise<Restaurant | null> 
 export async function getRestaurantByUserId(userId: string): Promise<Restaurant | null> {
   const { data, error } = await supabase
     .from('restaurants')
-    .select('*')
+    .select(`
+      *,
+      restaurant_hours(*)
+    `)
     .eq('owner_id', userId)
     .maybeSingle();
 
@@ -112,9 +124,27 @@ export async function getRestaurantByUserId(userId: string): Promise<Restaurant 
 export async function createRestaurant(
   restaurant: Omit<Restaurant, 'id' | 'created_at' | 'updated_at' | 'rating' | 'total_reviews'> & { owner_id: string }
 ): Promise<Restaurant | null> {
+  // Only send columns that exist in the table to avoid schema cache errors
+  const payload: any = {
+    owner_id: restaurant.owner_id,
+    name: restaurant.name,
+    description: restaurant.description ?? null,
+    cuisine: restaurant.cuisine,
+    delivery_time: restaurant.delivery_time ?? '30',
+    delivery_fee: restaurant.delivery_fee ?? 0,
+    minimum_order: restaurant.minimum_order ?? 0,
+    image: restaurant.image,
+    address: restaurant.address ?? '',
+    phone: restaurant.phone ?? null,
+    email: restaurant.email ?? null,
+    is_promoted: restaurant.is_promoted ?? false,
+    is_active: restaurant.is_active ?? true,
+    is_open: restaurant.is_open ?? true,
+  };
+
   const { data, error } = await supabase
     .from('restaurants')
-    .insert(restaurant)
+    .insert(payload)
     .select()
     .single();
 
@@ -126,7 +156,10 @@ export async function createRestaurant(
   return data;
 }
 
-export async function updateRestaurant(restaurantId: string, updates: Partial<Restaurant>): Promise<boolean> {
+export async function updateRestaurant(
+  restaurantId: string,
+  updates: Partial<Restaurant>
+): Promise<{ success: boolean; error?: string }> {
   const { error } = await supabase
     .from('restaurants')
     .update(updates)
@@ -134,10 +167,36 @@ export async function updateRestaurant(restaurantId: string, updates: Partial<Re
 
   if (error) {
     console.error('Error updating restaurant:', error);
-    return false;
+    return { success: false, error: error.message };
   }
 
-  return true;
+  return { success: true };
+}
+
+export async function ensureRestaurantForUser(ownerId: string): Promise<Restaurant | null> {
+  const existing = await getRestaurantByUserId(ownerId);
+  if (existing) return existing;
+
+  // Create a starter restaurant for new users
+  const placeholder = {
+    owner_id: ownerId,
+    name: 'My Restaurant',
+    description: 'Update your restaurant details in Settings.',
+    cuisine: 'International',
+    delivery_time: '30',
+    delivery_fee: 0,
+    minimum_order: 0,
+    image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=600&q=60',
+    address: 'Set your address in Settings',
+    phone: null,
+    email: null,
+    is_promoted: false,
+    is_active: true,
+    is_open: true,
+  } as any;
+
+  const created = await createRestaurant(placeholder);
+  return created;
 }
 
 export interface RestaurantHourInput {

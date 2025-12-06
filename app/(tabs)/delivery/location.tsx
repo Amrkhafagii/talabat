@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react-native';
@@ -8,8 +8,9 @@ import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDriverByUserId, updateDriverLocation } from '@/utils/database';
+import { getDriverByUserId } from '@/utils/database';
 import { DeliveryDriver } from '@/types/database';
+import { useDriverLocationTracking } from '@/hooks/useDriverLocationTracking';
 
 interface LocationData {
   latitude: number;
@@ -27,21 +28,49 @@ export default function LocationTracking() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [address, setAddress] = useState<string | undefined>(undefined);
+  const lastCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  const { startTracking, stopTracking, isTracking: hookTracking } = useDriverLocationTracking({
+    driverId: driver?.id,
+    onError: setError,
+    onLocation: async (coords, timestamp) => {
+      setLocation({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: coords.accuracy || 0,
+        timestamp,
+      });
+      setLastUpdate(new Date(timestamp));
+
+      const prev = lastCoordsRef.current;
+      const moved = !prev || prev.lat !== coords.latitude || prev.lng !== coords.longitude;
+      if (moved) {
+        lastCoordsRef.current = { lat: coords.latitude, lng: coords.longitude };
+        try {
+          const addresses = await Location.reverseGeocodeAsync({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          });
+          if (addresses.length > 0) {
+            const addr = addresses[0];
+            setAddress(`${addr.street || ''} ${addr.city || ''}, ${addr.region || ''}`.trim());
+            setLocation(prev => prev ? { ...prev, address: `${addr.street || ''} ${addr.city || ''}, ${addr.region || ''}`.trim() } : prev);
+          }
+        } catch (addrErr) {
+          console.log('Could not get address:', addrErr);
+        }
+      }
+    },
+  });
+
+  const effectiveTracking = useMemo(() => isTracking || hookTracking, [isTracking, hookTracking]);
 
   useEffect(() => {
     if (user) {
       loadDriverData();
-      requestLocationPermission();
     }
   }, [user]);
-
-  useEffect(() => {
-    if (isTracking && driver) {
-      startLocationTracking();
-    } else {
-      stopLocationTracking();
-    }
-  }, [isTracking, driver]);
 
   const loadDriverData = async () => {
     if (!user) return;
@@ -61,111 +90,24 @@ export default function LocationTracking() {
     }
   };
 
-  const requestLocationPermission = async () => {
+  const startLocationTracking = useCallback(async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setError('Location permission is required for delivery tracking');
+      const started = await startTracking();
+      if (!started) {
+        setIsTracking(false);
         return;
       }
-
-      // Request background location permission for continuous tracking
-      const backgroundStatus = await Location.requestBackgroundPermissionsAsync();
-      if (backgroundStatus.status !== 'granted') {
-        Alert.alert(
-          'Background Location',
-          'Background location access helps customers track their deliveries. You can enable it in settings.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (err) {
-      console.error('Error requesting location permission:', err);
-      setError('Failed to request location permission');
-    }
-  };
-
-  const startLocationTracking = async () => {
-    try {
-      // Get current location first
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const locationData: LocationData = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-        accuracy: currentLocation.coords.accuracy || 0,
-        timestamp: currentLocation.timestamp,
-      };
-
-      // Get address from coordinates
-      try {
-        const addresses = await Location.reverseGeocodeAsync({
-          latitude: locationData.latitude,
-          longitude: locationData.longitude,
-        });
-
-        if (addresses.length > 0) {
-          const address = addresses[0];
-          locationData.address = `${address.street || ''} ${address.city || ''}, ${address.region || ''}`.trim();
-        }
-      } catch (addressError) {
-        console.log('Could not get address:', addressError);
-      }
-
-      setLocation(locationData);
-      setLastUpdate(new Date());
-
-      // Update driver location in database
-      if (driver) {
-        await updateDriverLocation(
-          driver.id,
-          locationData.latitude,
-          locationData.longitude
-        );
-      }
-
-      // Start continuous tracking
-      const subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 30000, // Update every 30 seconds
-          distanceInterval: 50, // Update when moved 50 meters
-        },
-        async (newLocation) => {
-          const newLocationData: LocationData = {
-            latitude: newLocation.coords.latitude,
-            longitude: newLocation.coords.longitude,
-            accuracy: newLocation.coords.accuracy || 0,
-            timestamp: newLocation.timestamp,
-          };
-
-          setLocation(newLocationData);
-          setLastUpdate(new Date());
-
-          // Update driver location in database
-          if (driver) {
-            await updateDriverLocation(
-              driver.id,
-              newLocationData.latitude,
-              newLocationData.longitude
-            );
-          }
-        }
-      );
-
       setError(null);
     } catch (err) {
       console.error('Error starting location tracking:', err);
       setError('Failed to start location tracking');
       setIsTracking(false);
     }
-  };
+  }, [startTracking]);
 
-  const stopLocationTracking = () => {
-    setLocation(null);
-    setLastUpdate(null);
-  };
+  const stopLocationTracking = useCallback(() => {
+    stopTracking();
+  }, [stopTracking]);
 
   const toggleTracking = () => {
     if (isTracking) {
@@ -176,36 +118,24 @@ export default function LocationTracking() {
     }
   };
 
-  const refreshLocation = async () => {
+  const refreshLocation = useCallback(async () => {
     if (!isTracking) return;
+    // Restart tracking to force immediate update
+    stopTracking();
+    await startLocationTracking();
+  }, [isTracking, startLocationTracking, stopTracking]);
 
-    try {
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const locationData: LocationData = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-        accuracy: currentLocation.coords.accuracy || 0,
-        timestamp: currentLocation.timestamp,
-      };
-
-      setLocation(locationData);
-      setLastUpdate(new Date());
-
-      if (driver) {
-        await updateDriverLocation(
-          driver.id,
-          locationData.latitude,
-          locationData.longitude
-        );
-      }
-    } catch (err) {
-      console.error('Error refreshing location:', err);
-      Alert.alert('Error', 'Failed to refresh location');
+  useEffect(() => {
+    if (!driver?.id) return;
+    if (isTracking) {
+      startLocationTracking();
+    } else {
+      stopLocationTracking();
+      setLocation(null);
+      setLastUpdate(null);
+      setAddress(undefined);
     }
-  };
+  }, [driver?.id, isTracking, startLocationTracking, stopLocationTracking]);
 
   const openInMaps = () => {
     if (!location) return;
@@ -269,24 +199,24 @@ export default function LocationTracking() {
         <Card style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <View style={styles.statusIndicator}>
-              {isTracking ? (
+              {effectiveTracking ? (
                 <Wifi size={20} color="#10B981" />
               ) : (
                 <WifiOff size={20} color="#EF4444" />
               )}
               <Text style={[
                 styles.statusText,
-                { color: isTracking ? '#10B981' : '#EF4444' }
+                { color: effectiveTracking ? '#10B981' : '#EF4444' }
               ]}>
-                {isTracking ? 'Tracking Active' : 'Tracking Inactive'}
+                {effectiveTracking ? 'Tracking Active' : 'Tracking Inactive'}
               </Text>
             </View>
             <TouchableOpacity
               style={styles.refreshButton}
               onPress={refreshLocation}
-              disabled={!isTracking}
+              disabled={!effectiveTracking}
             >
-              <RefreshCw size={20} color={isTracking ? '#6B7280' : '#9CA3AF'} />
+              <RefreshCw size={20} color={effectiveTracking ? '#6B7280' : '#9CA3AF'} />
             </TouchableOpacity>
           </View>
 
@@ -322,10 +252,10 @@ export default function LocationTracking() {
                 </Text>
               </View>
 
-              {location.address && (
+              {address && (
                 <View style={styles.addressContainer}>
                   <Text style={styles.addressLabel}>Address</Text>
-                  <Text style={styles.addressText}>{location.address}</Text>
+                  <Text style={styles.addressText}>{address}</Text>
                 </View>
               )}
             </View>

@@ -446,11 +446,12 @@ CREATE OR REPLACE FUNCTION public.submit_payment_proof(
 )
 RETURNS jsonb
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_order record;
   v_expected numeric(12,2);
-  v_auto_pass boolean := true;
   v_dup boolean;
   v_diff numeric;
   v_window interval := interval '6 hours';
@@ -484,28 +485,26 @@ BEGIN
   );
 
   IF p_txn_id IS NULL OR length(trim(p_txn_id)) = 0 THEN
-    v_auto_pass := false;
     v_reasons := array_append(v_reasons, 'missing_txn_id');
   END IF;
 
   IF v_dup THEN
-    v_auto_pass := false;
     v_reasons := array_append(v_reasons, 'duplicate_txn_id');
   END IF;
 
   IF v_diff > 0.01 THEN
-    v_auto_pass := false;
     v_reasons := array_append(v_reasons, 'amount_mismatch');
   END IF;
 
   IF v_order.created_at IS NOT NULL THEN
     IF p_paid_at < (v_order.created_at - v_window) OR p_paid_at > (now() + interval '1 day') THEN
-      v_auto_pass := false;
       v_reasons := array_append(v_reasons, 'timestamp_out_of_window');
     END IF;
   END IF;
 
-  v_new_status := CASE WHEN v_auto_pass THEN 'paid' ELSE 'paid_pending_review' END;
+  -- Force manual review for all uploads so admins can approve
+  v_reasons := array_append(v_reasons, 'manual_review');
+  v_new_status := 'paid_pending_review';
 
   -- Simple rate limit: max 5 attempts per rolling hour
   IF COALESCE(v_order.payment_proof_attempts, 0) >= 5 AND v_order.payment_proof_last_attempt > (now() - interval '1 hour') THEN
@@ -518,7 +517,7 @@ BEGIN
       receipt_url = COALESCE(p_receipt_url, receipt_url),
       total_charged = COALESCE(total_charged, v_expected),
       payment_reported_amount = p_reported_amount,
-      payment_auto_verified = v_auto_pass,
+      payment_auto_verified = false,
       payment_txn_duplicate = v_dup,
       payment_proof_attempts = COALESCE(payment_proof_attempts, 0) + 1,
       payment_proof_last_attempt = now(),
@@ -534,27 +533,16 @@ BEGIN
       'txn_id', p_txn_id,
       'reported_amount', p_reported_amount,
       'expected_amount', v_expected,
-      'auto_verified', v_auto_pass,
+      'auto_verified', false,
       'status', v_new_status,
       'reasons', v_reasons,
       'amount_diff', v_diff
     )
   );
 
-  IF v_new_status = 'paid' THEN
-    PERFORM pg_notify('restaurant_payment_received', jsonb_build_object(
-      'order_id', p_order_id,
-      'restaurant_id', v_order.restaurant_id,
-      'total_charged', v_expected,
-      'platform_fee', v_order.platform_fee,
-      'restaurant_net', v_order.restaurant_net,
-      'delivery_fee', v_order.delivery_fee
-    )::text);
-  END IF;
-
   RETURN jsonb_build_object(
     'status', v_new_status,
-    'auto_verified', v_auto_pass,
+    'auto_verified', false,
     'amount_diff', v_diff,
     'expected_amount', v_expected,
     'reported_amount', p_reported_amount,
@@ -563,6 +551,9 @@ BEGIN
   );
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.submit_payment_proof(uuid, text, numeric, text, timestamptz) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.submit_payment_proof(uuid, text, numeric, text, timestamptz) TO authenticated;
 
 -- Manual review + payables helpers for admin console
 DROP FUNCTION IF EXISTS public.list_payment_review_queue();
@@ -588,11 +579,46 @@ RETURNS TABLE(
   txn_id_duplicate boolean,
   created_at timestamptz
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
+SECURITY DEFINER
+SET search_path = public
 AS $$
+DECLARE
+  v_is_admin boolean;
+  v_claims jsonb;
+  v_claim_user_type text;
+  v_role text;
+BEGIN
+  v_claims := NULLIF(current_setting('request.jwt.claims', true), '')::jsonb;
+  v_claim_user_type := COALESCE(
+    current_setting('request.jwt.claim.user_type', true),
+    v_claims->>'user_type',
+    v_claims->'user_metadata'->>'user_type',
+    v_claims->'app_metadata'->>'user_type',
+    ''
+  );
+  v_role := COALESCE(
+    current_setting('request.jwt.claim.role', true),
+    v_claims->>'role',
+    ''
+  );
+
   SELECT
-    o.id,
+    (v_claim_user_type = 'admin')
+    OR (v_role IN ('service_role','supabase_admin'))
+    OR EXISTS (
+      SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.user_type = 'admin'
+    )
+  INTO v_is_admin;
+
+  IF NOT coalesce(v_is_admin, false) THEN
+    RAISE EXCEPTION 'admin access required for payment review queue';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    o.id AS id,
     o.user_id,
     o.restaurant_id,
     o.total_charged,
@@ -623,13 +649,64 @@ AS $$
   WHERE o.payment_status = 'paid_pending_review'
   ORDER BY o.created_at DESC
   LIMIT 200;
+END;
 $$;
+
+REVOKE ALL ON FUNCTION public.list_payment_review_queue() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.list_payment_review_queue() TO authenticated;
+
+-- Remove legacy overloads so RPC call resolves unambiguously
+DROP FUNCTION IF EXISTS public.approve_payment_review(uuid, uuid);
+DROP FUNCTION IF EXISTS public.approve_payment_review(uuid, uuid, text);
 
 CREATE OR REPLACE FUNCTION public.approve_payment_review(p_order_id uuid, p_actor uuid DEFAULT NULL, p_notes text DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
+DECLARE
+  v_order record;
+  v_claims jsonb;
+  v_claim_user_type text;
+  v_role text;
+  v_is_admin boolean;
 BEGIN
+  v_claims := NULLIF(current_setting('request.jwt.claims', true), '')::jsonb;
+  v_claim_user_type := COALESCE(
+    current_setting('request.jwt.claim.user_type', true),
+    v_claims->>'user_type',
+    v_claims->'user_metadata'->>'user_type',
+    v_claims->'app_metadata'->>'user_type',
+    ''
+  );
+  v_role := COALESCE(
+    current_setting('request.jwt.claim.role', true),
+    v_claims->>'role',
+    ''
+  );
+
+  SELECT
+    (v_claim_user_type = 'admin')
+    OR (v_role IN ('service_role','supabase_admin'))
+    OR EXISTS (
+      SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.user_type = 'admin'
+    )
+  INTO v_is_admin;
+
+  IF NOT coalesce(v_is_admin, false) THEN
+    RAISE EXCEPTION 'admin access required for payment review actions';
+  END IF;
+
+  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Order not found';
+  END IF;
+
+  IF v_order.payment_status IS DISTINCT FROM 'paid_pending_review' THEN
+    RAISE EXCEPTION 'Order not in paid_pending_review: %', v_order.payment_status;
+  END IF;
+
   UPDATE public.orders
   SET payment_status = 'paid',
       payment_review_notes = COALESCE(p_notes, payment_review_notes),
@@ -648,11 +725,57 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.reject_payment_review(uuid, uuid);
+DROP FUNCTION IF EXISTS public.reject_payment_review(uuid, uuid, text, text);
+
 CREATE OR REPLACE FUNCTION public.reject_payment_review(p_order_id uuid, p_reason text DEFAULT NULL, p_actor uuid DEFAULT NULL, p_notes text DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
+DECLARE
+  v_order record;
+  v_claims jsonb;
+  v_claim_user_type text;
+  v_role text;
+  v_is_admin boolean;
 BEGIN
+  v_claims := NULLIF(current_setting('request.jwt.claims', true), '')::jsonb;
+  v_claim_user_type := COALESCE(
+    current_setting('request.jwt.claim.user_type', true),
+    v_claims->>'user_type',
+    v_claims->'user_metadata'->>'user_type',
+    v_claims->'app_metadata'->>'user_type',
+    ''
+  );
+  v_role := COALESCE(
+    current_setting('request.jwt.claim.role', true),
+    v_claims->>'role',
+    ''
+  );
+
+  SELECT
+    (v_claim_user_type = 'admin')
+    OR (v_role IN ('service_role','supabase_admin'))
+    OR EXISTS (
+      SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.user_type = 'admin'
+    )
+  INTO v_is_admin;
+
+  IF NOT coalesce(v_is_admin, false) THEN
+    RAISE EXCEPTION 'admin access required for payment review actions';
+  END IF;
+
+  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Order not found';
+  END IF;
+
+  IF v_order.payment_status IS DISTINCT FROM 'paid_pending_review' THEN
+    RAISE EXCEPTION 'Order not in paid_pending_review: %', v_order.payment_status;
+  END IF;
+
   UPDATE public.orders
   SET payment_status = 'failed',
       payment_review_notes = COALESCE(p_notes, payment_review_notes),
@@ -1194,6 +1317,7 @@ END;
 $$;
 
 DROP FUNCTION IF EXISTS public.list_restaurant_payables();
+DROP FUNCTION IF EXISTS public.list_restaurant_payables(text, uuid, text, timestamptz, timestamptz);
 CREATE OR REPLACE FUNCTION public.list_restaurant_payables(
   p_status text DEFAULT NULL,
   p_restaurant_id uuid DEFAULT NULL,
@@ -1204,6 +1328,12 @@ CREATE OR REPLACE FUNCTION public.list_restaurant_payables(
 RETURNS TABLE(
   order_id uuid,
   restaurant_id uuid,
+  restaurant_name text,
+  contact_name text,
+  contact_email text,
+  contact_phone text,
+  payout_method text,
+  payout_handle text,
   restaurant_net numeric,
   tip_amount numeric,
   payment_status text,
@@ -1215,11 +1345,18 @@ RETURNS TABLE(
   created_at timestamptz
 )
 LANGUAGE sql
-STABLE
+SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT
     o.id AS order_id,
     o.restaurant_id,
+    r.name AS restaurant_name,
+    u.full_name AS contact_name,
+    u.email AS contact_email,
+    u.phone AS contact_phone,
+    (r.payout_account ->> 'instapayType') AS payout_method,
+    (r.payout_account ->> 'instapayHandle') AS payout_handle,
     o.restaurant_net,
     o.tip_amount,
     o.payment_status,
@@ -1230,6 +1367,8 @@ AS $$
     COALESCE(o.restaurant_net, 0) AS expected_restaurant_net,
     o.created_at
   FROM public.orders o
+  LEFT JOIN public.restaurants r ON r.id = o.restaurant_id
+  LEFT JOIN public.users u ON u.id = r.owner_id
   WHERE o.payment_status IN ('paid','captured')
     AND (p_status IS NULL OR o.restaurant_payout_status = p_status)
     AND (p_restaurant_id IS NULL OR o.restaurant_id = p_restaurant_id)
@@ -1241,6 +1380,7 @@ AS $$
 $$;
 
 DROP FUNCTION IF EXISTS public.list_driver_payables();
+DROP FUNCTION IF EXISTS public.list_driver_payables(text, uuid, text, timestamptz, timestamptz);
 CREATE OR REPLACE FUNCTION public.list_driver_payables(
   p_status text DEFAULT NULL,
   p_driver_id uuid DEFAULT NULL,
@@ -1251,7 +1391,12 @@ CREATE OR REPLACE FUNCTION public.list_driver_payables(
 RETURNS TABLE(
   order_id uuid,
   driver_id uuid,
+  driver_name text,
+  driver_email text,
+  driver_phone text,
   driver_payout_handle text,
+  payout_method text,
+  payout_handle text,
   delivery_fee numeric,
   tip_amount numeric,
   payment_status text,
@@ -1263,12 +1408,18 @@ RETURNS TABLE(
   created_at timestamptz
 )
 LANGUAGE sql
-STABLE
+SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT
     d.order_id,
     d.driver_id,
+    u.full_name AS driver_name,
+    u.email AS driver_email,
+    u.phone AS driver_phone,
     d.driver_payout_handle,
+    (dd.payout_account ->> 'method') AS payout_method,
+    (dd.payout_account ->> 'handle') AS payout_handle,
     COALESCE(d.delivery_fee, o.delivery_fee) AS delivery_fee,
     o.tip_amount,
     o.payment_status,
@@ -1280,6 +1431,8 @@ AS $$
     o.created_at
   FROM public.deliveries d
   JOIN public.orders o ON o.id = d.order_id
+  LEFT JOIN public.delivery_drivers dd ON dd.id = d.driver_id
+  LEFT JOIN public.users u ON u.id = dd.user_id
   WHERE o.payment_status IN ('paid','captured')
     AND (p_status IS NULL OR o.driver_payout_status = p_status)
     AND (p_driver_id IS NULL OR d.driver_id = p_driver_id)

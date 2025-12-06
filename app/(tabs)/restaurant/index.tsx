@@ -11,9 +11,11 @@ import RealtimeIndicator from '@/components/common/RealtimeIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { 
-  getRestaurantByUserId, 
-  getRestaurantStats
+  getRestaurantStats,
+  ensureRestaurantForUser,
+  assignNearestDriverForOrder
 } from '@/utils/database';
+import { isRestaurantOpenNow, formatTodayHours } from '@/utils/hours';
 import { Restaurant, RestaurantStats } from '@/types/database';
 import { formatOrderTime } from '@/utils/formatters';
 import { getOrderItems } from '@/utils/orderHelpers';
@@ -65,7 +67,7 @@ export default function RestaurantDashboard() {
       setLoading(true);
       setError(null);
 
-      const restaurantData = await getRestaurantByUserId(user.id);
+      const restaurantData = await ensureRestaurantForUser(user.id);
       if (!restaurantData) {
         setError('No restaurant found for this user');
         return;
@@ -103,13 +105,24 @@ export default function RestaurantDashboard() {
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const success = await updateOrderStatus(orderId, newStatus);
-      if (success) {
-        // Stats will be updated automatically when orders change
-        if (newStatus === 'delivered') {
-          await loadStats();
-        }
-      } else {
+      if (!success) {
         Alert.alert('Error', 'Failed to update order status');
+        return;
+      }
+
+      if (newStatus === 'ready') {
+        const assignment = await assignNearestDriverForOrder(orderId, 5);
+        if (!assignment.ok) {
+          Alert.alert(
+            'No nearby driver yet',
+            'We could not find an available driver within 5 km. The order will stay visible to drivers.'
+          );
+        }
+      }
+
+      // Stats will be updated automatically when orders change
+      if (newStatus === 'delivered') {
+        await loadStats();
       }
     } catch (err) {
       console.error('Error updating order status:', err);
@@ -123,6 +136,8 @@ export default function RestaurantDashboard() {
 
   const recentOrders = orders.slice(0, 5);
   const newOrdersCount = orders.filter(order => order.status === 'pending').length;
+  const isOpenNow = restaurant?.is_open && isRestaurantOpenNow(restaurant?.restaurant_hours);
+  const todayHours = formatTodayHours(restaurant?.restaurant_hours);
 
   if (loading) {
     return (
@@ -156,7 +171,9 @@ export default function RestaurantDashboard() {
           <Store size={24} color="#FF6B35" />
           <View style={styles.headerText}>
             <Text style={styles.restaurantName}>{restaurant.name}</Text>
-            <Text style={styles.restaurantStatus}>Open • 8:00 AM - 10:00 PM</Text>
+            <Text style={styles.restaurantStatus}>
+              {isOpenNow ? 'Open' : 'Closed'}{todayHours ? ` • ${todayHours}` : ''}
+            </Text>
           </View>
         </View>
         <View style={styles.headerRight}>
@@ -292,7 +309,7 @@ export default function RestaurantDashboard() {
             />
             <Button
               title="Restaurant Settings"
-              onPress={() => console.log('Restaurant Settings')}
+              onPress={() => router.push('/restaurant/settings')}
               variant="outline"
               style={styles.actionButton}
             />

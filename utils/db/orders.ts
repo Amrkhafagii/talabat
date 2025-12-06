@@ -106,14 +106,19 @@ export async function createOrder(
   }
 
   // Create order items
-  const orderItems = items.map(item => ({
-    order_id: order.id,
-    menu_item_id: item.menuItemId,
-    quantity: item.quantity,
-    unit_price: item.unitPrice,
-    total_price: item.unitPrice * item.quantity,
-    special_instructions: item.specialInstructions
-  }));
+  const orderItems = items.map(item => {
+    const unit = item.unitPrice;
+    const qty = item.quantity;
+    return {
+      order_id: order.id,
+      menu_item_id: item.menuItemId,
+      quantity: qty,
+      unit_price: unit,
+      total_price: unit * qty,
+      price: unit, // legacy column
+      special_instructions: item.specialInstructions ?? null,
+    };
+  });
 
   const { error: itemsError } = await supabase
     .from('order_items')
@@ -327,6 +332,20 @@ async function getOrderById(orderId: string): Promise<Order | null> {
 
 export async function updateOrderStatus(orderId: string, status: string, additionalData?: any): Promise<boolean> {
   const updateData: any = { status };
+  const requiresPaymentApproval = ['confirmed', 'preparing', 'ready', 'picked_up', 'on_the_way'].includes(status);
+
+  if (requiresPaymentApproval) {
+    const { data: orderPayment, error: paymentError } = await supabase
+      .from('orders')
+      .select('payment_status')
+      .eq('id', orderId)
+      .single();
+
+    if (paymentError || !orderPayment || orderPayment.payment_status !== 'paid') {
+      console.warn('Cannot update order status until receipt is approved', { orderId, status });
+      return false;
+    }
+  }
   
   // Add timestamp fields based on status
   switch (status) {

@@ -1,11 +1,22 @@
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { Tabs, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
   const { user, userType, loading } = useAuth();
 
+  useEffect(() => {
+    if (!loading && user && userType === 'admin') {
+      router.replace('/admin/metrics');
+    }
+  }, [loading, user, userType]);
+
   // Return null while loading or during redirects
   if (loading || !user || !userType) {
+    return null;
+  }
+
+  if (userType === 'admin') {
     return null;
   }
 

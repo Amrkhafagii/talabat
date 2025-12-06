@@ -16,7 +16,9 @@ export async function getUserAddresses(userId: string): Promise<UserAddress[]> {
   return data || [];
 }
 
-export async function createUserAddress(address: Omit<UserAddress, 'id' | 'created_at' | 'updated_at'>): Promise<UserAddress | null> {
+export async function createUserAddress(
+  address: Omit<UserAddress, 'id' | 'created_at' | 'updated_at'>
+): Promise<{ address: UserAddress | null; errorCode?: string; errorMessage?: string }> {
   const { data, error } = await supabase
     .from('user_addresses')
     .insert(address)
@@ -25,10 +27,10 @@ export async function createUserAddress(address: Omit<UserAddress, 'id' | 'creat
 
   if (error) {
     console.error('Error creating user address:', error);
-    return null;
+    return { address: null, errorCode: (error as any).code, errorMessage: error.message };
   }
 
-  return data;
+  return { address: data, errorCode: undefined, errorMessage: undefined };
 }
 
 export async function updateUserAddress(addressId: string, updates: Partial<UserAddress>): Promise<boolean> {
@@ -45,16 +47,37 @@ export async function updateUserAddress(addressId: string, updates: Partial<User
   return true;
 }
 
-export async function deleteUserAddress(addressId: string): Promise<boolean> {
+export async function deleteUserAddress(addressId: string): Promise<{ ok: boolean; reason?: string }> {
+  // Check for dependent orders first to avoid FK violations
+  try {
+    const { data: dependentOrders, error: depError } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('delivery_address_id', addressId)
+      .limit(1);
+
+    if (!depError && dependentOrders && dependentOrders.length > 0) {
+      return { ok: false, reason: 'address_has_orders' };
+    }
+  } catch (checkErr) {
+    console.warn('deleteUserAddress: pre-check failed', (checkErr as any)?.message);
+  }
+
   const { error } = await supabase
     .from('user_addresses')
     .delete()
     .eq('id', addressId);
 
   if (error) {
+    const code = (error as any)?.code;
+    if (code === '23503') {
+      // FK violation: address referenced by orders
+      return { ok: false, reason: 'address_has_orders' };
+    }
+
     console.error('Error deleting user address:', error);
-    return false;
+    return { ok: false, reason: (error as any)?.message };
   }
 
-  return true;
+  return { ok: true };
 }

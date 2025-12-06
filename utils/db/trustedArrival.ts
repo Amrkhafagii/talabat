@@ -68,11 +68,23 @@ export async function getRestaurantSla(restaurantId: string): Promise<Restaurant
     .from('restaurant_sla')
     .select('*')
     .eq('restaurant_id', restaurantId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error fetching restaurant SLA:', error);
     return null;
+  }
+
+  if (!data) {
+    return {
+      restaurant_id: restaurantId,
+      prep_p50_minutes: 12,
+      prep_p90_minutes: 20,
+      buffer_minutes: 5,
+      reliability_score: 0.9,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any;
   }
 
   return data;

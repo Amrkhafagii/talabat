@@ -79,12 +79,16 @@ export default function Addresses() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const success = await deleteUserAddress(address.id);
-              if (success) {
+              const result = await deleteUserAddress(address.id);
+              if (result.ok) {
                 await loadAddresses();
                 Alert.alert('Success', 'Address deleted successfully');
               } else {
-                Alert.alert('Error', 'Failed to delete address');
+                if (result.reason === 'address_has_orders') {
+                  Alert.alert('Cannot Delete', 'This address is used in existing orders and cannot be removed.');
+                } else {
+                  Alert.alert('Error', 'Failed to delete address');
+                }
               }
             } catch (error) {
               console.error('Error deleting address:', error);

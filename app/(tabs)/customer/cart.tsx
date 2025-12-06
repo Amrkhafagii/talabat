@@ -2,16 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, CreditCard, MapPin, ChevronDown, ShieldCheck } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Linking from 'expo-linking';
 
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMenuItemsByIds, createOrder, getUserAddresses, getRestaurantById, getSubstitutionForItem, getAutoApplySubstitution } from '@/utils/database';
-import { MenuItem, UserAddress } from '@/types/database';
+import { MenuItem, UserAddress, Restaurant } from '@/types/database';
 import CartItemCard from '@/components/customer/CartItemCard';
 import { computeEtaBand } from '@/utils/db/trustedArrival';
 import { estimateTravelMinutes } from '@/utils/etaService';
+import { supabase } from '@/utils/supabase';
 
 export default function Cart() {
   const { cart, updateQuantity, clearCart, getTotalItems } = useCart();
@@ -21,7 +23,7 @@ export default function Cart() {
   const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState('card');
+  const [selectedPayment, setSelectedPayment] = useState('instapay');
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptUri, setReceiptUri] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
@@ -33,10 +35,25 @@ export default function Cart() {
   const [substitutionDecisions, setSubstitutionDecisions] = useState<
     { original_item_id: string; substitute_item_id?: string; decision: 'accept' | 'decline' | 'chat'; price_delta?: number; quantity?: number }[]
   >([]);
+  const [restaurantMeta, setRestaurantMeta] = useState<Restaurant | null>(null);
+  const fallbackPayMobile = '01023494000';
 
   useEffect(() => {
     loadCartData();
   }, [cart, user]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadCartData();
+    }, [user])
+  );
+
+  useEffect(() => {
+    if (!selectedAddress && addresses.length > 0) {
+      const defaultAddress = addresses.find(addr => addr.is_default) || addresses[0];
+      setSelectedAddress(defaultAddress);
+    }
+  }, [addresses, selectedAddress]);
 
   const loadCartData = async () => {
     try {
@@ -281,6 +298,28 @@ export default function Cart() {
     Alert.alert('Chat', 'Connecting you to support to review substitutions.');
   };
 
+  const uploadReceiptToStorage = async (uri: string) => {
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      const owner = authUser?.user?.id ?? 'anon';
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const extGuess = uri.split('.').pop()?.split('?')[0] || 'jpg';
+      const path = `${owner}/receipt-${Date.now()}.${extGuess}`;
+
+      const { data, error } = await supabase.storage
+        .from('order-receipts')
+        .upload(path, blob, { cacheControl: '3600', upsert: true });
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage.from('order-receipts').getPublicUrl(data.path);
+      return publicUrlData?.publicUrl || data.path || null;
+    } catch (err) {
+      console.error('Receipt upload failed', err);
+      return null;
+    }
+  };
+
   const handlePlaceOrder = async () => {
     if (!user) {
       Alert.alert('Error', 'Please sign in to place an order');
@@ -297,6 +336,11 @@ export default function Cart() {
       return;
     }
 
+    if (!receiptUri) {
+      Alert.alert('Payment Required', 'Please upload your payment proof before placing the order.');
+      return;
+    }
+
     // Get restaurant ID from the first item (assuming all items are from the same restaurant)
     const restaurantId = cartItems[0].restaurant_id;
     const deliveryAddressString = `${selectedAddress.address_line_1}${selectedAddress.address_line_2 ? `, ${selectedAddress.address_line_2}` : ''}, ${selectedAddress.city}, ${selectedAddress.state} ${selectedAddress.postal_code}`;
@@ -304,12 +348,55 @@ export default function Cart() {
     setPlacing(true);
 
     try {
-      const orderItems = cartItems.map(item => ({
-        menuItemId: item.id,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        specialInstructions: undefined
-      }));
+      const invalidPrice = cartItems.find(item => {
+        const priceNum = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+        return priceNum === null || priceNum === undefined || Number.isNaN(priceNum) || priceNum <= 0;
+      });
+      if (invalidPrice) {
+        Alert.alert(
+          'Error',
+          `Item "${invalidPrice.name}" has an invalid price. Please remove or update it before placing the order.`
+        );
+        console.warn('Invalid price detected', { item: invalidPrice });
+        setPlacing(false);
+        return;
+      }
+
+      const invalidQty = cartItems.find(item => !item.quantity || item.quantity <= 0);
+      if (invalidQty) {
+        Alert.alert(
+          'Error',
+          `Item "${invalidQty.name}" has an invalid quantity. Please re-add it to the cart.`
+        );
+        console.warn('Invalid quantity detected', { item: invalidQty });
+        setPlacing(false);
+        return;
+      }
+
+      const payMobile = restaurantMeta?.phone || fallbackPayMobile;
+      const payoutChannel = (restaurantMeta as any)?.payout_method || (restaurantMeta as any)?.payout_account?.method || 'account';
+
+      const orderItems = cartItems.map(item => {
+        const priceNum = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+        return {
+          menuItemId: item.id,
+          quantity: item.quantity > 0 ? item.quantity : 1,
+          unitPrice: priceNum ?? 0,
+          specialInstructions: undefined,
+        };
+      });
+
+      let receiptForOrder = receiptUri;
+      if (receiptUri && !receiptUri.startsWith('http')) {
+        const uploaded = await uploadReceiptToStorage(receiptUri);
+        if (!uploaded) {
+          Alert.alert('Error', 'Failed to upload receipt. Please try again.');
+          setPlacing(false);
+          return;
+        }
+        receiptForOrder = uploaded;
+        setReceiptUri(uploaded);
+      }
 
       const { data: order, error } = await createOrder(
         user.id,
@@ -324,7 +411,7 @@ export default function Cart() {
         total,
         selectedPayment,
         selectedAddress.delivery_instructions,
-        receiptUri || undefined,
+        receiptForOrder || undefined,
         {
           substitutions: substitutionDecisions,
         }
@@ -334,6 +421,18 @@ export default function Cart() {
         console.error('Error placing order:', error);
         Alert.alert('Error', 'Failed to place order. Please try again.');
       } else {
+        const txnId = `manual-${Date.now()}`;
+        const proof = await supabase.rpc('submit_payment_proof', {
+          p_order_id: order.id,
+          p_txn_id: txnId,
+          p_reported_amount: total,
+          p_receipt_url: receiptForOrder,
+          p_paid_at: new Date().toISOString(),
+        });
+        if (proof.error) {
+          console.error('submit_payment_proof error', proof.error);
+          Alert.alert('Warning', 'Order placed, but receipt could not be queued for admin. Please retry from order details.');
+        }
         clearCart();
         Alert.alert(
           'Order Placed!',
@@ -497,12 +596,16 @@ export default function Cart() {
           <Text style={styles.sectionTitle}>Payment Method</Text>
           <View style={styles.paymentOptions}>
             <TouchableOpacity 
-              style={[styles.paymentOption, selectedPayment === 'card' && styles.selectedPayment]}
-              onPress={() => setSelectedPayment('card')}
+              style={[styles.paymentOption, styles.selectedPayment]}
+              onPress={async () => {
+                setSelectedPayment('instapay');
+                await Linking.openURL('https://ipn.eg/S/amrkhafagi/instapay/4VH6jb');
+              }}
             >
               <CreditCard size={20} color="#FF6B35" />
-              <Text style={styles.paymentText}>Credit Card</Text>
-              <Text style={styles.paymentDetail}>**** 1234</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.paymentText}>Instapay</Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>

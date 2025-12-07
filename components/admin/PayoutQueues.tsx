@@ -62,7 +62,7 @@ export default function PayoutQueues({
   const sortedDrivers = [...driverPayables].sort(sorter);
   const renderList = (items: any[], type: 'restaurant' | 'driver') => (
     <IOSCard padding="md" style={{ marginBottom: iosSpacing.sm }}>
-      {items.map((item) => {
+      {items.map((item, idx) => {
         const isFocused = highlightOrderId && highlightOrderId === item.order_id;
         const lastError = type === 'restaurant' ? item.restaurant_payout_last_error : item.driver_payout_last_error;
         const nextRetry = type === 'restaurant' ? item.restaurant_payout_next_retry_at : item.driver_payout_next_retry_at;
@@ -70,8 +70,9 @@ export default function PayoutQueues({
         const amount = type === 'restaurant'
           ? Number(item.restaurant_net ?? 0) + Number(item.tip_amount ?? 0)
           : Number(item.driver_payable ?? 0);
+        const key = `${item.order_id}-${type}-${item.payout_ref ?? item.driver_id ?? item.restaurant_id ?? idx}`;
         return (
-          <View key={`${item.order_id}-${type === 'driver' ? item.driver_id : 'r'}`} style={[iosStyles.rowCard, isFocused && iosStyles.rowFocused]}>
+          <View key={key} style={[iosStyles.rowCard, isFocused && iosStyles.rowFocused]}>
             <View style={iosStyles.rowHeader}>
               <Text style={iosStyles.rowTitle}>{item.order_id.slice(-6).toUpperCase()} • {type === 'driver' ? (item.driver_name || item.driver_id) : (item.restaurant_name || item.restaurant_id)}</Text>
               <IOSBadge label={statusLabel(payoutStatus)} tone="info" />

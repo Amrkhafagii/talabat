@@ -42,7 +42,8 @@ export function IOSListRow({ label, value, onPress, destructive, style, icon, ac
 const styles = StyleSheet.create({
   row: {
     minHeight: 44,
-    paddingVertical: iosSpacing.xs,
+    paddingVertical: iosSpacing.sm,
+    paddingHorizontal: iosSpacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
     borderRadius: iosRadius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: iosColors.surfaceAlt,
+    backgroundColor: iosColors.surfaceMuted,
   },
   label: { ...iosTypography.body },
   subtitle: { ...iosTypography.caption, color: iosColors.secondaryText, marginTop: 2 },

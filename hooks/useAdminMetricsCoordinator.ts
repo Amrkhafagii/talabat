@@ -3,7 +3,8 @@ import { useAdminOpsData } from './useAdminOpsData';
 import { useAdminReports } from './useAdminReports';
 import { useActionQueue } from './useActionQueue';
 import { approvePaymentReview, rejectPaymentReview, reviewDriverLicense, reviewMenuPhoto } from '@/utils/database';
-import type { PaymentReviewItem } from '@/utils/db/adminOps';
+import { getAdminKpiOverview, getAdminQueueCounts } from '@/utils/db/adminOps';
+import type { AdminKpiOverview, AdminQueueCounts, PaymentReviewItem } from '@/utils/db/adminOps';
 import { expectedPaymentAmount } from '@/utils/adminUi';
 
 export type AdminMetricsCoordinatorState = ReturnType<typeof useAdminMetricsCoordinator>;
@@ -33,10 +34,22 @@ export function useAdminMetricsCoordinator() {
 
   const [status, setStatus] = useState<string | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
+  const [queueCounts, setQueueCounts] = useState<AdminQueueCounts | null>(null);
+  const [kpi, setKpi] = useState<AdminKpiOverview | null>(null);
+  const [optimisticApprovals, setOptimisticApprovals] = useState<Set<string>>(new Set());
+  const [optimisticPayouts, setOptimisticPayouts] = useState<Set<string>>(new Set());
 
   const refreshAll = useCallback(async () => {
     setRefreshingAll(true);
-    await Promise.all([loadOpsData(), loadSettlement(7), loadOpsAlerts()]);
+    const [queueResp, kpiResp] = await Promise.all([
+      getAdminQueueCounts().catch(() => null),
+      getAdminKpiOverview().catch(() => null),
+      loadOpsData(),
+      loadSettlement(7),
+      loadOpsAlerts(),
+    ]).then((results) => [results[0], results[1]]);
+    if (queueResp) setQueueCounts(queueResp);
+    if (kpiResp) setKpi(kpiResp);
     setRefreshingAll(false);
   }, [loadOpsData, loadSettlement, loadOpsAlerts]);
 
@@ -60,12 +73,27 @@ export function useAdminMetricsCoordinator() {
         item,
         queuedText: 'Payment approval queued.',
         queuedTone: 'success',
-        onDequeue: () => setReviewQueue(prev => prev.filter(q => q.id !== orderId)),
-        onRestore: restored => setReviewQueue(prev => [restored, ...prev]),
+        onDequeue: () => {
+          setOptimisticApprovals(prev => new Set(prev).add(orderId));
+          setReviewQueue(prev => prev.filter(q => q.id !== orderId));
+        },
+        onRestore: restored => {
+          setOptimisticApprovals(prev => {
+            const next = new Set(prev);
+            next.delete(orderId);
+            return next;
+          });
+          setReviewQueue(prev => [restored, ...prev]);
+        },
         onCommit: async () => {
           const ok = await approvePaymentReview(orderId);
           await refreshAll();
           setStatus(ok ? 'Payment approved.' : 'Failed to approve payment.');
+          setOptimisticApprovals(prev => {
+            const next = new Set(prev);
+            next.delete(orderId);
+            return next;
+          });
         },
       });
     },
@@ -83,12 +111,27 @@ export function useAdminMetricsCoordinator() {
         item,
         queuedText: 'Payment rejection queued.',
         queuedTone: 'warning',
-        onDequeue: () => setReviewQueue(prev => prev.filter(q => q.id !== orderId)),
-        onRestore: restored => setReviewQueue(prev => [restored, ...prev]),
+        onDequeue: () => {
+          setOptimisticApprovals(prev => new Set(prev).add(orderId));
+          setReviewQueue(prev => prev.filter(q => q.id !== orderId));
+        },
+        onRestore: restored => {
+          setOptimisticApprovals(prev => {
+            const next = new Set(prev);
+            next.delete(orderId);
+            return next;
+          });
+          setReviewQueue(prev => [restored, ...prev]);
+        },
         onCommit: async () => {
           const ok = await rejectPaymentReview(orderId, reason);
           await refreshAll();
           setStatus(ok ? 'Payment rejected.' : 'Failed to reject payment.');
+          setOptimisticApprovals(prev => {
+            const next = new Set(prev);
+            next.delete(orderId);
+            return next;
+          });
         },
       });
     },
@@ -148,6 +191,17 @@ export function useAdminMetricsCoordinator() {
     [driverPayables]
   );
 
+  const queueCountsDerived = useMemo(
+    () => ({
+      payments: reviewQueue.length,
+      licenses: licenseQueue.length,
+      photos: photoQueue.length,
+      restaurantPayouts: restaurantPayables.length,
+      driverPayouts: driverPayables.length,
+    }),
+    [reviewQueue.length, licenseQueue.length, photoQueue.length, restaurantPayables.length, driverPayables.length]
+  );
+
   const payoutsCount = restaurantPayables.length + driverPayables.length;
   const approvalsCount = reviewQueue.length + licenseQueue.length + photoQueue.length;
   const grossRevenue = settlementReport?.gross_collected ?? 0;
@@ -186,5 +240,9 @@ export function useAdminMetricsCoordinator() {
     handleLicenseDecision,
     handleMenuPhotoDecision,
     mismatch,
+    queueCounts: queueCounts ?? queueCountsDerived,
+    kpi,
+    optimisticApprovals,
+    optimisticPayouts,
   };
 }

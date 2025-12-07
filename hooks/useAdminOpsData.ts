@@ -6,14 +6,12 @@ import {
   getRestaurantPayablesPending,
   getDriverPayablesPending,
   listPayoutBalances,
+  type PaymentReviewItem,
+  type DriverLicenseReview,
+  type MenuPhotoReview,
+  type RestaurantPayable,
+  type DriverPayable,
 } from '@/utils/database';
-import type {
-  PaymentReviewItem,
-  DriverLicenseReview,
-  MenuPhotoReview,
-  RestaurantPayable,
-  DriverPayable,
-} from '@/utils/db/adminOps';
 
 export type RestaurantPayoutFilter = { restaurantId: string; status: string; payoutRef: string; createdAfter: string; createdBefore: string };
 export type DriverPayoutFilter = { driverId: string; status: string; payoutRef: string; createdAfter: string; createdBefore: string };

@@ -6,7 +6,14 @@ import { SectionNav } from './SectionNav';
 import { iosColors, iosSpacing, iosRadius, iosTypography } from '@/styles/iosTheme';
 import { IOSHeaderBar } from '@/components/ios/IOSHeaderBar';
 import { IOSBottomTabBar } from '@/components/ios/IOSBottomTabBar';
-import { LayoutDashboard, Truck, ClipboardList, CreditCard, Settings as SettingsIcon } from 'lucide-react-native';
+import {
+  LayoutDashboard,
+  BarChart3,
+  ClipboardList,
+  Truck,
+  CreditCard,
+  Settings as SettingsIcon,
+} from 'lucide-react-native';
 
 type AdminShellProps = {
   title: string;
@@ -27,36 +34,19 @@ type BottomTab = { key: string; label: string; href?: string; icon?: React.React
 
 const defaultBottomTabs: BottomTab[] = [
   { key: 'metrics', label: 'Overview', href: '/admin/metrics', icon: (active: boolean) => <LayoutDashboard size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'orders', label: 'Orders', href: '/admin/orders', icon: (active: boolean) => <Truck size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
+  { key: 'analytics', label: 'Metrics', href: '/admin/analytics', icon: (active: boolean) => <BarChart3 size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
   { key: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: (active: boolean) => <ClipboardList size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
+  { key: 'orders', label: 'Orders', href: '/admin/orders', icon: (active: boolean) => <Truck size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
   { key: 'payouts', label: 'Payouts', href: '/admin/payouts', icon: (active: boolean) => <CreditCard size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
   { key: 'settings', label: 'Settings', href: '/admin/settings', icon: (active: boolean) => <SettingsIcon size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
 ];
 
 const defaultNavItems: NavItem[] = [
   { key: 'metrics', label: 'Overview', href: '/admin/metrics' },
-  {
-    key: 'reviews',
-    label: 'Reviews',
-    href: '/admin/reviews',
-    children: [
-      { key: 'payments', label: 'Payments', href: '/admin/reviews?tab=payments' },
-      { key: 'licenses', label: 'Licenses', href: '/admin/reviews?tab=licenses' },
-      { key: 'photos', label: 'Menu photos', href: '/admin/reviews?tab=photos' },
-    ],
-  },
+  { key: 'analytics', label: 'Metrics', href: '/admin/analytics' },
+  { key: 'reviews', label: 'Reviews', href: '/admin/reviews' },
   { key: 'orders', label: 'Orders & Deliveries', href: '/admin/orders' },
-  {
-    key: 'payouts',
-    label: 'Payouts',
-    href: '/admin/payouts',
-    children: [
-      { key: 'balances', label: 'Balances', href: '/admin/payouts?section=balances' },
-      { key: 'restaurant', label: 'Restaurant payables', href: '/admin/payouts?section=restaurant' },
-      { key: 'driver', label: 'Driver payables', href: '/admin/payouts?section=driver' },
-    ],
-  },
-  { key: 'analytics', label: 'Analytics', href: '/admin/analytics' },
+  { key: 'payouts', label: 'Payouts', href: '/admin/payouts' },
   { key: 'settings', label: 'Settings', href: '/admin/settings' },
 ];
 

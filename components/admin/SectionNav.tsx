@@ -12,13 +12,7 @@ type SectionNavProps = {
   variant?: 'ios' | 'ios-sub';
 };
 
-const defaultItems: NavItem[] = [
-  { key: 'payments', label: 'Payments' },
-  { key: 'licenses', label: 'Licenses' },
-  { key: 'photos', label: 'Menu photos' },
-  { key: 'payouts', label: 'Payouts' },
-  { key: 'alerts', label: 'Alerts' }
-];
+const defaultItems: NavItem[] = [];
 
 function normalize(val: string) {
   return val.split('?')[0].split('#')[0];
@@ -100,18 +94,27 @@ type IosNavStyles = {
 };
 
 const iosNav = StyleSheet.create<IosNavStyles>({
-  sectionNav: { flexDirection: 'row', flexWrap: 'nowrap', gap: iosSpacing.xs, marginHorizontal: iosSpacing.sm, marginTop: iosSpacing.sm, marginBottom: iosSpacing.sm },
+  sectionNav: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    gap: iosSpacing.xs,
+    marginHorizontal: iosSpacing.sm,
+    marginTop: iosSpacing.sm,
+    marginBottom: iosSpacing.sm,
+  },
   sectionNavScrollable: { paddingRight: iosSpacing.sm },
   subNav: { marginTop: iosSpacing.xs },
   navPill: {
     paddingHorizontal: iosSpacing.md,
     paddingVertical: iosSpacing.sm,
     borderRadius: iosRadius.pill,
-    backgroundColor: '#E5E5EA',
+    backgroundColor: iosColors.chipBg,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
     minHeight: 34,
+    borderWidth: 1,
+    borderColor: iosColors.separator,
   },
   navPillPhone: {
     paddingHorizontal: iosSpacing.sm,
@@ -122,11 +125,10 @@ const iosNav = StyleSheet.create<IosNavStyles>({
     paddingVertical: iosSpacing.xs,
   },
   navPillActive: {
-    backgroundColor: iosColors.surface,
-    borderWidth: 1,
+    backgroundColor: iosColors.primary,
     borderColor: iosColors.primary,
   },
   navPillText: { ...iosTypography.subhead, color: iosColors.text, lineHeight: 18 },
   navPillTextPhone: { fontSize: 13, lineHeight: 16 },
-  navPillTextActive: { color: iosColors.primary, fontWeight: '600' },
+  navPillTextActive: { color: '#FFFFFF', fontWeight: '600' },
 });

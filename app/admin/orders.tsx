@@ -23,8 +23,8 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState<OrderAdminDetail[]>([]);
   const [selected, setSelected] = useState<OrderAdminDetail | null>(null);
   const [search, setSearch] = useState('');
-  const [deliveryFilter, setDeliveryFilter] = useState('any');
-  const [paymentFilter, setPaymentFilter] = useState('any');
+  const [deliveryFilter, setDeliveryFilter] = useState('All');
+  const [paymentFilter, setPaymentFilter] = useState('All');
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,18 +63,21 @@ export default function AdminOrders() {
           .map((h) => h!.toLowerCase());
         if (!haystacks.some((h) => h.includes(term))) return false;
       }
-      if (deliveryFilter !== 'any' && o.delivery?.status && o.delivery.status !== deliveryFilter) return false;
-      if (deliveryFilter !== 'any' && !o.delivery?.status) return false;
-      if (paymentFilter !== 'any' && o.payment_status !== paymentFilter) return false;
+      if (deliveryFilter !== 'All' && o.delivery?.status && o.delivery.status !== deliveryFilter.toLowerCase()) return false;
+      if (deliveryFilter !== 'All' && !o.delivery?.status) return false;
+      if (paymentFilter !== 'All' && (o.payment_status || '').toLowerCase() !== paymentFilter.toLowerCase()) return false;
       return true;
     });
   }, [orders, paymentFilter, deliveryFilter, search]);
 
   return (
-    <AdminShell title="Orders & Deliveries" onSignOut={signOut} headerVariant="ios">
-      <Text style={styles.helperText}>
-        Order and delivery health. Alerts highlight issues like unpaid advanced orders or unverified drivers.
-      </Text>
+    <AdminShell
+      title="Orders & Deliveries"
+      onSignOut={signOut}
+      headerVariant="ios"
+      headerLeadingAction={{ label: 'Back', onPress: () => router.back() }}
+      headerTrailingAction={{ label: 'Filter', onPress: () => refreshReports() }}
+    >
       <AdminToast message={error} tone="error" />
 
       <IOSCard padding="md" style={orderIos.card}>
@@ -136,7 +139,15 @@ export default function AdminOrders() {
           <Text style={orderIos.title}>Cases</Text>
           <AdminGrid minColumnWidth={300}>
             <OrderAdminList orders={filteredOrders} onSelect={(id) => loadOrder(id)} />
-            {selected && <OrderAdminDetailView order={selected} />}
+            {selected && (
+              <View style={{ gap: iosSpacing.sm }}>
+                <OrderAdminDetailView order={selected} />
+                <View style={{ flexDirection: 'row', gap: iosSpacing.sm }}>
+                  <IOSPillButton label="View in Reviews" onPress={() => router.push({ pathname: '/admin/reviews', params: { q: selected.order_id } })} />
+                  <IOSPillButton label="Manage Payouts" onPress={() => router.push({ pathname: '/admin/payouts', params: { focus: selected.order_id } })} />
+                </View>
+              </View>
+            )}
           </AdminGrid>
         </IOSCard>
       </AdminGrid>

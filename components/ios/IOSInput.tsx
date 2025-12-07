@@ -17,13 +17,13 @@ export function IOSInput(props: IOSInputProps) {
 const styles = StyleSheet.create<{ input: TextStyle }>({
   input: {
     ...iosTypography.body,
-    backgroundColor: iosColors.surface,
-    borderRadius: iosRadius.lg,
+    backgroundColor: iosColors.surfaceMuted,
+    borderRadius: iosRadius.md,
     borderWidth: 1,
     borderColor: iosColors.separator,
     paddingHorizontal: iosSpacing.md,
-    paddingVertical: iosSpacing.xs,
-    minHeight: 44,
+    paddingVertical: iosSpacing.sm,
+    minHeight: 46,
   },
 });
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { money } from '@/utils/adminUi';
-import { IOSMetricTile } from '@/components/ios/IOSMetricTile';
 import { IOSCard } from '@/components/ios/IOSCard';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import type { DriverProfit, RestaurantProfit } from '@/utils/db/adminOps';
@@ -18,9 +17,9 @@ export function AnalyticsCharts({ totalsCustomer, totalsPlatform, paidOrders, dr
   return (
     <View>
       <View style={chartStyles.metricRow}>
-        <IOSMetricTile label="Total Customer Paid" value={`$${money(totalsCustomer)}`} helper="↑ 12%" deltaLabel="12%" deltaTone="success" />
-        <IOSMetricTile label="Platform Fee" value={`$${money(totalsPlatform)}`} helper="↑ 8%" deltaLabel="8%" deltaTone="success" />
-        <IOSMetricTile label="Paid Orders" value={`${paidOrders}`} helper="↑ 10%" deltaLabel="10%" deltaTone="success" />
+        <KpiCard label="Total Customer Paid" value={`$${money(totalsCustomer)}`} delta="+12%" />
+        <KpiCard label="Platform Fee" value={`$${money(totalsPlatform)}`} delta="+8%" />
+        <KpiCard label="Paid Orders" value={`${paidOrders}`} delta="+10%" />
       </View>
 
       <IOSCard padding="md" style={chartStyles.card}>
@@ -39,6 +38,16 @@ export function AnalyticsCharts({ totalsCustomer, totalsPlatform, paidOrders, dr
         />
       </IOSCard>
     </View>
+  );
+}
+
+function KpiCard({ label, value, delta }: { label: string; value: string; delta: string }) {
+  return (
+    <IOSCard padding="md" style={chartStyles.kpiCard} elevated>
+      <Text style={chartStyles.kpiLabel}>{label}</Text>
+      <Text style={chartStyles.kpiValue}>{value}</Text>
+      <Text style={chartStyles.kpiDelta}>{delta}</Text>
+    </IOSCard>
   );
 }
 
@@ -74,6 +83,10 @@ const chartStyles = StyleSheet.create({
     gap: iosSpacing.sm,
     marginBottom: iosSpacing.md,
   },
+  kpiCard: { flex: 1, minWidth: 180, borderRadius: iosRadius.lg, backgroundColor: iosColors.surface },
+  kpiLabel: { ...iosTypography.subhead, color: iosColors.secondaryText },
+  kpiValue: { ...iosTypography.title2, marginTop: iosSpacing.xs },
+  kpiDelta: { ...iosTypography.caption, color: iosColors.success, marginTop: iosSpacing.xs },
   card: { marginBottom: iosSpacing.md, borderRadius: iosRadius.xl },
   sectionTitle: { ...iosTypography.headline, marginBottom: iosSpacing.xs },
   helper: { ...iosTypography.caption, color: iosColors.secondaryText, marginBottom: iosSpacing.sm },

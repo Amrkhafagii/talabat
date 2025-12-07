@@ -9,12 +9,13 @@ import { AdminState } from '@/components/admin/AdminState';
 import { useAdminMetricsCoordinator } from '@/hooks/useAdminMetricsCoordinator';
 import { useAdminGate } from '@/hooks/useAdminGate';
 import { styles } from '@/styles/adminMetrics';
-import ReviewFilters from '@/components/admin/ReviewFilters';
 import AdminGrid from '@/components/admin/AdminGrid';
 import { AdminToast } from '@/components/admin/AdminToast';
 import { IOSCard } from '@/components/ios/IOSCard';
-import { iosSpacing, iosTypography, iosColors } from '@/styles/iosTheme';
+import { iosSpacing, iosTypography, iosColors, iosRadius } from '@/styles/iosTheme';
 import { IOSBadge } from '@/components/ios/IOSBadge';
+import { IOSInput } from '@/components/ios/IOSInput';
+import { IOSPillButton } from '@/components/ios/IOSPillButton';
 
 type SectionProps = ReturnType<typeof useAdminMetricsCoordinator> & { initialQuery?: string };
 
@@ -256,45 +257,54 @@ function PaymentsSection({ initialQuery = '', ...vm }: SectionProps) {
 
   return (
     <View style={styles.sectionCard}>
-      <ReviewFilters
-        query={query}
-        onChangeQuery={setQuery}
-        count={pageItems.length}
-        total={filteredCount}
-        savedChips={savedChips}
-        presets={presets}
-        statusOptions={statusOptions}
-        status={statusFilter}
-        onChangeStatus={(key) => setStatusFilter(key as any)}
-        sortOptions={sortOptions}
-        sort={sort}
-        onChangeSort={(key) => setSort(key as any)}
-        page={page}
-        totalPages={totalPages}
-        onJumpPage={setPage}
-        onPrev={prev}
-        onNext={next}
-        disablePrev={page === 0}
-        disableNext={page >= totalPages - 1}
-        pageLabel={`Page ${page + 1} / ${totalPages}`}
-        useIos
-      />
-      <View style={[styles.buttonRow, { marginTop: 4 }]}>
-        <TouchableOpacity
-          style={[styles.button, styles.outlineButton]}
-          onPress={bulkApprove}
-          disabled={bulkLoading || !pageItems.length}
-        >
-          <Text style={styles.outlineButtonText}>{bulkLoading ? 'Working…' : 'Approve all visible'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.outlineButton]}
-          onPress={bulkRejectMismatch}
-          disabled={bulkLoading || !pageItems.some(vm.mismatch)}
-        >
-          <Text style={styles.outlineButtonText}>{bulkLoading ? 'Working…' : 'Reject mismatches'}</Text>
-        </TouchableOpacity>
+      <View style={reviewStyles.filterStack}>
+        <IOSInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search by name, ID, or keyword"
+          style={{ flex: 1 }}
+        />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={reviewStyles.chipRow}>
+          {statusOptions.map(opt => (
+            <TouchableOpacity
+              key={opt.key}
+              style={[reviewStyles.chip, statusFilter === opt.key && reviewStyles.chipActive]}
+              onPress={() => setStatusFilter(opt.key as any)}
+            >
+              <Text style={[reviewStyles.chipText, statusFilter === opt.key && reviewStyles.chipTextActive]}>{opt.label}</Text>
+            </TouchableOpacity>
+          ))}
+          {sortOptions.map(opt => (
+            <TouchableOpacity
+              key={opt.key}
+              style={[reviewStyles.chip, sort === opt.key && reviewStyles.chipActive]}
+              onPress={() => setSort(opt.key as any)}
+            >
+              <Text style={[reviewStyles.chipText, sort === opt.key && reviewStyles.chipTextActive]}>{opt.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={reviewStyles.tokenRow}>
+          {savedChips.map(chip => (
+            <TouchableOpacity key={chip.value} onPress={() => setQuery(prev => `${chip.value}${prev}`)} style={reviewStyles.tokenChip}>
+              <Text style={reviewStyles.tokenText}>{chip.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
+
+      <View style={reviewStyles.pagination}>
+        <View style={reviewStyles.pageControls}>
+          <TouchableOpacity onPress={prev} disabled={page === 0}><Text style={reviewStyles.link}>‹</Text></TouchableOpacity>
+          <Text style={reviewStyles.caption}>{page + 1}-{Math.min((page + 1) * 8, filteredCount)} of {filteredCount}</Text>
+          <TouchableOpacity onPress={next} disabled={page + 1 >= totalPages}><Text style={reviewStyles.link}>›</Text></TouchableOpacity>
+        </View>
+        <View style={reviewStyles.pageControls}>
+          <IOSPillButton label="Approve" size="sm" onPress={bulkApprove} disabled={bulkLoading || !pageItems.length} />
+          <IOSPillButton label="Reject" size="sm" variant="destructive" onPress={bulkRejectMismatch} disabled={bulkLoading || !pageItems.some(vm.mismatch)} />
+        </View>
+      </View>
+
       <AdminState
         loading={vm.paymentLoading}
         error={vm.paymentError}
@@ -350,27 +360,29 @@ function LicenseSection({ initialQuery = '', ...vm }: SectionProps) {
 
   return (
     <View style={styles.sectionCard}>
-      <ReviewFilters
-        query={query}
-        onChangeQuery={setQuery}
-        count={pageItems.length}
-        total={filteredCount}
-        statusOptions={statusOptions}
-        status={statusFilter}
-        onChangeStatus={(key) => setStatusFilter(key as any)}
-        sortOptions={sortOptions}
-        sort={sort}
-        onChangeSort={(key) => setSort(key as any)}
-        page={page}
-        totalPages={totalPages}
-        onJumpPage={setPage}
-        onPrev={prev}
-        onNext={next}
-        disablePrev={page === 0}
-        disableNext={page >= totalPages - 1}
-        pageLabel={`Page ${page + 1} / ${totalPages}`}
-        useIos
-      />
+      <View style={reviewStyles.filterStack}>
+        <IOSInput value={query} onChangeText={setQuery} placeholder="Search drivers..." />
+        <View style={reviewStyles.chipRow}>
+          {statusOptions.map(opt => (
+            <TouchableOpacity key={opt.key} onPress={() => setStatusFilter(opt.key as any)} style={[reviewStyles.chip, statusFilter === opt.key && reviewStyles.chipActive]}>
+              <Text style={[reviewStyles.chipText, statusFilter === opt.key && reviewStyles.chipTextActive]}>{opt.label}</Text>
+            </TouchableOpacity>
+          ))}
+          {sortOptions.map(opt => (
+            <TouchableOpacity key={opt.key} onPress={() => setSort(opt.key as any)} style={[reviewStyles.chip, sort === opt.key && reviewStyles.chipActive]}>
+              <Text style={[reviewStyles.chipText, sort === opt.key && reviewStyles.chipTextActive]}>{opt.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={reviewStyles.pagination}>
+          <Text style={reviewStyles.caption}>{filteredCount} results</Text>
+          <View style={reviewStyles.pageControls}>
+            <TouchableOpacity onPress={prev} disabled={page === 0}><Text style={reviewStyles.link}>‹</Text></TouchableOpacity>
+            <Text style={reviewStyles.caption}>{page + 1}-{Math.min((page + 1) * 8, filteredCount)} of {filteredCount}</Text>
+            <TouchableOpacity onPress={next} disabled={page + 1 >= totalPages}><Text style={reviewStyles.link}>›</Text></TouchableOpacity>
+          </View>
+        </View>
+      </View>
       <AdminState
         loading={vm.licenseLoading}
         emptyMessage="No driver documents to review."
@@ -424,27 +436,29 @@ function PhotoSection({ initialQuery = '', ...vm }: SectionProps) {
 
   return (
     <View style={styles.sectionCard}>
-      <ReviewFilters
-        query={query}
-        onChangeQuery={setQuery}
-        count={pageItems.length}
-        total={filteredCount}
-        statusOptions={statusOptions}
-        status={statusFilter}
-        onChangeStatus={(key) => setStatusFilter(key as any)}
-        sortOptions={sortOptions}
-        sort={sort}
-        onChangeSort={(key) => setSort(key as any)}
-        page={page}
-        totalPages={totalPages}
-        onJumpPage={setPage}
-        onPrev={prev}
-        onNext={next}
-        disablePrev={page === 0}
-        disableNext={page >= totalPages - 1}
-        pageLabel={`Page ${page + 1} / ${totalPages}`}
-        useIos
-      />
+      <View style={reviewStyles.filterStack}>
+        <IOSInput value={query} onChangeText={setQuery} placeholder="Search photos..." />
+        <View style={reviewStyles.chipRow}>
+          {statusOptions.map(opt => (
+            <TouchableOpacity key={opt.key} onPress={() => setStatusFilter(opt.key as any)} style={[reviewStyles.chip, statusFilter === opt.key && reviewStyles.chipActive]}>
+              <Text style={[reviewStyles.chipText, statusFilter === opt.key && reviewStyles.chipTextActive]}>{opt.label}</Text>
+            </TouchableOpacity>
+          ))}
+          {sortOptions.map(opt => (
+            <TouchableOpacity key={opt.key} onPress={() => setSort(opt.key as any)} style={[reviewStyles.chip, sort === opt.key && reviewStyles.chipActive]}>
+              <Text style={[reviewStyles.chipText, sort === opt.key && reviewStyles.chipTextActive]}>{opt.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={reviewStyles.pagination}>
+          <Text style={reviewStyles.caption}>{filteredCount} results</Text>
+          <View style={reviewStyles.pageControls}>
+            <TouchableOpacity onPress={prev} disabled={page === 0}><Text style={reviewStyles.link}>‹</Text></TouchableOpacity>
+            <Text style={reviewStyles.caption}>{page + 1}-{Math.min((page + 1) * 8, filteredCount)} of {filteredCount}</Text>
+            <TouchableOpacity onPress={next} disabled={page + 1 >= totalPages}><Text style={reviewStyles.link}>›</Text></TouchableOpacity>
+          </View>
+        </View>
+      </View>
       <AdminState
         loading={vm.photoLoading}
         emptyMessage="No menu photos to review."
@@ -467,6 +481,37 @@ function PhotoSection({ initialQuery = '', ...vm }: SectionProps) {
 const reviewStyles = StyleSheet.create({
   card: { marginBottom: iosSpacing.md },
   sectionTitle: { ...iosTypography.headline },
+  filterStack: { gap: iosSpacing.xs },
+  chipRow: { flexDirection: 'row', gap: iosSpacing.xs, paddingVertical: iosSpacing.xs },
+  chip: {
+    paddingHorizontal: iosSpacing.sm,
+    paddingVertical: iosSpacing.xs,
+    borderRadius: iosRadius.pill,
+    backgroundColor: iosColors.chipBg,
+  },
+  chipActive: { backgroundColor: iosColors.primary },
+  chipText: { ...iosTypography.caption, color: iosColors.secondaryText },
+  chipTextActive: { color: '#FFFFFF' },
+  tokenRow: { flexDirection: 'row', gap: iosSpacing.xs },
+  tokenChip: {
+    paddingHorizontal: iosSpacing.sm,
+    paddingVertical: iosSpacing.xs,
+    borderRadius: iosRadius.pill,
+    backgroundColor: iosColors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: iosColors.separator,
+  },
+  tokenText: { ...iosTypography.caption, color: iosColors.secondaryText },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: iosSpacing.xs,
+    gap: iosSpacing.sm,
+  },
+  pageControls: { flexDirection: 'row', alignItems: 'center', gap: iosSpacing.sm },
+  caption: { ...iosTypography.caption, color: iosColors.secondaryText },
+  link: { ...iosTypography.subhead, color: iosColors.primary },
 });
 
 const tabStyles = StyleSheet.create({

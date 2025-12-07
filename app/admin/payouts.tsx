@@ -8,7 +8,7 @@ import { useAdminGate } from '@/hooks/useAdminGate';
 import { retryRestaurantPayout, retryDriverPayout, retryDuePayouts, listWalletTransactionsForUser, settleWalletBalance } from '@/utils/db/adminOps';
 import { PayoutBalances } from '@/components/admin/PayoutBalances';
 import { AdminToast } from '@/components/admin/AdminToast';
-import { Text, Alert, View, StyleSheet, TouchableOpacity, useWindowDimensions, ScrollView } from 'react-native';
+import { Text, Alert, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { styles } from '@/styles/adminMetrics';
 import { IOSCard } from '@/components/ios/IOSCard';
 import { IOSSegmentedControl } from '@/components/ios/IOSSegmentedControl';
@@ -16,15 +16,13 @@ import { IOSPillButton } from '@/components/ios/IOSPillButton';
 import { iosColors, iosShadow, iosSpacing, iosTypography, iosRadius } from '@/styles/iosTheme';
 
 export default function AdminPayouts() {
-  const { width } = useWindowDimensions();
-  const isNarrow = width < 400;
   const params = useLocalSearchParams<{ section?: string; focus?: string }>();
   const { allowed, loading: gateLoading, signOut } = useAdminGate();
   const vm = useAdminMetricsCoordinator();
   const [retryStatus, setRetryStatus] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const sectionParam = typeof params.section === 'string' ? params.section : undefined;
-  const focusSection = sectionParam === 'driver' || sectionParam === 'restaurant' || sectionParam === 'balances' ? sectionParam : undefined;
+  const focusSection = sectionParam === 'driver' || sectionParam === 'restaurant' ? sectionParam : undefined;
   const focusOrderId = typeof params.focus === 'string' ? params.focus : null;
   const [queueFilter, setQueueFilter] = useState<'restaurant' | 'driver'>((focusSection as any) || 'restaurant');
   const [showMenu, setShowMenu] = useState(false);
@@ -72,7 +70,12 @@ export default function AdminPayouts() {
   if (gateLoading || !allowed) return null;
 
   return (
-    <AdminShell title="Payouts" onSignOut={signOut} headerVariant="ios">
+    <AdminShell
+      title="Payouts"
+      onSignOut={signOut}
+      headerVariant="ios"
+      headerTrailingAction={{ label: 'More', onPress: () => setShowMenu((v) => !v) }}
+    >
       <AdminToast message={toast} tone="info" />
 
       <IOSCard padding="md" style={cardStyles.block}>
@@ -99,17 +102,13 @@ export default function AdminPayouts() {
       <IOSCard padding="md" style={cardStyles.block}>
         <View style={cardStyles.headerRow}>
           <Text style={cardStyles.title}>Queues</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[cardStyles.actionRow, isNarrow && { paddingHorizontal: iosSpacing.sm }]}
-          >
-            <IOSPillButton label="Process Due Retries" variant="ghost" size={isNarrow ? 'xs' : 'md'} onPress={processDue} />
-            <IOSPillButton label="Bulk Refresh" variant="ghost" size={isNarrow ? 'xs' : 'md'} onPress={vm.refreshAll} />
+          <View style={cardStyles.actionRow}>
+            <IOSPillButton label="Process Due Retries" variant="ghost" size="sm" onPress={processDue} />
+            <IOSPillButton label="Bulk Refresh" variant="ghost" size="sm" onPress={vm.refreshAll} />
             <TouchableOpacity onPress={() => setShowMenu((v) => !v)} style={cardStyles.moreButton} activeOpacity={0.8}>
               <Text style={cardStyles.moreText}>More</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </View>
           {showMenu && (
             <View style={cardStyles.menu}>
               <TouchableOpacity onPress={processDue} style={cardStyles.menuItem} activeOpacity={0.8}>
@@ -121,7 +120,7 @@ export default function AdminPayouts() {
             </View>
           )}
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: iosSpacing.sm }}>
+        <View style={{ marginBottom: iosSpacing.sm }}>
           <IOSSegmentedControl
             segments={[
               { key: 'restaurant', label: 'Restaurants', badge: vm.restaurantPayables?.length || 0 },
@@ -129,9 +128,8 @@ export default function AdminPayouts() {
             ]}
             value={queueFilter}
             onChange={(k) => setQueueFilter(k)}
-            style={{ marginBottom: iosSpacing.sm, minWidth: isNarrow ? 300 : undefined }}
           />
-        </ScrollView>
+        </View>
         <AdminState
           loading={vm.payoutLoading}
           error={null}

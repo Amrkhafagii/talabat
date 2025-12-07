@@ -20,7 +20,7 @@ export type PayoutQueuesProps = {
   onRetryRestaurant: (orderId: string, payoutRef?: string) => void;
   onRetryDriver: (orderId: string, driverId: string, payoutRef?: string) => void;
   onProcessDue: () => void;
-  focusSection?: 'restaurant' | 'driver' | 'balances';
+  focusSection?: 'restaurant' | 'driver';
   focusOrderId?: string | null;
   sort?: 'age' | 'amount' | 'attempts';
   onChangeSort?: (val: 'age' | 'amount' | 'attempts') => void;
@@ -60,85 +60,60 @@ export default function PayoutQueues({
   const sorter = sorters[sort] || sorters.age;
   const sortedRestaurants = [...restaurantPayables].sort(sorter);
   const sortedDrivers = [...driverPayables].sort(sorter);
-  const groupByStatus = (items: any[]) =>
-    items.reduce<Record<string, any[]>>((acc, item) => {
-      const status = (item.restaurant_payout_status || item.driver_payout_status || 'pending') as string;
-      acc[status] = acc[status] || [];
-      acc[status].push(item);
-      return acc;
-    }, {});
-  const restGroups = groupByStatus(sortedRestaurants);
-  const driverGroups = groupByStatus(sortedDrivers);
-  const renderGrouped = (groups: Record<string, any[]>, type: 'restaurant' | 'driver') =>
-    Object.entries(groups).map(([status, items]) => (
-      <IOSCard key={`${type}-${status}`} padding="md" style={{ marginBottom: iosSpacing.sm }}>
-        <View style={iosStyles.groupHeader}>
-          <Text style={iosStyles.meta}>{statusLabel(status)}</Text>
-          <IOSBadge label={`${items.length} items`} tone="neutral" />
-        </View>
-        {items.map((item) => {
-          const isFocused = highlightOrderId && highlightOrderId === item.order_id;
-          const lastError = type === 'restaurant' ? item.restaurant_payout_last_error : item.driver_payout_last_error;
-          const nextRetry = type === 'restaurant' ? item.restaurant_payout_next_retry_at : item.driver_payout_next_retry_at;
-          const payoutStatus = type === 'restaurant' ? item.restaurant_payout_status : item.driver_payout_status;
-          return (
-            <View key={`${item.order_id}-${type === 'driver' ? item.driver_id : 'r'}`} style={[iosStyles.rowCard, isFocused && iosStyles.rowFocused]}>
-              <View style={iosStyles.rowHeader}>
-                <Text style={iosStyles.rowTitle}>Order {item.order_id.slice(-6).toUpperCase()}</Text>
-                <IOSBadge label={statusLabel(payoutStatus)} tone="info" />
-              </View>
-              <Text style={iosStyles.meta}>Next retry: {nextRetry ?? '—'}</Text>
-              {lastError ? <Text style={[iosStyles.meta, iosStyles.warn]}>Last error: {lastError}</Text> : null}
-              <View style={iosStyles.actionRow}>
-                <IOSPillButton
-                  label={busy === item.order_id ? 'Retrying…' : 'Retry'}
-                  variant="ghost"
-                  size="sm"
-                  onPress={async () => {
-                    setBusy(item.order_id);
-                    if (type === 'restaurant') await onRetryRestaurant(item.order_id, item.payout_ref ?? undefined);
-                    else await onRetryDriver(item.order_id, item.driver_id!, item.payout_ref ?? undefined);
-                    setBusy(null);
-                  }}
-                  disabled={!!busy}
-                />
-                <IOSPillButton label="Open order" variant="ghost" size="sm" onPress={() => onRefresh()} />
-              </View>
+  const renderList = (items: any[], type: 'restaurant' | 'driver') => (
+    <IOSCard padding="md" style={{ marginBottom: iosSpacing.sm }}>
+      {items.map((item) => {
+        const isFocused = highlightOrderId && highlightOrderId === item.order_id;
+        const lastError = type === 'restaurant' ? item.restaurant_payout_last_error : item.driver_payout_last_error;
+        const nextRetry = type === 'restaurant' ? item.restaurant_payout_next_retry_at : item.driver_payout_next_retry_at;
+        const payoutStatus = type === 'restaurant' ? item.restaurant_payout_status : item.driver_payout_status;
+        const amount = type === 'restaurant'
+          ? Number(item.restaurant_net ?? 0) + Number(item.tip_amount ?? 0)
+          : Number(item.driver_payable ?? 0);
+        return (
+          <View key={`${item.order_id}-${type === 'driver' ? item.driver_id : 'r'}`} style={[iosStyles.rowCard, isFocused && iosStyles.rowFocused]}>
+            <View style={iosStyles.rowHeader}>
+              <Text style={iosStyles.rowTitle}>{item.order_id.slice(-6).toUpperCase()} • {type === 'driver' ? (item.driver_name || item.driver_id) : (item.restaurant_name || item.restaurant_id)}</Text>
+              <IOSBadge label={statusLabel(payoutStatus)} tone="info" />
             </View>
-          );
-        })}
-      </IOSCard>
-    ));
-  const renderRestaurant = () => (
-    <View style={adminStyles.sectionCard} onLayout={undefined}>
-      <Text style={adminStyles.sectionTitle}>Restaurant payables (pending)</Text>
-      <TouchableOpacity style={[adminStyles.button, adminStyles.outlineButton, { marginBottom: 10 }]} onPress={onRefresh} disabled={loading}>
-        <Text style={adminStyles.outlineButtonText}>{loading ? 'Refreshing…' : 'Refresh payouts'}</Text>
-      </TouchableOpacity>
-      {loading ? (
-        <SkeletonCard />
-      ) : sortedRestaurants.length === 0 ? (
-        <Text style={adminStyles.helperText}>No pending restaurant payouts.</Text>
-      ) : (
-        renderGrouped(restGroups, 'restaurant')
-      )}
-    </View>
+            <Text style={iosStyles.meta}>Next retry: {nextRetry ?? '—'}</Text>
+            <Text style={iosStyles.meta}>Amount: ${money(amount)}</Text>
+            {lastError ? <Text style={[iosStyles.meta, iosStyles.warn]}>Last error: {lastError}</Text> : null}
+            <View style={iosStyles.actionRow}>
+              <IOSPillButton
+                label={busy === item.order_id ? 'Retrying…' : 'Retry'}
+                variant="primary"
+                size="sm"
+                onPress={async () => {
+                  setBusy(item.order_id);
+                  if (type === 'restaurant') await onRetryRestaurant(item.order_id, item.payout_ref ?? undefined);
+                  else await onRetryDriver(item.order_id, item.driver_id!, item.payout_ref ?? undefined);
+                  setBusy(null);
+                }}
+                disabled={!!busy}
+              />
+            </View>
+          </View>
+        );
+      })}
+    </IOSCard>
   );
 
-  const renderDriver = () => (
-    <View style={adminStyles.sectionCard}>
-      <Text style={adminStyles.sectionTitle}>Driver payables (pending)</Text>
-      {loading ? (
-        <SkeletonCard />
-      ) : sortedDrivers.length === 0 ? (
-        <Text style={adminStyles.helperText}>No pending driver payouts.</Text>
-      ) : (
-        renderGrouped(driverGroups, 'driver')
-      )}
-    </View>
-  );
-
-  const showDriverFirst = focusSection === 'driver';
+  const renderSection = (type: 'restaurant' | 'driver') => {
+    const items = type === 'restaurant' ? sortedRestaurants : sortedDrivers;
+    return (
+      <View style={adminStyles.sectionCard}>
+        <Text style={adminStyles.sectionTitle}>{type === 'restaurant' ? 'Restaurant Wallet Queue' : 'Driver Wallet Queue'}</Text>
+        {loading ? (
+          <SkeletonCard />
+        ) : items.length === 0 ? (
+          <Text style={adminStyles.helperText}>No pending payouts.</Text>
+        ) : (
+          renderList(items, type)
+        )}
+      </View>
+    );
+  };
 
   return (
     <>
@@ -155,8 +130,7 @@ export default function PayoutQueues({
           style={{ marginTop: iosSpacing.xs }}
         />
       </View>
-      {showDriverFirst ? renderDriver() : renderRestaurant()}
-      {showDriverFirst ? renderRestaurant() : renderDriver()}
+      {focusSection === 'driver' ? renderSection('driver') : renderSection('restaurant')}
       {opsStatus && <Text style={iosStyles.status}>{opsStatus}</Text>}
       <View style={iosStyles.actionRow}>
         <IOSPillButton onPress={onProcessDue} label={busy ? 'Processing…' : 'Process due payout retries'} variant="ghost" disabled={!!busy} />

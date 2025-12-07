@@ -30,25 +30,29 @@ export function AnalyticsFilters({
 }: Props) {
   return (
     <IOSFilterSheet title="Date Range" onApply={onApply}>
+      <Text style={styles.label}>Date Range</Text>
       <View style={styles.row}>
-        <IOSInput
-          placeholder="Oct 1, 2023"
-          value={start}
-          onChangeText={onChangeStart}
-          style={styles.input}
-        />
-        <Calendar size={18} color={iosColors.secondaryText} />
+        <View style={styles.inputWithIcon}>
+          <IOSInput
+            placeholder="Oct 1, 2023"
+            value={start}
+            onChangeText={onChangeStart}
+            style={styles.input}
+          />
+          <Calendar size={18} color={iosColors.secondaryText} />
+        </View>
+        <View style={styles.inputWithIcon}>
+          <IOSInput
+            placeholder="Oct 31, 2023"
+            value={end}
+            onChangeText={onChangeEnd}
+            style={styles.input}
+          />
+          <Calendar size={18} color={iosColors.secondaryText} />
+        </View>
       </View>
-      <View style={styles.row}>
-        <IOSInput
-          placeholder="Oct 31, 2023"
-          value={end}
-          onChangeText={onChangeEnd}
-          style={styles.input}
-        />
-        <Calendar size={18} color={iosColors.secondaryText} />
-      </View>
-      <View style={styles.row}>
+      <Text style={styles.label}>Driver Filter</Text>
+      <View style={styles.inputWithIcon}>
         <IOSInput
           placeholder="Search drivers..."
           value={driverFilter}
@@ -57,7 +61,8 @@ export function AnalyticsFilters({
         />
         <Search size={18} color={iosColors.secondaryText} />
       </View>
-      <View style={styles.row}>
+      <Text style={styles.label}>Restaurant Filter</Text>
+      <View style={styles.inputWithIcon}>
         <IOSInput
           placeholder="Search restaurants..."
           value={restaurantFilter}
@@ -73,7 +78,14 @@ export function AnalyticsFilters({
 export default AnalyticsFilters;
 
 const styles = StyleSheet.create({
+  label: { ...iosTypography.caption, color: iosColors.secondaryText },
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: iosSpacing.sm,
+  },
+  inputWithIcon: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: iosSpacing.xs,

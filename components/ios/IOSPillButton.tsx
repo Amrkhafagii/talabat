@@ -16,9 +16,9 @@ type IOSPillButtonProps = {
 
 const variantStyles: Record<Variant, { bg: string; text: string; border: string; shadow?: ViewStyle }> = {
   primary: { bg: iosColors.primary, text: '#FFFFFF', border: iosColors.primary, shadow: iosShadow.button },
-  neutral: { bg: iosColors.chipBg, text: iosColors.chipText, border: iosColors.chipBg },
+  neutral: { bg: iosColors.surfaceAlt, text: iosColors.text, border: iosColors.border },
   destructive: { bg: iosColors.destructive, text: '#FFFFFF', border: iosColors.destructive },
-  ghost: { bg: 'transparent', text: iosColors.primary, border: iosColors.primary },
+  ghost: { bg: 'transparent', text: iosColors.primary, border: 'transparent' },
 };
 
 const sizeStyles: Record<Size, { height: number; padX: number; fontSize: number }> = {
@@ -51,6 +51,7 @@ export function IOSPillButton({
           paddingHorizontal: sz.padX,
           backgroundColor: colors.bg,
           borderColor: colors.border,
+          borderWidth: variant === 'ghost' ? 0 : 1,
           opacity: disabled ? 0.6 : 1,
         },
         style,

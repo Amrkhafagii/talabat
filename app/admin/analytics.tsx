@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { AdminState } from '@/components/admin/AdminState';
@@ -16,7 +16,7 @@ import AnalyticsFilters from '@/components/admin/AnalyticsFilters';
 import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
 import { styles } from '@/styles/adminMetrics';
 import { IOSCard } from '@/components/ios/IOSCard';
-import { iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { iosColors, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import { IOSChartPlaceholder } from '@/components/ios/IOSChartPlaceholder';
 
 export default function AdminAnalytics() {
@@ -29,6 +29,8 @@ export default function AdminAnalytics() {
   const [end, setEnd] = useState<string>('');
   const [driverFilter, setDriverFilter] = useState<string>('');
   const [restaurantFilter, setRestaurantFilter] = useState<string>('');
+  const defaultStart = useMemo(() => formatDateOffset(-30), []);
+  const defaultEnd = useMemo(() => formatDateOffset(0), []);
 
   const load = async () => {
     setLoading(true);
@@ -44,14 +46,27 @@ export default function AdminAnalytics() {
   };
 
   useEffect(() => {
-    load();
+    if (!start) setStart(defaultStart);
+    if (!end) setEnd(defaultEnd);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (start && end) {
+      load();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start, end]);
 
   if (gateLoading || !allowed) return null;
 
   return (
-    <AdminShell title="Analytics" onSignOut={signOut} headerVariant="ios">
+    <AdminShell
+      title="Analytics"
+      onSignOut={signOut}
+      headerVariant="ios"
+      headerTrailingAction={{ label: 'Filter', onPress: load }}
+    >
       <IOSCard padding="md" style={analytics.card}>
         <View style={analytics.headerRow}>
           <Text style={analytics.title}>Analytics Dashboard</Text>
@@ -100,7 +115,13 @@ const analytics = StyleSheet.create({
   card: { marginBottom: iosSpacing.md },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: iosSpacing.sm },
   title: { ...iosTypography.headline },
-  link: { ...iosTypography.subhead, color: '#007AFF' },
+  link: { ...iosTypography.subhead, color: iosColors.primary },
   sectionTitle: { ...iosTypography.headline, marginBottom: iosSpacing.xs },
   helper: { ...iosTypography.caption, marginBottom: iosSpacing.sm },
 });
+
+function formatDateOffset(offsetDays: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
+}

@@ -19,8 +19,8 @@ type Props = {
   onQuickPayouts?: () => void;
 };
 
-const deliveryOptions = ['any', 'pending', 'picked_up', 'delivered', 'cancelled'];
-const paymentOptions = ['any', 'payment_pending', 'paid_pending_review', 'paid', 'captured', 'failed', 'refunded', 'voided'];
+const deliveryOptions = ['All', 'Active', 'Completed', 'Cancelled'];
+const paymentOptions = ['All', 'Paid', 'Pending', 'Refunded'];
 
 export function OrderFilters({
   search,

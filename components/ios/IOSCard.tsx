@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     backgroundColor: iosColors.surface,
     borderRadius: iosRadius.xl,
     borderWidth: 1,
-    borderColor: iosColors.separator,
+    borderColor: iosColors.border,
   },
   inset: {
     borderColor: iosColors.border,

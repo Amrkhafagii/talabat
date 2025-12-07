@@ -203,10 +203,10 @@ function buildStyles(theme: ReturnType<typeof useRestaurantTheme>): SelectorStyl
       backgroundColor: colors.surfaceAlt,
       ...shadows.card,
     },
-    iconColor: colors.mutedText,
+    iconColor: colors.mutedText || colors.textSubtle,
     textContainer: { flex: 1 },
-    title: { ...typography.title2, marginBottom: spacing.xs },
-    description: { ...typography.body, color: colors.secondaryText, lineHeight: 20 },
+    title: { ...(typography.title2 || typography.titleM), marginBottom: spacing.xs },
+    description: { ...typography.body, color: colors.secondaryText || colors.textMuted, lineHeight: 20 },
     selectionIndicator: {
       width: 28,
       height: 28,

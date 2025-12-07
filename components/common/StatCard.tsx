@@ -15,16 +15,17 @@ export default function StatCard({
   icon: Icon,
   value,
   label,
-  iconColor = '#FF6B35',
+  iconColor,
   helperText,
 }: StatCardProps) {
   const theme = useRestaurantTheme();
+  const resolvedIconColor = iconColor || theme.colors.accent;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
-    <Card style={styles.statCard}>
+    <Card style={styles.statCard} padding={theme.spacing.md}>
       <View style={styles.iconWrapper}>
-        <Icon size={24} color={iconColor} />
+        <Icon size={22} color={resolvedIconColor} />
       </View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
@@ -38,31 +39,28 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
     statCard: {
       flex: 1,
       alignItems: 'flex-start',
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.lg,
       gap: theme.spacing.xs,
       backgroundColor: theme.colors.surface,
       borderWidth: 1,
       borderColor: theme.colors.border,
+      borderRadius: theme.radius.card,
       ...theme.shadows.card,
     },
     iconWrapper: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: `${theme.colors.accent}22`,
     },
     statValue: {
-      fontSize: 22,
-      fontFamily: 'Inter-Bold',
+      ...theme.typography.titleM,
       color: theme.colors.text,
     },
     statLabel: {
-      fontSize: 14,
-      color: theme.colors.secondaryText,
-      fontFamily: 'Inter-Regular',
+      ...theme.typography.caption,
+      color: theme.colors.textSubtle,
     },
     statHelper: {
       ...theme.typography.caption,

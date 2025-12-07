@@ -1,23 +1,41 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity, TextInput, Alert } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Wallet as WalletIcon, Receipt, Shield } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Wallet as WalletIcon, CheckCircle2, Clock4, XCircle } from 'lucide-react-native';
 
+import Header from '@/components/ui/Header';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
-import { getWalletsByUser, getWalletTransactions, getDriverByUserId, updateDriverProfile } from '@/utils/database';
+import { getWalletsByUser, getWalletTransactions, getWalletBalances } from '@/utils/db/wallets';
+import { getDriverByUserId, updateDriverProfile } from '@/utils/database';
 import { Wallet, WalletTransaction, DeliveryDriver } from '@/types/database';
 import { formatCurrency } from '@/utils/formatters';
 import { logMutationError } from '@/utils/telemetry';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { useDeliveryLayout } from '@/styles/layout';
+
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'completed', label: 'Completed' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'failed', label: 'Failed' },
+];
 
 export default function DriverWallet() {
   const { user } = useAuth();
+  const router = useRouter();
+  const theme = useRestaurantTheme();
+  const { contentPadding } = useDeliveryLayout();
+  const styles = useMemo(() => createStyles(theme, contentPadding.horizontal), [theme, contentPadding.horizontal]);
+
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [balances, setBalances] = useState<{ available: number; pending: number } | null>(null);
   const [driver, setDriver] = useState<DeliveryDriver | null>(null);
   const [bankForm, setBankForm] = useState({ bankName: '', accountNumber: '', iban: '', instapayType: 'account', instapayHandle: '' });
+  const [filter, setFilter] = useState<string>('all');
   const [savingBank, setSavingBank] = useState(false);
 
   useEffect(() => {
@@ -28,41 +46,35 @@ export default function DriverWallet() {
 
   const loadWallet = async () => {
     if (!user) return;
+    const driverProfile = await getDriverByUserId(user.id);
+    setDriver(driverProfile);
+    setBankForm({
+      bankName: (driverProfile as any)?.payout_account?.bankName || '',
+      accountNumber: (driverProfile as any)?.payout_account?.accountNumber || '',
+      iban: (driverProfile as any)?.payout_account?.iban || '',
+      instapayType: (driverProfile as any)?.payout_account?.instapayType || 'account',
+      instapayHandle: (driverProfile as any)?.payout_account?.instapayHandle || '',
+    });
 
-    try {
-      setLoading(true);
-      const driverProfile = await getDriverByUserId(user.id);
-      setDriver(driverProfile);
-      setBankForm({
-        bankName: (driverProfile as any)?.payout_account?.bankName || '',
-        accountNumber: (driverProfile as any)?.payout_account?.accountNumber || '',
-        iban: (driverProfile as any)?.payout_account?.iban || '',
-        instapayType: (driverProfile as any)?.payout_account?.instapayType || 'account',
-        instapayHandle: (driverProfile as any)?.payout_account?.instapayHandle || '',
-      });
+    const userWallets = await getWalletsByUser(user.id);
+    const driverWallet = userWallets.find((w) => w.type === 'driver') || userWallets[0] || null;
+    setWallet(driverWallet);
 
-      const userWallets = await getWalletsByUser(user.id);
-      const driverWallet = userWallets.find(w => w.type === 'driver') || userWallets[0] || null;
-      setWallet(driverWallet);
-
-      if (driverWallet) {
-        const tx = await getWalletTransactions(driverWallet.id);
-        setTransactions(tx);
-      } else {
-        setTransactions([]);
-      }
-    } catch (err) {
-      console.error('Error loading driver wallet:', err);
-    } finally {
-      setLoading(false);
+    if (driverWallet) {
+      const [tx, bal] = await Promise.all([
+        getWalletTransactions(driverWallet.id),
+        getWalletBalances(driverWallet.id),
+      ]);
+      setTransactions(tx);
+      setBalances(bal);
+    } else {
+      setTransactions([]);
+      setBalances(null);
     }
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadWallet();
-    setRefreshing(false);
-  };
+  const filteredTx =
+    filter === 'all' ? transactions : transactions.filter((t) => t.status === filter);
 
   const handleSaveBank = async () => {
     if (!driver) return;
@@ -101,108 +113,91 @@ export default function DriverWallet() {
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color="#111827" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Wallet</Text>
-          <View style={styles.placeholder} />
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Loading wallet...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const statusIcon = (status: string) => {
+    if (status === 'completed') return <CheckCircle2 size={16} color={theme.colors.success} />;
+    if (status === 'pending') return <Clock4 size={16} color={theme.colors.accent} />;
+    if (status === 'failed') return <XCircle size={16} color={theme.colors.status.error} />;
+    return null;
+  };
+
+  const statusColor = (status: string) => {
+    if (status === 'completed') return theme.colors.success;
+    if (status === 'pending') return theme.colors.accent;
+    if (status === 'failed') return theme.colors.status.error;
+    return theme.colors.textMuted;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Wallet</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={['#FF6B35']}
-            tintColor="#FF6B35"
-          />
-        }
-        contentContainerStyle={styles.content}
-      >
-        <View style={styles.balanceCard}>
+      <Header title="Wallet" showBackButton />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Card style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <WalletIcon size={24} color="#FF6B35" />
-            <Text style={styles.balanceLabel}>Balance</Text>
+            <WalletIcon size={24} color={theme.colors.text} />
+            <Text style={styles.balanceLabel}>Current Balance</Text>
           </View>
-          <Text style={styles.balanceValue}>
-            {wallet ? formatCurrency(wallet.balance) : formatCurrency(0)}
-          </Text>
+          <Text style={styles.balanceValue}>{formatCurrency(Number(wallet?.balance ?? 0))}</Text>
           <Text style={styles.balanceSubtext}>
-            Driver wallet • {wallet?.currency || 'EGP'}
+            Available {formatCurrency(Number(balances?.available ?? 0))} • Pending {formatCurrency(Number(balances?.pending ?? 0))}
           </Text>
+        </Card>
+
+        <View style={styles.filterRow}>
+          {FILTERS.map((f) => (
+            <TouchableOpacity
+              key={f.key}
+              style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
+              onPress={() => setFilter(f.key)}
+            >
+              <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>{f.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        <View style={styles.transactionsCard}>
-          <Text style={styles.sectionTitle}>Transactions</Text>
-          {transactions.length === 0 ? (
+        <Card style={styles.txCard}>
+          {filteredTx.length === 0 ? (
             <Text style={styles.emptyText}>No transactions yet.</Text>
           ) : (
-            <>
-              {transactions.map(tx => (
-                <View key={tx.id} style={styles.txRow}>
-                  <View style={styles.txLeft}>
-                    <Receipt size={18} color="#6B7280" />
-                    <View>
-                      <Text style={styles.txType}>{tx.type}</Text>
-                      <Text style={styles.txMeta}>
-                        {tx.status} • {tx.created_at ? new Date(tx.created_at).toLocaleString() : ''}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={[styles.txAmount, tx.amount >= 0 ? styles.positive : styles.negative]}>
-                    {tx.amount >= 0 ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
+            filteredTx.map((tx) => (
+              <View key={tx.id} style={styles.txRow}>
+                <View style={styles.txMeta}>
+                  <Text style={styles.txTitle}>{tx.reference || `Transaction`}</Text>
+                  <Text style={styles.txSub}>
+                    {tx.type} • {tx.created_at ? new Date(tx.created_at).toLocaleString() : ''}
                   </Text>
                 </View>
-              ))}
-              <View style={styles.statusChips}>
-                <StatusChip label="Pending" color="#F59E0B" count={transactions.filter(t => t.status === 'pending').length} />
-                <StatusChip label="Failed" color="#EF4444" count={transactions.filter(t => t.status === 'failed').length} />
+                <View style={styles.txRight}>
+                  <Text style={[styles.txAmount, { color: tx.amount >= 0 ? theme.colors.success : theme.colors.status.error }]}>
+                    {tx.amount >= 0 ? '+' : '-'}
+                    {formatCurrency(Math.abs(Number(tx.amount)))}
+                  </Text>
+                  <View style={styles.statusRow}>
+                    {statusIcon(tx.status)}
+                    <Text style={[styles.statusText, { color: statusColor(tx.status) }]}>{tx.status}</Text>
+                  </View>
+                </View>
               </View>
-            </>
+            ))
           )}
-        </View>
+        </Card>
 
-        <View style={styles.transactionsCard}>
-          <Text style={styles.sectionTitle}>Payout Details</Text>
-          <View style={styles.kycRow}>
-            <Shield size={18} color="#6B7280" />
-            <Text style={styles.kycText}>Set payout details to receive earnings.</Text>
-          </View>
-          <Text style={styles.label}>Bank name</Text>
+        <Text style={styles.sectionTitle}>Payout Method</Text>
+        <Card style={styles.formCard}>
+          <Text style={styles.label}>Bank Name</Text>
           <TextInput
             style={styles.input}
             value={bankForm.bankName}
             onChangeText={(text) => setBankForm({ ...bankForm, bankName: text })}
-            placeholder="e.g., CIB"
+            placeholder="Enter bank name"
+            placeholderTextColor={theme.colors.textMuted}
           />
-          <Text style={styles.label}>Account number</Text>
+          <Text style={styles.label}>Account Number</Text>
           <TextInput
             style={styles.input}
             value={bankForm.accountNumber}
             onChangeText={(text) => setBankForm({ ...bankForm, accountNumber: text })}
-            placeholder="Bank account number"
+            placeholder="Enter account number"
+            placeholderTextColor={theme.colors.textMuted}
             keyboardType="number-pad"
           />
           <Text style={styles.label}>IBAN (optional)</Text>
@@ -210,151 +205,107 @@ export default function DriverWallet() {
             style={styles.input}
             value={bankForm.iban}
             onChangeText={(text) => setBankForm({ ...bankForm, iban: text })}
-            placeholder="IBAN"
+            placeholder="Enter IBAN"
+            placeholderTextColor={theme.colors.textMuted}
             autoCapitalize="characters"
           />
-          <Text style={styles.label}>Instapay type</Text>
+          <Text style={styles.label}>Instapay Type</Text>
           <View style={styles.typeRow}>
-            {(['account', 'wallet'] as const).map(type => (
+            {(['account', 'wallet'] as const).map((type) => (
               <TouchableOpacity
                 key={type}
-                style={[
-                  styles.typeChip,
-                  bankForm.instapayType === type && styles.typeChipActive
-                ]}
+                style={[styles.typeChip, bankForm.instapayType === type && styles.typeChipActive]}
                 onPress={() => setBankForm({ ...bankForm, instapayType: type })}
               >
-                <Text style={[
-                  styles.typeChipText,
-                  bankForm.instapayType === type && styles.typeChipTextActive
-                ]}>
+                <Text style={[styles.typeChipText, bankForm.instapayType === type && styles.typeChipTextActive]}>
                   {type === 'account' ? 'Account' : 'Wallet'}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.label}>Instapay handle</Text>
+          <Text style={styles.label}>Instapay Handle</Text>
           <TextInput
             style={styles.input}
             value={bankForm.instapayHandle}
             onChangeText={(text) => setBankForm({ ...bankForm, instapayHandle: text })}
-            placeholder="Enter your Instapay handle or number"
+            placeholder="e.g., +1234567890"
+            placeholderTextColor={theme.colors.textMuted}
             keyboardType="number-pad"
           />
+        </Card>
 
-          <TouchableOpacity
-            style={[styles.saveButton, savingBank && styles.saveButtonDisabled]}
-            onPress={handleSaveBank}
-            disabled={savingBank}
-          >
-            <Text style={styles.saveButtonText}>{savingBank ? 'Saving...' : 'Save payout details'}</Text>
-          </TouchableOpacity>
-        </View>
+        <Button
+          title={savingBank ? 'Saving...' : 'Save Changes'}
+          onPress={handleSaveBank}
+          fullWidth
+          pill
+          disabled={savingBank}
+        />
+
+        <Button
+          title="View Payout Confirmation"
+          onPress={() => router.push('/(tabs)/delivery/payout-confirm' as any)}
+          fullWidth
+          pill
+          variant="secondary"
+        />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function StatusChip({ label, color, count }: { label: string; color: string; count: number }) {
-  return (
-    <View style={[styles.statusChip, { backgroundColor: `${color}1A`, borderColor: color }]}>
-      <Text style={[styles.statusChipText, { color }]}>{label}</Text>
-      <Text style={[styles.statusChipCount, { color }]}>{count}</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold', color: '#111827' },
-  placeholder: { width: 24, height: 24 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, color: '#6B7280', fontFamily: 'Inter-Regular' },
-  content: { padding: 16, gap: 16 },
-  balanceCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    gap: 8,
-  },
-  balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  balanceLabel: { color: '#6B7280', fontFamily: 'Inter-Medium' },
-  balanceValue: { fontSize: 32, fontFamily: 'Inter-SemiBold', color: '#111827' },
-  balanceSubtext: { color: '#6B7280', fontFamily: 'Inter-Regular' },
-  transactionsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    gap: 12,
-  },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter-SemiBold', color: '#111827' },
-  emptyText: { color: '#6B7280', fontFamily: 'Inter-Regular' },
-  txRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  txLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  txType: { color: '#111827', fontFamily: 'Inter-Medium' },
-  txMeta: { color: '#6B7280', fontFamily: 'Inter-Regular', fontSize: 12 },
-  txAmount: { fontFamily: 'Inter-SemiBold', fontSize: 16 },
-  positive: { color: '#10B981' },
-  negative: { color: '#EF4444' },
-  statusChips: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  statusChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-  statusChipText: { fontFamily: 'Inter-Medium', fontSize: 12 },
-  statusChipCount: { fontFamily: 'Inter-Bold', fontSize: 12 },
-  kycRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  kycText: { color: '#6B7280', fontFamily: 'Inter-Regular' },
-  label: { fontFamily: 'Inter-Medium', color: '#111827', marginTop: 8 },
-  input: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontFamily: 'Inter-Regular',
-    color: '#111827',
-    marginTop: 6,
-  },
-  typeRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  typeChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  typeChipActive: { backgroundColor: '#FFEDD5', borderColor: '#FB923C' },
-  typeChipText: { fontFamily: 'Inter-Medium', color: '#111827' },
-  typeChipTextActive: { color: '#C2410C' },
-  saveButton: {
-    backgroundColor: '#FF6B35',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: '#FFFFFF', fontFamily: 'Inter-SemiBold', fontSize: 16 },
-});
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>, horizontal: number) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.colors.background },
+    content: { padding: horizontal, paddingBottom: theme.insets.bottom + theme.spacing.lg, gap: theme.spacing.md },
+    balanceCard: { padding: theme.spacing.lg, gap: theme.spacing.xs },
+    balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+    balanceLabel: { ...theme.typography.caption, color: theme.colors.textMuted },
+    balanceValue: { ...theme.typography.titleXl, color: theme.colors.text },
+    balanceSubtext: { ...theme.typography.caption, color: theme.colors.textMuted },
+    filterRow: {
+      flexDirection: 'row',
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: theme.radius.pill,
+      padding: 4,
+    },
+    filterChip: { flex: 1, paddingVertical: theme.spacing.sm, alignItems: 'center', borderRadius: theme.radius.pill },
+    filterChipActive: { backgroundColor: theme.colors.surface, ...theme.shadows.card },
+    filterText: { ...theme.typography.body, color: theme.colors.textMuted },
+    filterTextActive: { color: theme.colors.text },
+    txCard: { padding: theme.spacing.md, gap: theme.spacing.sm },
+    txRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing.sm },
+    txMeta: { flex: 1, gap: 2 },
+    txTitle: { ...theme.typography.body, color: theme.colors.text },
+    txSub: { ...theme.typography.caption, color: theme.colors.textMuted },
+    txRight: { alignItems: 'flex-end', gap: 4 },
+    txAmount: { ...theme.typography.subhead },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    statusText: { ...theme.typography.caption },
+    emptyText: { ...theme.typography.body, color: theme.colors.textMuted, textAlign: 'center' },
+    sectionTitle: { ...theme.typography.subhead, color: theme.colors.text },
+    formCard: { padding: theme.spacing.lg, gap: theme.spacing.sm },
+    label: { ...theme.typography.caption, color: theme.colors.textMuted },
+    input: {
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      ...theme.typography.body,
+      color: theme.colors.text,
+    },
+    typeRow: { flexDirection: 'row', gap: theme.spacing.sm },
+    typeChip: {
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.radius.pill,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    typeChipActive: { borderColor: theme.colors.accent, backgroundColor: theme.colors.accentSoft },
+    typeChipText: { ...theme.typography.caption, color: theme.colors.text },
+    typeChipTextActive: { color: theme.colors.accent },
+  });

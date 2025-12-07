@@ -316,13 +316,13 @@ function OrderCard({
     <TouchableOpacity style={styles.card} onPress={() => onPress(order.id)} activeOpacity={0.9}>
       <View style={styles.header}>
         <Text style={styles.orderId}>Order #{order.id.slice(-6).toUpperCase()}</Text>
-        <Badge text={statusLabel} variant="secondary" size="small" />
+        <Badge label={statusLabel} tone="neutral" />
       </View>
       <Text style={styles.meta}>Placed {formatOrderTime(order.created_at)}</Text>
       <Text style={styles.customer}>Customer {order.user_id.slice(-4)}</Text>
       <Text style={styles.items} numberOfLines={1}>{items}</Text>
       <View style={styles.row}>
-        <Badge text={paymentLabel} variant={paymentVariant as any} size="small" />
+        <Badge label={paymentLabel} tone={paymentVariant === 'success' ? 'success' : 'warning'} />
         <Text style={styles.total}>${order.total.toFixed(2)}</Text>
       </View>
       <View style={styles.actions}>

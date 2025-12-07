@@ -15,6 +15,7 @@ import { styles } from '@/styles/adminMetrics';
 import OrderFilters from '@/components/admin/OrderFilters';
 import AdminGrid from '@/components/admin/AdminGrid';
 import { IOSCard } from '@/components/ios/IOSCard';
+import { IOSPillButton } from '@/components/ios/IOSPillButton';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 
 export default function AdminOrders() {

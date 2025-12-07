@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
-import { Wallet, WalletTransaction, PayoutMethod } from '@/types/database';
+import { Wallet, WalletTransaction, PayoutMethod, PayoutAttempt } from '@/types/database';
+import { logAudit } from './trustedArrival';
 
 export async function getWalletsByUser(userId: string): Promise<Wallet[]> {
   const { data, error } = await supabase
@@ -140,13 +141,16 @@ export async function grantDelayCreditIdempotent(userId: string, amount: number,
   return true;
 }
 
-export async function requestPayout(walletId: string, amount: number, metadata?: Record<string, any>, methodId?: string): Promise<boolean> {
+export async function requestPayout(walletId: string, amount: number, metadata?: Record<string, any>, methodId?: string, extras?: { confirmationNumber?: string; etaText?: string; methodSnapshot?: Record<string, any> }): Promise<boolean> {
   const { error } = await supabase.from('payout_requests').insert({
     wallet_id: walletId,
     amount: Math.abs(amount),
     status: 'pending',
     metadata: metadata ?? {},
     method_id: methodId ?? null,
+    confirmation_number: extras?.confirmationNumber ?? null,
+    eta_text: extras?.etaText ?? null,
+    method_snapshot: extras?.methodSnapshot ?? null,
   });
 
   if (error) {
@@ -154,6 +158,19 @@ export async function requestPayout(walletId: string, amount: number, metadata?:
     return false;
   }
   return true;
+}
+
+export async function listPayoutAttempts(requestId: string): Promise<PayoutAttempt[]> {
+  const { data, error } = await supabase
+    .from('payout_attempts')
+    .select('*')
+    .eq('request_id', requestId)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Error fetching payout attempts', error);
+    return [];
+  }
+  return (data || []) as PayoutAttempt[];
 }
 
 export async function getWalletBalances(walletId: string): Promise<{ available: number; pending: number } | null> {
@@ -221,4 +238,89 @@ export async function deletePayoutMethod(methodId: string): Promise<boolean> {
     return false;
   }
   return true;
+}
+
+// Driver cash reconciliation helpers
+export async function getDriverCashSnapshot(driverId: string) {
+  const { data, error } = await supabase
+    .from('driver_cash_reconciliations')
+    .select('*')
+    .eq('driver_id', driverId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching driver cash reconciliations', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function getDriverCashTransactions(driverId: string) {
+  const { data, error } = await supabase
+    .from('driver_cash_transactions')
+    .select('*')
+    .eq('driver_id', driverId)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Error fetching driver cash transactions', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function reconcileDriverCash(driverId: string, amount: number) {
+  const { error } = await supabase.rpc('settle_driver_cash', { p_driver_id: driverId, p_amount: amount });
+  if (error) {
+    console.error('Error reconciling driver cash', error);
+    return false;
+  }
+  await logAudit('driver.cash.reconciled', 'driver_cash_reconciliations', driverId, { amount });
+  return true;
+}
+
+export async function reportCashDiscrepancy(payload: { reconciliation_id?: string | null; driver_id: string; amount: number; reason?: string | null }) {
+  const { error } = await supabase.from('driver_cash_discrepancies').insert({
+    ...payload,
+    status: 'open',
+  });
+  if (error) {
+    console.error('Error reporting cash discrepancy', error);
+    return false;
+  }
+  await logAudit('driver.cash.discrepancy', 'driver_cash_discrepancies', payload.reconciliation_id ?? undefined, payload);
+  return true;
+}
+
+export async function getPayoutConfirmation(walletId: string, requestId?: string) {
+  if (requestId) {
+    const { data, error } = await supabase
+      .from('payout_requests')
+      .select('*')
+      .eq('wallet_id', walletId)
+      .eq('id', requestId)
+      .maybeSingle();
+    if (error) {
+      console.error('Error fetching payout confirmation', error);
+      return null;
+    }
+    if (!data) return null;
+    const attempts = await listPayoutAttempts(data.id);
+    return { request: data, attempts };
+  }
+
+  const { data, error } = await supabase
+    .from('payout_requests')
+    .select('*')
+    .eq('wallet_id', walletId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error('Error fetching payout confirmation', error);
+    return null;
+  }
+  if (!data) return null;
+
+  const attempts = await listPayoutAttempts(data.id);
+  return { request: data, attempts };
 }

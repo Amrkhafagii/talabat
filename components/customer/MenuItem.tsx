@@ -31,7 +31,7 @@ export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = f
       <View style={styles.itemInfo}>
         <View style={styles.itemHeader}>
           <Text style={styles.itemName}>{item.name}</Text>
-          {item.popular && <Badge text="POPULAR" variant="primary" size="small" />}
+          {item.popular && <Badge label="POPULAR" tone="info" />}
         </View>
         <Text style={styles.itemDescription}>{item.description}</Text>
         <Text style={styles.itemPrice}>${item.price}</Text>

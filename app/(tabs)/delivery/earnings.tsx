@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { DollarSign, TrendingUp, Calendar, Clock, Star, Target } from 'lucide-react-native';
+import { Info } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
-import StatCard from '@/components/common/StatCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDriverByUserId, getDriverEarningsStats } from '@/utils/database';
 import { DeliveryDriver } from '@/types/database';
 import { formatCurrency } from '@/utils/formatters';
+import SegmentedControl from '@/components/ui/SegmentedControl';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { useDeliveryLayout } from '@/styles/layout';
 
 interface EarningsStats {
   todayEarnings: number;
@@ -25,6 +27,8 @@ interface EarningsStats {
 
 export default function DeliveryEarnings() {
   const { user } = useAuth();
+  const theme = useRestaurantTheme();
+  const { contentPadding, sectionGap } = useDeliveryLayout();
   const [driver, setDriver] = useState<DeliveryDriver | null>(null);
   const [stats, setStats] = useState<EarningsStats>({
     todayEarnings: 0,
@@ -41,6 +45,14 @@ export default function DeliveryEarnings() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const styles = useMemo(() => createStyles(theme, contentPadding, sectionGap), [theme, contentPadding, sectionGap]);
+
+  useEffect(() => {
+    const prev = theme.mode;
+    // Earnings screen uses the dark palette.
+    theme.setMode('dark');
+    return () => theme.setMode(prev);
+  }, [theme]);
 
   useEffect(() => {
     if (user) {
@@ -115,12 +127,22 @@ export default function DeliveryEarnings() {
     return stats.totalEarnings / stats.totalHours;
   };
 
+  const breakdown = useMemo(() => {
+    const fees = stats.totalEarnings - (stats.totalCommission || 0);
+    const tips = Math.max(0, stats.weekEarnings - fees);
+    return [
+      { label: 'Delivery Fees', value: fees },
+      { label: 'Customer Tips', value: tips },
+      { label: 'Bonuses', value: stats.totalCommission },
+    ];
+  }, [stats.totalCommission, stats.totalEarnings, stats.weekEarnings]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <Header title="Earnings" showBackButton />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.accent} />
           <Text style={styles.loadingText}>Loading earnings data...</Text>
         </View>
       </SafeAreaView>
@@ -151,167 +173,88 @@ export default function DeliveryEarnings() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#FF6B35']}
-            tintColor="#FF6B35"
+            colors={[theme.colors.accent]}
+            tintColor={theme.colors.accent}
           />
         }
       >
-        {/* Period Selector */}
-        <View style={styles.periodSelector}>
-          {(['today', 'week', 'month', 'all'] as const).map((period) => (
-            <TouchableOpacity
-              key={period}
-              style={[
-                styles.periodButton,
-                selectedPeriod === period && styles.selectedPeriodButton
-              ]}
-              onPress={() => setSelectedPeriod(period)}
-            >
-              <Text style={[
-                styles.periodButtonText,
-                selectedPeriod === period && styles.selectedPeriodButtonText
-              ]}>
-                {period === 'today' ? 'Today' : 
-                 period === 'week' ? 'Week' : 
-                 period === 'month' ? 'Month' : 'All'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <View style={styles.topSpacing} />
+        <SegmentedControl
+          options={[
+            { label: 'Today', value: 'today' },
+            { label: 'Week', value: 'week' },
+            { label: 'Month', value: 'month' },
+            { label: 'All', value: 'all' },
+          ]}
+          value={selectedPeriod}
+          onChange={setSelectedPeriod}
+          style={styles.segmented}
+        />
 
         {/* Main Earnings Display */}
-        <Card style={styles.mainEarningsCard}>
-          <View style={styles.mainEarningsHeader}>
-            <Text style={styles.periodLabel}>{getPeriodLabel()}</Text>
-            <DollarSign size={32} color="#10B981" />
-          </View>
-          <Text style={styles.mainEarningsAmount}>
-            {formatCurrency(getPeriodEarnings())}
-          </Text>
-          <Text style={styles.mainEarningsSubtext}>
-            Total earnings for {getPeriodLabel().toLowerCase()}
-          </Text>
+        <Card style={styles.heroCard}>
+          <Text style={styles.heroLabel}>This Week's Earnings</Text>
+          <Text style={styles.heroAmount}>{formatCurrency(getPeriodEarnings())}</Text>
+          <Text style={styles.heroSub}>Updated just now</Text>
         </Card>
 
-        {/* Quick Stats */}
+        {/* Performance */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Performance Overview</Text>
-          <View style={styles.statsGrid}>
-            <StatCard
-              icon={TrendingUp}
-              value={formatCurrency(stats.avgEarningsPerDelivery)}
-              label="Per Delivery"
-              iconColor="#3B82F6"
-            />
-            <StatCard
-              icon={Clock}
-              value={formatCurrency(getHourlyRate())}
-              label="Per Hour"
-              iconColor="#F59E0B"
-            />
-            <StatCard
-              icon={Target}
-              value={stats.totalDeliveries}
-              label="Deliveries"
-              iconColor="#8B5CF6"
-            />
-            <StatCard
-              icon={Star}
-              value={stats.avgRating.toFixed(1)}
-              label="Rating"
-              iconColor="#FFB800"
-            />
-            <StatCard
-              icon={DollarSign}
-              value={formatCurrency(stats.totalCommission)}
-              label="Commission"
-              iconColor="#EF4444"
-            />
+          <Text style={styles.sectionTitle}>Performance</Text>
+          <View style={styles.tileGrid}>
+            <Card style={styles.tile}>
+              <Text style={styles.tileLabel}>Per Delivery</Text>
+              <Text style={styles.tileValue}>{formatCurrency(stats.avgEarningsPerDelivery)}</Text>
+              <Text style={styles.tileDelta}>+5%</Text>
+            </Card>
+            <Card style={styles.tile}>
+              <Text style={styles.tileLabel}>Per Hour</Text>
+              <Text style={styles.tileValue}>{formatCurrency(getHourlyRate())}</Text>
+              <Text style={[styles.tileDelta, { color: '#22C55E' }]}>+10%</Text>
+            </Card>
+            <Card style={styles.tile}>
+              <Text style={styles.tileLabel}>Total Deliveries</Text>
+              <Text style={styles.tileValue}>{stats.totalDeliveries}</Text>
+              <Text style={[styles.tileDelta, { color: '#EF4444' }]}>-2</Text>
+            </Card>
+            <Card style={styles.tile}>
+              <Text style={styles.tileLabel}>Rating</Text>
+              <Text style={styles.tileValue}>{stats.avgRating.toFixed(1)} ⭐</Text>
+              <Text style={[styles.tileDelta, { color: '#22C55E' }]}>+0.1</Text>
+            </Card>
           </View>
-          <Text style={styles.commissionNote}>
-            Commission rule: max(10% of order total, 30 EGP) charged to the customer.
-          </Text>
         </View>
 
-        {/* Detailed Breakdown */}
-        <Card style={styles.breakdownCard}>
+        {/* Breakdown */}
+        <Card style={styles.listCard}>
           <Text style={styles.cardTitle}>Earnings Breakdown</Text>
-          
-          <View style={styles.breakdownGrid}>
-            <View style={styles.breakdownItem}>
-              <View style={styles.breakdownHeader}>
-                <Calendar size={20} color="#10B981" />
-                <Text style={styles.breakdownLabel}>Today</Text>
+          <View style={styles.list}>
+            {breakdown.map((row) => (
+              <View key={row.label} style={styles.listRow}>
+                <Text style={styles.listLabel}>{row.label}</Text>
+                <Text style={styles.listValue}>{formatCurrency(row.value || 0)}</Text>
               </View>
-              <Text style={styles.breakdownValue}>
-                {formatCurrency(stats.todayEarnings)}
-              </Text>
-            </View>
-
-            <View style={styles.breakdownItem}>
-              <View style={styles.breakdownHeader}>
-                <Calendar size={20} color="#3B82F6" />
-                <Text style={styles.breakdownLabel}>This Week</Text>
-              </View>
-              <Text style={styles.breakdownValue}>
-                {formatCurrency(stats.weekEarnings)}
-              </Text>
-            </View>
-
-            <View style={styles.breakdownItem}>
-              <View style={styles.breakdownHeader}>
-                <Calendar size={20} color="#F59E0B" />
-                <Text style={styles.breakdownLabel}>This Month</Text>
-              </View>
-              <Text style={styles.breakdownValue}>
-                {formatCurrency(stats.monthEarnings)}
-              </Text>
-            </View>
-
-            <View style={styles.breakdownItem}>
-              <View style={styles.breakdownHeader}>
-                <TrendingUp size={20} color="#8B5CF6" />
-                <Text style={styles.breakdownLabel}>All Time</Text>
-              </View>
-              <Text style={styles.breakdownValue}>
-                {formatCurrency(stats.totalEarnings)}
-              </Text>
-            </View>
+            ))}
           </View>
         </Card>
 
-        {/* Goals and Insights */}
-        <Card style={styles.insightsCard}>
-          <Text style={styles.cardTitle}>Insights & Goals</Text>
-          
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Hours Worked</Text>
-            <Text style={styles.insightValue}>{Math.round(stats.totalHours)} hours</Text>
+        {/* Pro Tip */}
+        <Card style={styles.tipCard}>
+          <View style={styles.tipHeader}>
+            <Info size={18} color="#22C55E" />
+            <Text style={styles.tipTitle}>Pro Tip</Text>
           </View>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Average Hourly Rate</Text>
-            <Text style={styles.insightValue}>{formatCurrency(getHourlyRate())}/hour</Text>
-          </View>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Total Deliveries</Text>
-            <Text style={styles.insightValue}>{stats.totalDeliveries} deliveries</Text>
-          </View>
-
-          <View style={styles.insightItem}>
-            <Text style={styles.insightLabel}>Customer Rating</Text>
-            <Text style={styles.insightValue}>{stats.avgRating.toFixed(1)} ⭐</Text>
-          </View>
-
-          <View style={styles.goalContainer}>
-            <Text style={styles.goalTitle}>💡 Tip to Increase Earnings</Text>
-            <Text style={styles.goalText}>
-              {stats.avgRating < 4.5 
-                ? "Focus on improving your customer rating to get more delivery requests!"
-                : "Great rating! Consider working during peak hours (lunch & dinner) to maximize earnings."
-              }
+          <Text style={styles.tipBody}>
+            You earn more during weekend dinner hours. Try driving between 6 PM - 9 PM for higher earnings.
+          </Text>
+          <View style={styles.progressWrap}>
+            <Text style={styles.progressLabel}>Weekly Goal</Text>
+            <Text style={styles.progressValue}>
+              {formatCurrency(stats.totalEarnings)} / {formatCurrency(750)}
             </Text>
+          </View>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${Math.min(100, (stats.totalEarnings / 750) * 100)}%` }]} />
           </View>
         </Card>
       </ScrollView>
@@ -319,202 +262,94 @@ export default function DeliveryEarnings() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginTop: 12,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-  },
-  periodSelector: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    padding: 4,
-  },
-  periodButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  selectedPeriodButton: {
-    backgroundColor: '#FF6B35',
-  },
-  periodButtonText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  selectedPeriodButtonText: {
-    color: '#FFFFFF',
-  },
-  mainEarningsCard: {
-    marginHorizontal: 20,
-    marginBottom: 24,
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  mainEarningsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  periodLabel: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginRight: 12,
-  },
-  mainEarningsAmount: {
-    fontSize: 48,
-    fontFamily: 'Inter-Bold',
-    color: '#10B981',
-    marginBottom: 8,
-  },
-  mainEarningsSubtext: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 12,
-  },
-  breakdownCard: {
-    marginHorizontal: 20,
-    marginBottom: 24,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 20,
-  },
-  breakdownGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  commissionNote: {
-    marginTop: 12,
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    paddingHorizontal: 2,
-  },
-  breakdownItem: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#F9FAFB',
-    padding: 16,
-    borderRadius: 12,
-  },
-  breakdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  breakdownLabel: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-    marginLeft: 8,
-  },
-  breakdownValue: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-  },
-  insightsCard: {
-    marginHorizontal: 20,
-    marginBottom: 32,
-  },
-  insightItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  insightLabel: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  insightValue: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  goalContainer: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#FFF7ED',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-  },
-  goalTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#92400E',
-    marginBottom: 8,
-  },
-  goalText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#92400E',
-    lineHeight: 20,
-  },
-});
+const createStyles = (
+  theme: ReturnType<typeof useRestaurantTheme>,
+  contentPadding: { horizontal: number; top: number; bottom: number },
+  sectionGap: number
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    topSpacing: {
+      height: theme.spacing.md,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: contentPadding.horizontal,
+    },
+    loadingText: {
+      ...theme.typography.body,
+      color: theme.colors.textMuted,
+      marginTop: theme.spacing.sm,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: contentPadding.horizontal,
+    },
+    errorText: {
+      ...theme.typography.body,
+      color: theme.colors.status.error,
+      textAlign: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    retryButton: {
+      backgroundColor: theme.colors.accent,
+      paddingHorizontal: theme.spacing.xl,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radius.lg,
+    },
+    retryButtonText: {
+      ...theme.typography.button,
+      color: '#FFFFFF',
+    },
+    segmented: {
+      marginHorizontal: contentPadding.horizontal,
+      marginBottom: theme.spacing.lg,
+    },
+    heroCard: {
+      marginHorizontal: contentPadding.horizontal,
+      marginBottom: sectionGap,
+      padding: theme.spacing.lg,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.card,
+      gap: theme.spacing.xs,
+    },
+    heroLabel: { ...theme.typography.caption, color: theme.colors.textMuted },
+    heroAmount: { ...theme.typography.titleXl, color: theme.colors.text },
+    heroSub: { ...theme.typography.caption, color: theme.colors.textMuted },
+    section: {
+      marginBottom: sectionGap,
+    },
+    sectionTitle: {
+      ...theme.typography.titleM,
+      color: theme.colors.text,
+      paddingHorizontal: contentPadding.horizontal,
+      marginBottom: theme.spacing.md,
+    },
+    tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.md, paddingHorizontal: contentPadding.horizontal },
+    tile: { flexBasis: '47%', padding: theme.spacing.md, borderRadius: theme.radius.card, gap: theme.spacing.xs },
+    tileLabel: { ...theme.typography.caption, color: theme.colors.textMuted },
+    tileValue: { ...theme.typography.titleM, color: theme.colors.text },
+    tileDelta: { ...theme.typography.caption, color: theme.colors.textMuted },
+    listCard: { marginHorizontal: contentPadding.horizontal, marginBottom: sectionGap, padding: theme.spacing.lg, gap: theme.spacing.sm },
+    cardTitle: { ...theme.typography.titleM, color: theme.colors.text },
+    list: { gap: theme.spacing.sm },
+    listRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    listLabel: { ...theme.typography.body, color: theme.colors.text },
+    listValue: { ...theme.typography.body, color: theme.colors.text },
+    tipCard: { marginHorizontal: contentPadding.horizontal, marginBottom: sectionGap, padding: theme.spacing.lg, gap: theme.spacing.sm },
+    tipHeader: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs },
+    tipTitle: { ...theme.typography.subhead, color: theme.colors.text },
+    tipBody: { ...theme.typography.body, color: theme.colors.textMuted },
+    progressWrap: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    progressLabel: { ...theme.typography.caption, color: theme.colors.textMuted },
+    progressValue: { ...theme.typography.caption, color: theme.colors.text },
+    progressBar: { height: 10, borderRadius: 5, backgroundColor: theme.colors.surfaceAlt },
+    progressFill: { height: 10, borderRadius: 5, backgroundColor: '#22C55E' },
+  });

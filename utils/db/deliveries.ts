@@ -147,10 +147,10 @@ async function acceptDelivery(deliveryId: string, driverId: string): Promise<boo
   return true;
 }
 
-async function updateDeliveryStatus(
+export async function updateDeliveryStatus(
   deliveryId: string,
   status: string,
-  options?: { tempCheckPassed?: boolean; tempCheckPhotoUrl?: string; handoffConfirmed?: boolean }
+  options?: { tempCheckPassed?: boolean; tempCheckPhotoUrl?: string; handoffConfirmed?: boolean; cancellationReasonCode?: string }
 ): Promise<boolean> {
   const { error } = await supabase.rpc('update_delivery_status_safe', {
     p_delivery_id: deliveryId,
@@ -158,6 +158,7 @@ async function updateDeliveryStatus(
     p_temp_check_passed: options?.tempCheckPassed ?? null,
     p_temp_check_photo_url: options?.tempCheckPhotoUrl ?? null,
     p_handoff_confirmed: options?.handoffConfirmed ?? null,
+    p_cancellation_reason_code: options?.cancellationReasonCode ?? null,
   });
 
   if (error) {
@@ -194,8 +195,62 @@ async function updateDeliveryStatus(
         console.warn('updateDeliveryStatus: failed to toggle driver availability', availError);
       }
     }
+  } else if (status === 'cancelled') {
+    await updateOrderStatusFromDelivery(deliveryId, 'cancelled');
   }
 
+  return true;
+}
+
+export async function createDeliveryIssue(payload: {
+  delivery_id: string;
+  order_id?: string | null;
+  driver_id?: string | null;
+  user_id?: string | null;
+  reason_code: string;
+  details?: string | null;
+  metadata?: Record<string, any>;
+}) {
+  const { error } = await supabase.from('delivery_issues').insert({
+    ...payload,
+    status: 'open',
+  });
+  if (error) {
+    console.error('createDeliveryIssue error', error);
+    return false;
+  }
+  return true;
+}
+
+export async function listDeliveryIssues(deliveryId: string) {
+  const { data, error } = await supabase
+    .from('delivery_issues')
+    .select('*')
+    .eq('delivery_id', deliveryId)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('listDeliveryIssues error', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function submitDeliveryFeedback(payload: {
+  order_id: string;
+  delivery_id: string;
+  driver_id?: string | null;
+  user_id?: string | null;
+  rating?: number | null;
+  tags?: string[] | null;
+  comment?: string | null;
+}) {
+  const { error } = await supabase.from('delivery_feedback').insert({
+    ...payload,
+  });
+  if (error) {
+    console.error('submitDeliveryFeedback error', error);
+    return false;
+  }
   return true;
 }
 

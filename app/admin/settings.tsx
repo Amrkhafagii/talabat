@@ -38,15 +38,15 @@ export default function AdminSettings() {
       }
       const remote = await getAdminSettings();
       const metaPrefs = (user?.user_metadata?.admin_settings as SettingsPrefs | undefined) ?? null;
-      const prefs = remote
-        ? { pushEnabled: remote.push_enabled, emailEnabled: remote.email_enabled, dataSharing: remote.data_sharing }
+      const prefs: SettingsPrefs | null = remote
+        ? { pushEnabled: (remote as any).push_enabled, emailEnabled: (remote as any).email_enabled, dataSharing: (remote as any).data_sharing }
         : metaPrefs
           ? metaPrefs
           : null;
       if (prefs) {
-        setPushEnabled(prefs.pushEnabled ?? prefs.push_enabled ?? true);
-        setEmailEnabled(prefs.emailEnabled ?? prefs.email_enabled ?? true);
-        setDataSharing(prefs.dataSharing ?? prefs.data_sharing ?? true);
+        setPushEnabled(prefs.pushEnabled ?? true);
+        setEmailEnabled(prefs.emailEnabled ?? true);
+        setDataSharing(prefs.dataSharing ?? true);
       }
     } catch (err) {
       console.warn('loadPrefs error', err);

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Navigation, MapPin, Phone, Package, CircleCheck as CheckCircle } from 'lucide-react-native';
+import { Navigation, MapPin, Phone, Package } from 'lucide-react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import Header from '@/components/ui/Header';
@@ -15,6 +15,10 @@ import { supabase } from '@/utils/supabase';
 import { DeliveryDriver, Delivery } from '@/types/database';
 import { formatCurrency } from '@/utils/formatters';
 import { sendPushNotification } from '@/utils/push';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { useDeliveryLayout } from '@/styles/layout';
+import ProgressSteps from '@/components/ui/ProgressSteps';
+import CtaBar from '@/components/ui/CtaBar';
 
 interface NavigationDestination {
   address: string;
@@ -27,6 +31,8 @@ interface NavigationDestination {
 export default function DeliveryNavigation() {
   const { user } = useAuth();
   const { deliveryId: deliveryIdParam } = useLocalSearchParams<{ deliveryId?: string }>();
+  const theme = useRestaurantTheme();
+  const { contentPadding } = useDeliveryLayout();
   const [driver, setDriver] = useState<DeliveryDriver | null>(null);
   const [activeDelivery, setActiveDelivery] = useState<Delivery | null>(null);
   const [currentDestination, setCurrentDestination] = useState<NavigationDestination | null>(null);
@@ -34,11 +40,33 @@ export default function DeliveryNavigation() {
   const [hydratingById, setHydratingById] = useState(false);
   const activeDeliveryRef = useRef<Delivery | null>(null);
   const pickupPromptedRef = useRef(false);
+  const styles = useMemo(() => createStyles(theme, contentPadding), [theme, contentPadding]);
+  const [summaryOpen, setSummaryOpen] = useState(true);
 
   const { deliveries, updateDeliveryStatus } = useRealtimeDeliveries({
     driverId: driver?.id,
     includeAvailable: false
   });
+
+  const normalizedStatus = useMemo<'assigned' | 'picked_up' | 'delivered'>(() => {
+    const status = activeDelivery?.status;
+    if (status === 'picked_up' || status === 'on_the_way') return 'picked_up';
+    if (status === 'delivered') return 'delivered';
+    return 'assigned';
+  }, [activeDelivery?.status]);
+
+  const stepStatusFor = useCallback(
+    (stepKey: 'assigned' | 'picked_up' | 'delivered') => {
+      const order: Array<'assigned' | 'picked_up' | 'delivered'> = ['assigned', 'picked_up', 'delivered'];
+      const currentIndex = order.indexOf(normalizedStatus as 'assigned' | 'picked_up' | 'delivered');
+      const targetIndex = order.indexOf(stepKey);
+
+      if (currentIndex > targetIndex) return 'done';
+      if (currentIndex === targetIndex) return 'current';
+      return 'pending';
+    },
+    [normalizedStatus]
+  );
 
   const parseNumber = (value?: number | null) => {
     const num = typeof value === 'number' ? value : Number(value);
@@ -263,8 +291,13 @@ export default function DeliveryNavigation() {
   };
 
   const callCustomer = () => {
-    const phoneNumber = '+15551234567'; // This should come from order data
-    
+    const phoneNumber = activeDelivery?.order?.user?.phone || '';
+
+    if (!phoneNumber) {
+      Alert.alert('Call Customer', 'No phone number available.');
+      return;
+    }
+
     if (Platform.OS === 'web') {
       window.open(`tel:${phoneNumber}`);
       return;
@@ -428,14 +461,24 @@ export default function DeliveryNavigation() {
       <Header title="Navigation" showBackButton />
 
       <View style={styles.content}>
-        {/* Current Destination */}
+        <Card style={styles.progressCard}>
+          <Text style={[styles.cardTitle, styles.progressTitle]}>Status</Text>
+          <ProgressSteps
+            steps={[
+              { key: 'assigned', label: 'Assigned', status: stepStatusFor('assigned') },
+              { key: 'picked_up', label: 'Picked Up', status: stepStatusFor('picked_up') },
+              { key: 'delivered', label: 'Delivered', status: stepStatusFor('delivered') },
+            ]}
+          />
+        </Card>
+
         <Card style={styles.destinationCard}>
           <View style={styles.destinationHeader}>
             <View style={styles.destinationIcon}>
               {currentDestination.type === 'pickup' ? (
-                <Package size={24} color="#FF6B35" />
+                <Package size={24} color={theme.colors.accent} />
               ) : (
-                <MapPin size={24} color="#10B981" />
+                <MapPin size={24} color={theme.colors.success} />
               )}
             </View>
             <View style={styles.destinationInfo}>
@@ -477,284 +520,246 @@ export default function DeliveryNavigation() {
           </View>
         </Card>
 
-        {/* Order Details */}
         <Card style={styles.orderCard}>
-          <Text style={styles.cardTitle}>Order Details</Text>
-          
-          <View style={styles.orderInfo}>
-            <View style={styles.orderRow}>
-              <Text style={styles.orderLabel}>Order #</Text>
-              <Text style={styles.orderValue}>
-                {activeDelivery.order?.order_number || `#${activeDelivery.id.slice(-6).toUpperCase()}`}
-              </Text>
-            </View>
-
-            <View style={styles.orderRow}>
-              <Text style={styles.orderLabel}>Restaurant</Text>
-              <Text style={styles.orderValue}>
-                {activeDelivery.order?.restaurant?.name || 'Unknown Restaurant'}
-              </Text>
-            </View>
-
-            <View style={styles.orderRow}>
-              <Text style={styles.orderLabel}>Earnings</Text>
-              <Text style={styles.orderValue}>
-                {formatCurrency(activeDelivery.driver_earnings)}
-              </Text>
-            </View>
-
-            <View style={styles.orderRow}>
-              <Text style={styles.orderLabel}>Distance</Text>
-              <Text style={styles.orderValue}>
-                {activeDelivery.distance_km ? `${activeDelivery.distance_km} km` : '2.1 km'}
-              </Text>
-            </View>
+          <View style={styles.orderHeader}>
+            <Text style={styles.cardTitle}>Order Summary</Text>
+            <TouchableOpacity onPress={() => setSummaryOpen(!summaryOpen)}>
+              <Text style={styles.toggleText}>{summaryOpen ? 'Hide' : 'Show'}</Text>
+            </TouchableOpacity>
           </View>
+
+          {summaryOpen && (
+            <>
+              <View style={styles.orderInfo}>
+                <View style={styles.orderRow}>
+                  <Text style={styles.orderLabel}>Order #</Text>
+                  <Text style={styles.orderValue}>
+                    {activeDelivery.order?.order_number || `#${activeDelivery.id.slice(-6).toUpperCase()}`}
+                  </Text>
+                </View>
+
+                <View style={styles.orderRow}>
+                  <Text style={styles.orderLabel}>Restaurant</Text>
+                  <Text style={styles.orderValue}>
+                    {activeDelivery.order?.restaurant?.name || 'Unknown Restaurant'}
+                  </Text>
+                </View>
+
+                <View style={styles.orderRow}>
+                  <Text style={styles.orderLabel}>Earnings</Text>
+                  <Text style={styles.orderValue}>
+                    {formatCurrency(activeDelivery.driver_earnings)}
+                  </Text>
+                </View>
+
+                <View style={styles.orderRow}>
+                  <Text style={styles.orderLabel}>Distance</Text>
+                  <Text style={styles.orderValue}>
+                    {activeDelivery.distance_km ? `${activeDelivery.distance_km} km` : '—'}
+                  </Text>
+                </View>
+              </View>
+
+              {activeDelivery.order?.order_items && activeDelivery.order.order_items.length > 0 && (
+                <View style={styles.summaryList}>
+                  {activeDelivery.order.order_items.slice(0, 4).map((item) => (
+                    <View key={item.id} style={styles.summaryRow}>
+                      <Text style={styles.orderValue}>{item.menu_item?.name || 'Item'}</Text>
+                      <Text style={styles.orderLabel}>x{item.quantity}</Text>
+                    </View>
+                  ))}
+                  {activeDelivery.order.order_items.length > 4 && (
+                    <Text style={styles.orderLabel}>+{activeDelivery.order.order_items.length - 4} more</Text>
+                  )}
+                </View>
+              )}
+            </>
+          )}
 
           {currentDestination.type === 'delivery' && (
             <TouchableOpacity style={styles.callButton} onPress={callCustomer}>
-              <Phone size={20} color="#3B82F6" />
+              <Phone size={20} color={theme.colors.accent} />
               <Text style={styles.callButtonText}>Call Customer</Text>
             </TouchableOpacity>
           )}
         </Card>
-
-        {/* Delivery Progress */}
-        <Card style={styles.progressCard}>
-          <Text style={styles.cardTitle}>Delivery Progress</Text>
-          
-          <View style={styles.progressSteps}>
-            <View style={[styles.progressStep, styles.completedStep]}>
-              <CheckCircle size={20} color="#10B981" />
-              <Text style={styles.stepText}>Order Assigned</Text>
-            </View>
-
-            <View style={styles.progressLine} />
-
-            <View style={[
-              styles.progressStep,
-              activeDelivery.status === 'picked_up' ? styles.completedStep : styles.currentStep
-            ]}>
-              {activeDelivery.status === 'picked_up' ? (
-                <CheckCircle size={20} color="#10B981" />
-              ) : (
-                <Package size={20} color="#FF6B35" />
-              )}
-              <Text style={styles.stepText}>Pickup Complete</Text>
-            </View>
-
-            <View style={styles.progressLine} />
-
-            <View style={[
-              styles.progressStep,
-              activeDelivery.status === 'delivered' ? styles.completedStep : styles.pendingStep
-            ]}>
-              <MapPin size={20} color={activeDelivery.status === 'delivered' ? '#10B981' : '#9CA3AF'} />
-              <Text style={styles.stepText}>Delivered</Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* Action Button */}
-        <View style={styles.actionContainer}>
-          {activeDelivery.status === 'assigned' ? (
-            <Button
-              title="Mark as Picked Up"
-              onPress={confirmMarkPickedUp}
-              style={styles.actionButton}
-            />
-          ) : (
-            <Button
-              title="Delivered to Customer"
-              onPress={markDelivered}
-              variant="secondary"
-              style={styles.actionButton}
-            />
-          )}
-        </View>
       </View>
+
+      <CtaBar
+        label={
+          activeDelivery.status === 'assigned'
+            ? 'Mark as Picked Up'
+            : activeDelivery.status === 'picked_up' || activeDelivery.status === 'on_the_way'
+              ? 'Mark as Delivered'
+              : 'Delivered'
+        }
+        onPress={
+          activeDelivery.status === 'assigned'
+            ? confirmMarkPickedUp
+            : activeDelivery.status === 'picked_up' || activeDelivery.status === 'on_the_way'
+              ? markDelivered
+              : () => {}
+        }
+        disabled={
+          !(
+            activeDelivery.status === 'assigned' ||
+            activeDelivery.status === 'picked_up' ||
+            activeDelivery.status === 'on_the_way'
+          )
+        }
+      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  destinationCard: {
-    marginBottom: 16,
-  },
-  destinationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  destinationIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFF7F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  destinationInfo: {
-    flex: 1,
-  },
-  destinationLabel: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  destinationAddress: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-  },
-  navigationButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  navButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
-  },
-  googleMapsButton: {
-    backgroundColor: '#4285F4',
-  },
-  appleMapsButton: {
-    backgroundColor: '#007AFF',
-  },
-  wazeButton: {
-    backgroundColor: '#33CCFF',
-  },
-  navButtonText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  orderCard: {
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  orderInfo: {
-    marginBottom: 16,
-  },
-  orderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  orderLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  orderValue: {
-    fontSize: 14,
-    color: '#111827',
-    fontFamily: 'Inter-Medium',
-  },
-  callButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    backgroundColor: '#EBF8FF',
-    borderRadius: 8,
-    gap: 8,
-  },
-  callButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#3B82F6',
-  },
-  progressCard: {
-    marginBottom: 16,
-  },
-  progressSteps: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressStep: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  completedStep: {
-    opacity: 1,
-  },
-  currentStep: {
-    opacity: 1,
-  },
-  pendingStep: {
-    opacity: 0.5,
-  },
-  stepText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#374151',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  progressLine: {
-    height: 2,
-    backgroundColor: '#E5E7EB',
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  actionContainer: {
-    marginTop: 'auto',
-    paddingBottom: 20,
-  },
-  actionButton: {
-    marginBottom: 16,
-  },
-});
+const createStyles = (
+  theme: ReturnType<typeof useRestaurantTheme>,
+  contentPadding: { horizontal: number; top: number; bottom: number }
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      ...theme.typography.body,
+      color: theme.colors.textMuted,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: contentPadding.horizontal,
+      gap: theme.spacing.sm,
+    },
+    emptyTitle: {
+      ...theme.typography.titleM,
+      color: theme.colors.text,
+    },
+    emptyText: {
+      ...theme.typography.body,
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: contentPadding.horizontal,
+      paddingTop: theme.spacing.md,
+    },
+    destinationCard: {
+      marginBottom: theme.spacing.md,
+    },
+    destinationHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.spacing.md,
+      gap: theme.spacing.sm,
+    },
+    destinationIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.colors.accentSoft,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    destinationInfo: {
+      flex: 1,
+      gap: theme.spacing.xs,
+    },
+    destinationLabel: {
+      ...theme.typography.subhead,
+      color: theme.colors.text,
+    },
+    destinationAddress: {
+      ...theme.typography.body,
+      color: theme.colors.textMuted,
+    },
+    navigationButtons: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
+    },
+    navButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radius.md,
+      gap: theme.spacing.xs,
+    },
+    googleMapsButton: {
+      backgroundColor: '#4285F4',
+    },
+    appleMapsButton: {
+      backgroundColor: '#007AFF',
+    },
+    wazeButton: {
+      backgroundColor: '#33CCFF',
+    },
+    navButtonText: {
+      ...theme.typography.buttonSmall,
+      color: '#FFFFFF',
+    },
+    orderCard: {
+      marginBottom: theme.spacing.md,
+    },
+    orderHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.spacing.sm,
+    },
+    cardTitle: {
+      ...theme.typography.titleM,
+      color: theme.colors.text,
+      marginBottom: 0,
+    },
+    toggleText: { ...theme.typography.caption, color: theme.colors.accent },
+    orderInfo: {
+      marginBottom: theme.spacing.md,
+      gap: theme.spacing.xs,
+    },
+    orderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.spacing.xs,
+    },
+    orderLabel: {
+      ...theme.typography.caption,
+      color: theme.colors.textMuted,
+    },
+    orderValue: {
+      ...theme.typography.body,
+      color: theme.colors.text,
+      fontWeight: '600',
+    },
+    callButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.spacing.md,
+      backgroundColor: theme.colors.accentSoft,
+      borderRadius: theme.radius.md,
+      gap: theme.spacing.xs,
+    },
+    callButtonText: {
+      ...theme.typography.button,
+      color: theme.colors.accent,
+    },
+    progressCard: {
+      marginBottom: theme.spacing.md,
+    },
+    progressTitle: {
+      marginBottom: theme.spacing.md,
+    },
+    summaryList: { gap: theme.spacing.xs },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+
+  });

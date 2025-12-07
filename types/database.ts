@@ -273,10 +273,40 @@ export interface Delivery {
   driver_payout_handle?: string | null;
   driver_payout_status?: 'pending' | 'initiated' | 'paid' | 'failed' | null;
   driver_payout_ref?: string | null;
+  cancellation_reason_code?: string;
+  issue_count?: number;
   created_at: string;
   updated_at: string;
   order?: Order;
   driver?: DeliveryDriver;
+  issues?: DeliveryIssue[];
+  feedback?: DeliveryFeedback[];
+}
+
+export interface DeliveryIssue {
+  id: string;
+  delivery_id?: string;
+  order_id?: string;
+  driver_id?: string;
+  user_id?: string;
+  reason_code: string;
+  details?: string;
+  status: 'open' | 'resolved' | 'dismissed';
+  created_at: string;
+  resolved_at?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface DeliveryFeedback {
+  id: string;
+  order_id: string;
+  delivery_id: string;
+  driver_id?: string;
+  user_id?: string;
+  rating?: number;
+  tags?: string[];
+  comment?: string;
+  created_at: string;
 }
 
 export interface Review {
@@ -478,4 +508,49 @@ export interface DeliveryEvent {
   event_type: string;
   payload?: Record<string, any>;
   created_at: string;
+}
+
+export interface DriverCashReconciliation {
+  id: string;
+  driver_id: string;
+  cash_on_hand: number;
+  pending_reconciliation: number;
+  status: 'pending' | 'settled' | 'discrepancy';
+  note?: string | null;
+  created_at: string;
+  settled_at?: string | null;
+}
+
+export interface DriverCashTransaction {
+  id: string;
+  driver_id: string;
+  reconciliation_id?: string | null;
+  amount: number;
+  currency?: string;
+  type: 'collection' | 'payout' | 'adjustment';
+  reference?: string | null;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface DriverCashDiscrepancy {
+  id: string;
+  reconciliation_id: string;
+  driver_id: string;
+  amount: number;
+  reason?: string | null;
+  status: 'open' | 'resolved';
+  created_at: string;
+  resolved_at?: string | null;
+}
+
+export interface PayoutAttempt {
+  id: string;
+  request_id: string;
+  status: 'pending' | 'processing' | 'succeeded' | 'failed';
+  confirmation_number?: string | null;
+  eta_text?: string | null;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at?: string;
 }

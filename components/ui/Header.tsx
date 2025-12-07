@@ -9,6 +9,7 @@ interface HeaderProps {
   showBackButton?: boolean;
   rightComponent?: React.ReactNode;
   onBackPress?: () => void;
+  subdued?: boolean;
 }
 
 export default function Header({
@@ -16,8 +17,9 @@ export default function Header({
   showBackButton = false,
   rightComponent,
   onBackPress,
+  subdued = false,
 }: HeaderProps) {
-  const { colors, spacing, radius, typography, tap, iconSizes } = useRestaurantTheme();
+  const { colors, spacing, radius, typography, tap, iconSizes, insets } = useRestaurantTheme();
 
   const styles = useMemo(
     () => ({
@@ -26,19 +28,21 @@ export default function Header({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.md,
-        backgroundColor: colors.surface,
+        paddingTop: spacing.md + insets.top * 0.35,
+        paddingBottom: spacing.md,
+        backgroundColor: subdued ? colors.surfaceAlt : colors.surface,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
       } as ViewStyle,
       backButton: {
         padding: spacing.xs,
         minHeight: tap.minHeight,
+        borderRadius: radius.sm,
       } as ViewStyle,
-      title: { ...typography.title2, textAlign: 'center', flex: 1 } as TextStyle,
+      title: { ...typography.titleM, textAlign: 'center', flex: 1, color: colors.text } as TextStyle,
       placeholder: { width: iconSizes.lg + spacing.xs * 2 } as ViewStyle,
     }),
-    [colors.border, colors.surface, iconSizes.lg, spacing.lg, spacing.md, spacing.xs, tap.minHeight, typography.title2]
+    [colors.border, colors.surface, colors.surfaceAlt, colors.text, iconSizes.lg, insets.top, radius.sm, spacing.lg, spacing.md, spacing.xs, subdued, tap.minHeight, typography.titleM]
   );
 
   const handleBackPress = () => {
@@ -52,13 +56,15 @@ export default function Header({
   return (
     <View style={styles.header}>
       {showBackButton ? (
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton} hitSlop={tap.hitSlop}>
           <ArrowLeft size={iconSizes.lg} color={colors.text} />
         </TouchableOpacity>
       ) : (
         <View style={styles.placeholder} />
       )}
-      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.title} numberOfLines={1}>
+        {title}
+      </Text>
       {rightComponent ? rightComponent : <View style={styles.placeholder} />}
     </View>
   );

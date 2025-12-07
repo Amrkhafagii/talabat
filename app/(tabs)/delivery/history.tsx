@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { DollarSign, Clock, MapPin, Star, TrendingUp, Filter } from 'lucide-react-native';
+import { MapPin, Package } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
-import StatCard from '@/components/common/StatCard';
-import DeliveryHistoryCard from '@/components/delivery/DeliveryHistoryCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDriverByUserId, getDriverDeliveryHistory, getDriverEarningsStats } from '@/utils/database';
 import { DeliveryDriver, Delivery } from '@/types/database';
 import { formatCurrency } from '@/utils/formatters';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { useDeliveryLayout } from '@/styles/layout';
+import SegmentedControl from '@/components/ui/SegmentedControl';
 
 interface EarningsStats {
   todayEarnings: number;
@@ -25,6 +26,8 @@ interface EarningsStats {
 
 export default function DeliveryHistory() {
   const { user } = useAuth();
+  const theme = useRestaurantTheme();
+  const { contentPadding, sectionGap } = useDeliveryLayout();
   const [driver, setDriver] = useState<DeliveryDriver | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [stats, setStats] = useState<EarningsStats>({
@@ -41,6 +44,7 @@ export default function DeliveryHistory() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const styles = useMemo(() => createStyles(theme, contentPadding, sectionGap), [theme, contentPadding, sectionGap]);
 
   useEffect(() => {
     if (user) {
@@ -157,113 +161,86 @@ export default function DeliveryHistory() {
         }
       >
         {/* Period Selector */}
-        <View style={styles.periodSelector}>
-          {(['today', 'week', 'month', 'all'] as const).map((period) => (
-            <TouchableOpacity
-              key={period}
-              style={[
-                styles.periodButton,
-                selectedPeriod === period && styles.selectedPeriodButton
-              ]}
-              onPress={() => setSelectedPeriod(period)}
-            >
-              <Text style={[
-                styles.periodButtonText,
-                selectedPeriod === period && styles.selectedPeriodButtonText
-              ]}>
-                {period === 'today' ? 'Today' : 
-                 period === 'week' ? 'Week' : 
-                 period === 'month' ? 'Month' : 'All Time'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <SegmentedControl
+          options={[
+            { label: 'Today', value: 'today' },
+            { label: 'Week', value: 'week' },
+            { label: 'Month', value: 'month' },
+            { label: 'All', value: 'all' },
+          ]}
+          value={selectedPeriod}
+          onChange={setSelectedPeriod}
+          style={styles.segmented}
+        />
 
-        {/* Earnings Overview */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{getPeriodLabel()} Overview</Text>
-          <View style={styles.statsGrid}>
-            <StatCard
-              icon={DollarSign}
-              value={formatCurrency(getPeriodEarnings())}
-              label="Earnings"
-              iconColor="#10B981"
-            />
-            <StatCard
-              icon={TrendingUp}
-              value={deliveries.length}
-              label="Deliveries"
-              iconColor="#3B82F6"
-            />
-            <StatCard
-              icon={Clock}
-              value={`${Math.round(stats.totalHours)}h`}
-              label="Hours"
-              iconColor="#F59E0B"
-            />
-            <StatCard
-              icon={Star}
-              value={stats.avgRating.toFixed(1)}
-              label="Rating"
-              iconColor="#FFB800"
-            />
-          </View>
-        </View>
-
-        {/* Earnings Breakdown */}
-        <Card style={styles.earningsCard}>
-          <Text style={styles.cardTitle}>Earnings Breakdown</Text>
-          <View style={styles.earningsBreakdown}>
-            <View style={styles.earningsRow}>
-              <Text style={styles.earningsLabel}>Average per delivery</Text>
-              <Text style={styles.earningsValue}>
-                {formatCurrency(stats.avgEarningsPerDelivery)}
-              </Text>
+        {/* Overview */}
+        <Card style={styles.heroCard}>
+          <Text style={styles.heroTitle}>Delivery History</Text>
+          <Text style={styles.heroAmount}>{formatCurrency(getPeriodEarnings())}</Text>
+          <Text style={styles.heroSub}>Earnings • {getPeriodLabel()}</Text>
+          <View style={styles.heroRow}>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatLabel}>Deliveries</Text>
+              <Text style={styles.heroStatValue}>{deliveries.length}</Text>
             </View>
-            <View style={styles.earningsRow}>
-              <Text style={styles.earningsLabel}>Total deliveries</Text>
-              <Text style={styles.earningsValue}>{stats.totalDeliveries}</Text>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatLabel}>Hours Online</Text>
+              <Text style={styles.heroStatValue}>{Math.round(stats.totalHours)}h</Text>
             </View>
-            <View style={styles.earningsRow}>
-              <Text style={styles.earningsLabel}>Hours worked</Text>
-              <Text style={styles.earningsValue}>{Math.round(stats.totalHours)}h</Text>
-            </View>
-            <View style={[styles.earningsRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total earnings</Text>
-              <Text style={styles.totalValue}>
-                {formatCurrency(stats.totalEarnings)}
-              </Text>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatLabel}>Rating</Text>
+              <Text style={styles.heroStatValue}>{stats.avgRating.toFixed(1)} ⭐</Text>
             </View>
           </View>
         </Card>
 
+        {/* Stat tiles */}
+        <View style={styles.statGrid}>
+          <Card style={styles.tile}>
+            <Text style={styles.tileLabel}>Total Deliveries</Text>
+            <Text style={styles.tileValue}>{deliveries.length}</Text>
+          </Card>
+          <Card style={styles.tile}>
+            <Text style={styles.tileLabel}>Total Distance</Text>
+            <Text style={styles.tileValue}>
+              {(() => {
+                const dist = deliveries.reduce((sum, d) => sum + (Number(d.distance_km) || 0), 0);
+                return `${dist.toFixed(1)} km`;
+              })()}
+            </Text>
+          </Card>
+          <Card style={styles.tile}>
+            <Text style={styles.tileLabel}>Average Rating</Text>
+            <Text style={styles.tileValue}>{stats.avgRating.toFixed(1)} ⭐</Text>
+          </Card>
+          <Card style={styles.tile}>
+            <Text style={styles.tileLabel}>Time Online</Text>
+            <Text style={styles.tileValue}>{Math.round(stats.totalHours)}h</Text>
+          </Card>
+        </View>
+
         {/* Delivery History */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Delivery History</Text>
-            <TouchableOpacity style={styles.filterButton}>
-              <Filter size={16} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-
+          <Text style={styles.sectionHeaderTitle}>Completed Deliveries</Text>
           {deliveries.length > 0 ? (
             <View style={styles.deliveriesContainer}>
               {deliveries.map((delivery) => (
-                <DeliveryHistoryCard
-                  key={delivery.id}
-                  delivery={{
-                    id: delivery.id,
-                    orderNumber: delivery.order?.order_number || `#${delivery.id.slice(-6).toUpperCase()}`,
-                    restaurantName: delivery.order?.restaurant?.name || 'Unknown Restaurant',
-                    customerAddress: delivery.delivery_address,
-                    distance: delivery.distance_km ? `${delivery.distance_km} km` : '2.1 km',
-                    duration: delivery.estimated_duration_minutes ? `${delivery.estimated_duration_minutes} min` : '15 min',
-                    earnings: delivery.driver_earnings,
-                    completedAt: delivery.delivered_at || delivery.created_at,
-                    rating: 4.8, // This would come from reviews
-                    tip: 0 // This would be calculated from order data
-                  }}
-                />
+                <Card key={delivery.id} style={styles.listCard}>
+                  <View style={styles.listHeader}>
+                    <View style={styles.listIcon}>
+                      <Package size={18} color={theme.colors.accent} />
+                    </View>
+                    <View style={styles.listText}>
+                      <Text style={styles.listTitle}>{delivery.order?.restaurant?.name || 'Restaurant'}</Text>
+                      <Text style={styles.listSubtitle}>{delivery.delivered_at ? new Date(delivery.delivered_at).toLocaleString() : ''}</Text>
+                    </View>
+                    <Text style={styles.listAmount}>{formatCurrency(delivery.driver_earnings || 0)}</Text>
+                  </View>
+                  <View style={styles.listMeta}>
+                    <Text style={styles.metaText}>{delivery.delivery_address}</Text>
+                    <Text style={styles.metaText}>{delivery.distance_km ? `${delivery.distance_km} km` : ''}</Text>
+                  </View>
+                </Card>
               ))}
             </View>
           ) : (
@@ -284,165 +261,123 @@ export default function DeliveryHistory() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginTop: 12,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-  },
-  periodSelector: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 8,
-    borderRadius: 12,
-    padding: 4,
-  },
-  periodButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  selectedPeriodButton: {
-    backgroundColor: '#FF6B35',
-  },
-  periodButtonText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  selectedPeriodButtonText: {
-    color: '#FFFFFF',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  filterButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 12,
-  },
-  earningsCard: {
-    marginHorizontal: 20,
-    marginBottom: 24,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  earningsBreakdown: {
-    gap: 12,
-  },
-  earningsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  earningsLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  earningsValue: {
-    fontSize: 14,
-    color: '#111827',
-    fontFamily: 'Inter-Medium',
-  },
-  totalRow: {
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  totalValue: {
-    fontSize: 16,
-    fontFamily: 'Inter-Bold',
-    color: '#10B981',
-  },
-  deliveriesContainer: {
-    paddingHorizontal: 20,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-  },
-});
+const createStyles = (
+  theme: ReturnType<typeof useRestaurantTheme>,
+  contentPadding: { horizontal: number; top: number; bottom: number },
+  sectionGap: number
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: contentPadding.horizontal,
+    },
+    loadingText: {
+      ...theme.typography.body,
+      color: theme.colors.textMuted,
+      marginTop: theme.spacing.sm,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: contentPadding.horizontal,
+    },
+    errorText: {
+      ...theme.typography.body,
+      color: theme.colors.status.error,
+      textAlign: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    retryButton: {
+      backgroundColor: theme.colors.accent,
+      paddingHorizontal: theme.spacing.xl,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radius.lg,
+    },
+    retryButtonText: {
+      ...theme.typography.button,
+      color: '#FFFFFF',
+    },
+    segmented: { marginHorizontal: contentPadding.horizontal, marginTop: theme.spacing.md, marginBottom: theme.spacing.md },
+    section: {
+      marginBottom: sectionGap,
+    },
+    heroCard: {
+      marginHorizontal: contentPadding.horizontal,
+      marginBottom: sectionGap,
+      padding: theme.spacing.lg,
+      borderRadius: theme.radius.card,
+      gap: theme.spacing.sm,
+    },
+    heroTitle: { ...theme.typography.titleM, color: theme.colors.text },
+    heroAmount: { ...theme.typography.titleXl, color: theme.colors.text },
+    heroSub: { ...theme.typography.caption, color: theme.colors.textMuted },
+    heroRow: { flexDirection: 'row', gap: theme.spacing.md, marginTop: theme.spacing.sm },
+    heroStat: { flex: 1, padding: theme.spacing.sm, backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md },
+    heroStatLabel: { ...theme.typography.caption, color: theme.colors.textMuted },
+    heroStatValue: { ...theme.typography.subhead, color: theme.colors.text },
+    statGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.md,
+      paddingHorizontal: contentPadding.horizontal,
+      marginBottom: sectionGap,
+    },
+    tile: {
+      flexBasis: '47%',
+      padding: theme.spacing.md,
+      borderRadius: theme.radius.card,
+      gap: theme.spacing.xs,
+    },
+    tileLabel: { ...theme.typography.caption, color: theme.colors.textMuted },
+    tileValue: { ...theme.typography.titleM, color: theme.colors.text },
+    sectionHeaderTitle: {
+      ...theme.typography.titleM,
+      color: theme.colors.text,
+      paddingHorizontal: contentPadding.horizontal,
+      marginBottom: theme.spacing.sm,
+    },
+    deliveriesContainer: {
+      paddingHorizontal: contentPadding.horizontal,
+      gap: theme.spacing.md,
+    },
+    listCard: { padding: theme.spacing.md, gap: theme.spacing.sm },
+    listHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    listIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      backgroundColor: theme.colors.accentSoft,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.spacing.sm,
+    },
+    listText: { flex: 1 },
+    listTitle: { ...theme.typography.body, color: theme.colors.text },
+    listSubtitle: { ...theme.typography.caption, color: theme.colors.textMuted },
+    listAmount: { ...theme.typography.subhead, color: theme.colors.success },
+    listMeta: { flexDirection: 'row', justifyContent: 'space-between' },
+    metaText: { ...theme.typography.caption, color: theme.colors.textMuted },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: theme.spacing.xl2,
+      paddingHorizontal: theme.spacing.xl,
+      gap: theme.spacing.sm,
+    },
+    emptyTitle: {
+      ...theme.typography.titleM,
+      color: theme.colors.text,
+      marginTop: theme.spacing.sm,
+    },
+    emptyText: {
+      ...theme.typography.body,
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+    },
+  });

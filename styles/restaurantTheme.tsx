@@ -1,158 +1,47 @@
-import React, { createContext, useContext, useMemo } from 'react';
-import { Platform, useWindowDimensions, ViewStyle, TextStyle } from 'react-native';
+import React, { createContext, useContext, useMemo, useState } from 'react';
+import { Platform, useWindowDimensions, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { deliveryTokensDark, deliveryTokensLight, DeliveryTokens } from './deliveryTokens';
 
 type Density = 'compact' | 'regular' | 'spacious';
-
-type RestaurantPalette = {
-  background: string;
-  surface: string;
-  surfaceAlt: string;
-  surfaceStrong: string;
-  formSurface: string;
-  formSurfaceAlt: string;
-  formBorder: string;
-  formPlaceholder: string;
-  formText: string;
-  border: string;
-  borderMuted: string;
-  overlay: string;
-  text: string;
-  secondaryText: string;
-  mutedText: string;
-  accent: string;
-  accentStrong: string;
-  accentMuted: string;
-  icon: string;
-};
-
-type StatusColors = {
-  success: string;
-  warning: string;
-  error: string;
-  hold: string;
-  info: string;
-};
-
-type RestaurantSpacing = {
-  xxs: number;
-  xs: number;
-  sm: number;
-  md: number;
-  lg: number;
-  xl: number;
-  xl2: number;
-};
-
-type RestaurantRadius = {
-  sm: number;
-  md: number;
-  lg: number;
-  xl: number;
-  pill: number;
-};
+type ThemeMode = 'light' | 'dark';
 
 type IconSizes = { sm: number; md: number; lg: number; xl: number };
 
-type RestaurantTypography = {
-  title1: TextStyle;
-  title2: TextStyle;
-  headline: TextStyle;
-  body: TextStyle;
-  subhead: TextStyle;
-  caption: TextStyle;
-  button: TextStyle;
-  buttonSmall: TextStyle;
-};
-
-type RestaurantShadows = {
-  card: ViewStyle;
-  raised: ViewStyle;
-  overlay: ViewStyle;
-};
-
 export type RestaurantTheme = {
-  colors: RestaurantPalette & { status: StatusColors };
-  spacing: RestaurantSpacing;
-  radius: RestaurantRadius;
-  typography: RestaurantTypography;
-  shadows: RestaurantShadows;
+  mode: ThemeMode;
+  colors: DeliveryTokens['palette'] & {
+    status: { success: string; warning: string; error: string; info: string; hold: string };
+  };
+  spacing: DeliveryTokens['spacing'];
+  radius: DeliveryTokens['radius'];
+  typography: DeliveryTokens['typography'];
+  shadows: DeliveryTokens['shadows'];
   iconSizes: IconSizes;
   tap: { minHeight: number; hitSlop: { top: number; bottom: number; left: number; right: number } };
   insets: ReturnType<typeof useSafeAreaInsets>;
   device: { width: number; density: Density; isSmallScreen: boolean; isTablet: boolean };
   statusBarStyle: 'light' | 'dark';
-};
-
-const restaurantDarkPalette: RestaurantPalette = {
-  background: '#0F0E0E',
-  surface: '#181616',
-  surfaceAlt: '#1F1B1A',
-  surfaceStrong: '#221E1C',
-  formSurface: '#F7F4EE',
-  formSurfaceAlt: '#EFE9DE',
-  formBorder: '#E5DECF',
-  formPlaceholder: '#A89E8F',
-  formText: '#1A1A1A',
-  border: '#2A2420',
-  borderMuted: '#211C19',
-  overlay: 'rgba(0, 0, 0, 0.45)',
-  text: '#FFFFFF',
-  secondaryText: '#D8D5D2',
-  mutedText: '#A8A3A0',
-  accent: '#FF7A1A',
-  accentStrong: '#FF8F36',
-  accentMuted: '#F5A25E',
-  icon: '#E9E6E3',
-};
-
-const statusColors: StatusColors = {
-  success: '#34C759',
-  warning: '#F5A524',
-  error: '#F75555',
-  hold: '#C7851A',
-  info: '#5AC8FA',
-};
-
-const baseSpacing: RestaurantSpacing = {
-  xxs: 4,
-  xs: 8,
-  sm: 12,
-  md: 16,
-  lg: 20,
-  xl: 24,
-  xl2: 32,
-};
-
-const radius: RestaurantRadius = {
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 22,
-  pill: 999,
+  setMode: (mode: ThemeMode) => void;
 };
 
 const iconSizes: IconSizes = { sm: 18, md: 20, lg: 24, xl: 28 };
 
-const buildTypography = (palette: RestaurantPalette): RestaurantTypography => ({
-  title1: { fontSize: 22, lineHeight: 28, fontFamily: 'Inter-Bold', color: palette.text },
-  title2: { fontSize: 18, lineHeight: 24, fontFamily: 'Inter-SemiBold', color: palette.text },
-  headline: { fontSize: 17, lineHeight: 22, fontFamily: 'Inter-SemiBold', color: palette.text },
-  body: { fontSize: 16, lineHeight: 21, fontFamily: 'Inter-Regular', color: palette.text },
-  subhead: { fontSize: 15, lineHeight: 20, fontFamily: 'Inter-Medium', color: palette.secondaryText },
-  caption: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: palette.mutedText },
-  button: { fontSize: 16, lineHeight: 21, fontFamily: 'Inter-SemiBold', color: palette.text },
-  buttonSmall: { fontSize: 14, lineHeight: 18, fontFamily: 'Inter-SemiBold', color: palette.text },
-});
-
-function scaleSpacing(spacing: RestaurantSpacing, factor: number): RestaurantSpacing {
+function scaleSpacing(spacing: DeliveryTokens['spacing'], factor: number) {
   return Object.entries(spacing).reduce((acc, [key, value]) => {
     (acc as any)[key] = Math.round((value as number) * factor);
     return acc;
-  }, {} as RestaurantSpacing);
+  }, {} as DeliveryTokens['spacing']);
 }
 
-function buildShadow(elevation: number, opacity = 0.18): ViewStyle {
+function scaleRadius(radius: DeliveryTokens['radius'], factor: number) {
+  return Object.entries(radius).reduce((acc, [key, value]) => {
+    (acc as any)[key] = Math.round((value as number) * factor);
+    return acc;
+  }, {} as DeliveryTokens['radius']);
+}
+
+function buildShadow(elevation: number, opacity = 0.14): ViewStyle {
   return Platform.select<ViewStyle>({
     ios: {
       shadowColor: 'rgba(0, 0, 0, 1)',
@@ -170,26 +59,44 @@ function buildShadow(elevation: number, opacity = 0.18): ViewStyle {
 
 const RestaurantThemeContext = createContext<RestaurantTheme | undefined>(undefined);
 
-export function RestaurantThemeProvider({ children }: { children: React.ReactNode }) {
+export function RestaurantThemeProvider({
+  children,
+  initialMode = 'light',
+}: {
+  children: React.ReactNode;
+  initialMode?: ThemeMode;
+}) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const density: Density = width < 360 ? 'compact' : width > 768 ? 'spacious' : 'regular';
-  const scale = density === 'compact' ? 0.92 : density === 'spacious' ? 1.08 : 1;
-  const spacing = scaleSpacing(baseSpacing, scale);
-  const typography = useMemo(() => buildTypography(restaurantDarkPalette), []);
+  const scale = density === 'compact' ? 0.94 : density === 'spacious' ? 1.06 : 1;
+  const [mode, setMode] = useState<ThemeMode>(initialMode);
 
-  const shadows: RestaurantShadows = useMemo(
-    () => ({
-      card: buildShadow(8, 0.16),
-      raised: buildShadow(12, 0.2),
-      overlay: { ...buildShadow(18, 0.28), backgroundColor: restaurantDarkPalette.overlay },
-    }),
-    []
-  );
+  const tokens: DeliveryTokens = mode === 'dark' ? deliveryTokensDark : deliveryTokensLight;
+  const spacing = useMemo(() => scaleSpacing(tokens.spacing, scale), [tokens.spacing, scale]);
+  const radius = useMemo(() => scaleRadius(tokens.radius, scale), [tokens.radius, scale]);
+  const typography = tokens.typography;
+  const shadows = useMemo(() => {
+    // Recreate shadows using platform helpers to keep parity across platforms.
+    return {
+      card: { ...tokens.shadows.card, ...buildShadow(tokens.shadows.card.elevation ?? 6, 0.08) },
+      raised: { ...tokens.shadows.raised, ...buildShadow(tokens.shadows.raised.elevation ?? 10, 0.14) },
+    };
+  }, [tokens.shadows.card, tokens.shadows.raised]);
 
   const theme = useMemo<RestaurantTheme>(
     () => ({
-      colors: { ...restaurantDarkPalette, status: statusColors },
+      mode,
+      colors: {
+        ...tokens.palette,
+        status: {
+          success: tokens.palette.success,
+          warning: tokens.palette.warning,
+          error: tokens.palette.error,
+          info: '#2563EB',
+          hold: tokens.palette.warning,
+        },
+      },
       spacing,
       radius,
       typography,
@@ -198,9 +105,10 @@ export function RestaurantThemeProvider({ children }: { children: React.ReactNod
       tap: { minHeight: 44, hitSlop: { top: 12, bottom: 12, left: 12, right: 12 } },
       insets,
       device: { width, density, isSmallScreen: width < 380, isTablet: width >= 768 },
-      statusBarStyle: 'light',
+      statusBarStyle: mode === 'dark' ? 'light' : 'dark',
+      setMode,
     }),
-    [density, insets, shadows, spacing, typography, width]
+    [density, insets, mode, radius, shadows, spacing, tokens.palette, typography, width]
   );
 
   return <RestaurantThemeContext.Provider value={theme}>{children}</RestaurantThemeContext.Provider>;

@@ -8,28 +8,30 @@ interface CardProps {
   padding?: number;
   margin?: number;
   shadow?: boolean;
+  muted?: boolean;
 }
 
 export default function Card({
   children,
   style,
-  padding = 16,
+  padding,
   margin = 0,
   shadow = true,
+  muted = false,
 }: CardProps) {
   const { colors, radius, spacing, shadows } = useRestaurantTheme();
 
   const cardStyle = useMemo<ViewStyle>(
     () => ({
-      backgroundColor: colors.surface,
-      borderRadius: radius.lg,
+      backgroundColor: muted ? colors.surfaceAlt : colors.surface,
+      borderRadius: radius.card,
       borderWidth: 1,
       borderColor: colors.border,
       padding: padding ?? spacing.lg,
       margin: margin ?? 0,
       ...(shadow ? shadows.card : {}),
     }),
-    [colors.border, colors.surface, margin, padding, radius.lg, shadow, shadows.card, spacing.lg]
+    [colors.border, colors.surface, colors.surfaceAlt, margin, muted, padding, radius.card, shadow, shadows.card, spacing.lg]
   );
 
   return (

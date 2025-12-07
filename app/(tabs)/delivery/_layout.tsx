@@ -135,6 +135,11 @@ export default function DeliveryLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen name="cancel" options={{ href: null }} />
+      <Tabs.Screen name="issue-report" options={{ href: null }} />
+      <Tabs.Screen name="cash-reconciliation" options={{ href: null }} />
+      <Tabs.Screen name="payout-confirm" options={{ href: null }} />
+      <Tabs.Screen name="feedback" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -41,13 +41,13 @@ export function useAdminMetricsCoordinator() {
 
   const refreshAll = useCallback(async () => {
     setRefreshingAll(true);
-    const [queueResp, kpiResp] = await Promise.all([
-      getAdminQueueCounts().catch(() => null),
-      getAdminKpiOverview().catch(() => null),
+    const queueResp = await getAdminQueueCounts().catch(() => null);
+    const kpiResp = await getAdminKpiOverview().catch(() => null);
+    await Promise.all([
       loadOpsData(),
       loadSettlement(7),
       loadOpsAlerts(),
-    ]).then((results) => [results[0], results[1]]);
+    ]);
     if (queueResp) setQueueCounts(queueResp);
     if (kpiResp) setKpi(kpiResp);
     setRefreshingAll(false);

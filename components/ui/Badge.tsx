@@ -9,9 +9,11 @@ interface BadgeProps {
   tone?: Tone;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  backgroundColor?: string;
+  textColor?: string;
 }
 
-export default function Badge({ label, tone = 'neutral', style, textStyle }: BadgeProps) {
+export default function Badge({ label, tone = 'neutral', style, textStyle, backgroundColor, textColor }: BadgeProps) {
   const { colors, spacing, radius, typography } = useRestaurantTheme();
 
   const styles = useMemo(() => {
@@ -26,21 +28,24 @@ export default function Badge({ label, tone = 'neutral', style, textStyle }: Bad
               ? colors.status.info
               : colors.textSubtle;
 
+    const chipText = textColor || toneColor;
+    const chipBg = backgroundColor || `${toneColor}1A`;
+
     return {
       container: {
-        paddingHorizontal: spacing.sm,
+        paddingHorizontal: spacing.md,
         paddingVertical: spacing.xs,
         borderRadius: radius.pill,
-        backgroundColor: `${toneColor}1A`,
-        borderWidth: 1,
-        borderColor: `${toneColor}33`,
+        backgroundColor: chipBg,
+        borderWidth: 0,
       } as ViewStyle,
       label: {
         ...typography.caption,
-        color: toneColor,
+        color: chipText,
+        fontFamily: 'Inter-SemiBold',
       } as TextStyle,
     };
-  }, [colors.status.error, colors.status.info, colors.status.success, colors.status.warning, colors.textSubtle, radius.pill, spacing.sm, spacing.xs, tone, typography.caption]);
+  }, [backgroundColor, colors.status.error, colors.status.info, colors.status.success, colors.status.warning, colors.textSubtle, radius.pill, spacing.md, spacing.xs, textColor, tone, typography.caption]);
 
   return (
     <View style={[styles.container, style]}>

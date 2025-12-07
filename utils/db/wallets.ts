@@ -17,7 +17,7 @@ export async function getWalletsByUser(userId: string): Promise<Wallet[]> {
 
 export async function getWalletTransactions(walletId: string): Promise<WalletTransaction[]> {
   const { data, error } = await supabase
-    .from('wallet_transactions')
+    .from('v_wallet_feed')
     .select('*')
     .eq('wallet_id', walletId)
     .order('created_at', { ascending: false });

@@ -230,15 +230,23 @@ export async function upsertRestaurantHours(restaurantId: string, hours: Restaur
 }
 
 export async function toggleRestaurantOpen(restaurantId: string, isOpen: boolean): Promise<boolean> {
-  const { error } = await supabase
-    .from('restaurants')
-    .update({ is_open: isOpen })
-    .eq('id', restaurantId);
+  return setRestaurantOnline(restaurantId, isOpen);
+}
 
+export async function pauseRestaurantOrders(restaurantId: string): Promise<boolean> {
+  return setRestaurantOnline(restaurantId, false);
+}
+
+export async function resumeRestaurantOrders(restaurantId: string): Promise<boolean> {
+  return setRestaurantOnline(restaurantId, true);
+}
+
+export async function setRestaurantOnline(restaurantId: string, isOpen: boolean): Promise<boolean> {
+  const rpcName = isOpen ? 'resume_restaurant_orders' : 'pause_restaurant_orders';
+  const { data, error } = await supabase.rpc(rpcName, { p_restaurant_id: restaurantId });
   if (error) {
-    console.error('Error toggling restaurant open state:', error);
+    console.error('Error toggling restaurant online state:', error);
     return false;
   }
-
-  return true;
+  return data !== false;
 }

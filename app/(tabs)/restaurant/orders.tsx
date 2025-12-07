@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, RefreshControl, FlatList, I18nManager, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Filter, Bell, Clock3 } from 'lucide-react-native';
+import { Bell } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
+import { ListSkeleton } from '@/components/restaurant/Skeletons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { getRestaurantByUserId, releaseOrderPayment, getPushTokens, assignNearestDriverForOrder, logOrderEvent } from '@/utils/database';
@@ -14,10 +15,10 @@ import { Restaurant } from '@/types/database';
 import { formatOrderTime } from '@/utils/formatters';
 import { getOrderItems } from '@/utils/orderHelpers';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
-import PillTabs from '@/components/ui/PillTabs';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import FAB from '@/components/ui/FAB';
+import SegmentedControl from '@/components/ui/SegmentedControl';
+import { getOrderStatusToken, getPaymentStatusToken } from '@/styles/statusTokens';
 
 export default function RestaurantOrders() {
   const { user } = useAuth();
@@ -132,10 +133,9 @@ export default function RestaurantOrders() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar style="light" backgroundColor={theme.colors.background} />
+        <StatusBar style="dark" backgroundColor={theme.colors.background} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.accent} />
-          <Text style={styles.loadingText}>Loading orders...</Text>
+          <ListSkeleton rows={3} />
         </View>
       </SafeAreaView>
     );
@@ -143,42 +143,42 @@ export default function RestaurantOrders() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" backgroundColor={theme.colors.background} />
-      {/* Header */}
+      <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Orders</Text>
-        <View style={styles.headerRight}>
+        <View>
+          <Text style={styles.headerTitle}>Orders</Text>
+          <Text style={styles.headerSubtitle}>Manage active and past orders</Text>
+        </View>
+        <View style={styles.headerActions}>
           <RealtimeIndicator />
-          <TouchableOpacity style={styles.notificationButton}>
-            <Bell size={20} color={theme.colors.secondaryText} />
+          <TouchableOpacity style={styles.notificationButton} hitSlop={theme.tap.hitSlop}>
+            <Bell size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
             {newOrdersCount > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationCount}>{newOrdersCount}</Text>
               </View>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton}>
-            <Filter size={20} color={theme.colors.secondaryText} />
-          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Tabs */}
-      <PillTabs
-        tabs={[
-          { key: 'active', label: `Active (${activeOrders.length})` },
-          { key: 'past', label: `Past (${pastOrders.length})` },
-        ]}
-        activeKey={selectedTab}
-        onChange={setSelectedTab}
-        style={{ marginHorizontal: theme.spacing.lg, marginBottom: theme.spacing.md }}
-        scrollable={false}
-      />
+      <View style={styles.tabsWrapper}>
+        <SegmentedControl
+          options={[
+            { value: 'active', label: 'Active Orders' },
+            { value: 'past', label: 'Past Orders' },
+          ]}
+          value={selectedTab as 'active' | 'past'}
+          onChange={(key) => setSelectedTab(key)}
+          fullWidth
+        />
+      </View>
 
       <FlatList
         data={displayOrders}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -208,11 +208,6 @@ export default function RestaurantOrders() {
         }
       />
 
-      <FAB
-        icon={<Filter size={22} color="#FFFFFF" />}
-        onPress={() => {}}
-        style={styles.fab}
-      />
     </SafeAreaView>
   );
 }
@@ -220,7 +215,7 @@ export default function RestaurantOrders() {
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
   const horizontal = theme.device.isSmallScreen ? theme.spacing.md : theme.spacing.lg;
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.colors.background },
+    container: { flex: 1, backgroundColor: theme.colors.background, writingDirection: I18nManager.isRTL ? 'rtl' : 'ltr' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: theme.spacing.lg },
     loadingText: { ...theme.typography.body, color: theme.colors.secondaryText, marginTop: theme.spacing.sm },
     header: {
@@ -229,12 +224,11 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       justifyContent: 'space-between',
       paddingHorizontal: horizontal,
       paddingVertical: theme.spacing.md,
-      backgroundColor: theme.colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
     },
-    headerTitle: { ...theme.typography.title2 },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
+    headerTitle: { ...theme.typography.titleL },
+    headerSubtitle: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: 2 },
     notificationButton: { position: 'relative', padding: theme.spacing.xs },
     notificationBadge: {
       position: 'absolute',
@@ -248,14 +242,8 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       alignItems: 'center',
     },
     notificationCount: { fontSize: 10, fontFamily: 'Inter-Bold', color: '#FFFFFF' },
+    tabsWrapper: { paddingHorizontal: horizontal, paddingBottom: theme.spacing.md },
     filterButton: { padding: theme.spacing.xs },
-    tabContainer: {
-      // deprecated: replaced by PillTabs
-    },
-    content: {
-      flex: 1,
-      paddingTop: theme.spacing.md,
-    },
     ordersLoading: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -282,12 +270,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       textAlign: 'center',
       lineHeight: 24,
     },
-    listContent: { paddingHorizontal: horizontal, paddingBottom: theme.insets.bottom + theme.spacing.xl },
-    fab: {
-      position: 'absolute',
-      right: theme.spacing.lg,
-      bottom: theme.insets.bottom + theme.spacing.lg,
-    },
+    listContent: { paddingHorizontal: horizontal, paddingBottom: theme.insets.bottom + theme.spacing.xl, paddingTop: theme.spacing.sm },
   });
 }
 
@@ -303,85 +286,98 @@ function OrderCard({
   const theme = useRestaurantTheme();
   const styles = useMemo(() => createCardStyles(theme), [theme]);
 
-  const paymentVariant = order.payment_status === 'paid' ? 'success' : 'hold';
-  const paymentLabel = order.payment_status === 'paid' ? 'Paid' : 'Payment on Hold';
-  const statusLabel = mapStatus(order.status);
+  const statusToken = getOrderStatusToken(order.status, theme);
+  const paymentToken = getPaymentStatusToken(order.payment_status, theme);
   const items = getOrderItems(order).join(', ');
-  const showAccept = order.status === 'pending' && order.payment_status === 'paid';
+  const paymentApproved = ['paid', 'captured'].includes(order.payment_status);
+  const showAccept = order.status === 'pending' && paymentApproved;
   const showReject = order.status === 'pending';
   const showReady = ['confirmed', 'preparing'].includes(order.status);
   const showDelivered = order.status === 'ready';
+  const customerName = order.customer_name || `Customer ${order.user_id.slice(-4)}`;
+  const displayId = order.short_code || order.order_number || order.id.slice(-6).toUpperCase();
 
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(order.id)} activeOpacity={0.9}>
-      <View style={styles.header}>
-        <Text style={styles.orderId}>Order #{order.id.slice(-6).toUpperCase()}</Text>
-        <Badge label={statusLabel} tone="neutral" />
+      <View style={styles.cardHeader}>
+        <View>
+          <Text style={styles.orderId}>Order #{displayId}</Text>
+          <Text style={styles.customer}>{customerName}</Text>
+        </View>
+        <View style={styles.badgeStack}>
+          <Badge label={statusToken.label} backgroundColor={statusToken.background} textColor={statusToken.color} />
+          {paymentToken ? (
+            <Badge label={paymentToken.label} backgroundColor={paymentToken.background} textColor={paymentToken.color} style={styles.paymentChip} />
+          ) : null}
+        </View>
       </View>
-      <Text style={styles.meta}>Placed {formatOrderTime(order.created_at)}</Text>
-      <Text style={styles.customer}>Customer {order.user_id.slice(-4)}</Text>
-      <Text style={styles.items} numberOfLines={1}>{items}</Text>
-      <View style={styles.row}>
-        <Badge label={paymentLabel} tone={paymentVariant === 'success' ? 'success' : 'warning'} />
-        <Text style={styles.total}>${order.total.toFixed(2)}</Text>
+
+      <Text style={styles.items} numberOfLines={2}>{items}</Text>
+      <View style={styles.totalRow}>
+        <View>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalValue}>${order.total.toFixed(2)}</Text>
+        </View>
+        <Text style={styles.meta}>Placed {formatOrderTime(order.created_at)}</Text>
       </View>
-      <View style={styles.actions}>
-        {showReject && (
-          <Button title="Reject" variant="secondary" size="small" onPress={() => onAction(order.id, 'cancelled', 'Restaurant rejected')} />
-        )}
-        {showAccept && (
-          <Button title="Accept" size="small" onPress={() => onAction(order.id, 'confirmed')} />
-        )}
-        {showReady && (
-          <Button title="Ready for Pickup" size="small" onPress={() => onAction(order.id, 'ready')} />
-        )}
-        {showDelivered && (
-          <Button title="Mark Delivered" size="small" variant="secondary" onPress={() => onAction(order.id, 'picked_up')} />
-        )}
-      </View>
+
+      {(showReject || showAccept || showReady || showDelivered) && (
+        <View style={[styles.actions, showReject && showAccept ? styles.actionsRow : null]}>
+          {showReject && (
+            <Button
+              title="Reject"
+              variant="danger"
+              size="medium"
+              pill
+              style={showAccept ? styles.halfButton : undefined}
+              onPress={() => onAction(order.id, 'cancelled', 'Restaurant rejected')}
+            />
+          )}
+          {showAccept && (
+            <Button
+              title="Accept"
+              size="medium"
+              pill
+              style={showReject ? styles.halfButton : undefined}
+              onPress={() => onAction(order.id, 'confirmed')}
+            />
+          )}
+          {showReady && (
+            <Button title="Ready for Pickup" size="medium" pill fullWidth onPress={() => onAction(order.id, 'ready')} />
+          )}
+          {showDelivered && (
+            <Button title="Mark Delivered" size="medium" pill variant="secondary" fullWidth onPress={() => onAction(order.id, 'picked_up')} />
+          )}
+        </View>
+      )}
     </TouchableOpacity>
   );
-}
-
-function mapStatus(status: string) {
-  switch (status) {
-    case 'pending':
-      return 'Pending';
-    case 'confirmed':
-      return 'Accepted';
-    case 'preparing':
-      return 'Preparing';
-    case 'ready':
-      return 'Ready';
-    case 'picked_up':
-      return 'Out for Delivery';
-    case 'delivered':
-      return 'Delivered';
-    case 'cancelled':
-      return 'Cancelled';
-    default:
-      return status;
-  }
 }
 
 function createCardStyles(theme: ReturnType<typeof useRestaurantTheme>) {
   return StyleSheet.create({
     card: {
       backgroundColor: theme.colors.surface,
-      borderRadius: theme.radius.lg,
+      borderRadius: theme.radius.card,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      padding: theme.spacing.md,
+      padding: theme.spacing.lg,
       marginBottom: theme.spacing.md,
       ...theme.shadows.card,
+      gap: theme.spacing.sm,
     },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    orderId: { ...theme.typography.subhead },
-    meta: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: 2 },
-    customer: { ...theme.typography.body, marginTop: theme.spacing.xs },
-    items: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: 2 },
-    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: theme.spacing.sm },
-    total: { ...theme.typography.subhead },
-    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs, marginTop: theme.spacing.sm },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing.sm },
+    badgeStack: { alignItems: 'flex-end', gap: theme.spacing.xs },
+    paymentChip: { marginTop: 0 },
+    orderId: { ...theme.typography.titleM },
+    customer: { ...theme.typography.subhead, marginTop: 2 },
+    items: { ...theme.typography.caption, color: theme.colors.secondaryText, lineHeight: 20 },
+    totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    totalLabel: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    totalValue: { ...theme.typography.title2 },
+    meta: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    actions: { flexDirection: 'column', gap: theme.spacing.sm, marginTop: theme.spacing.xs },
+    actionsRow: { flexDirection: 'row', gap: theme.spacing.sm },
+    halfButton: { flex: 1 },
   });
 }

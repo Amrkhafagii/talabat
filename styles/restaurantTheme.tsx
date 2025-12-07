@@ -18,14 +18,16 @@ export type RestaurantTheme = {
   typography: DeliveryTokens['typography'];
   shadows: DeliveryTokens['shadows'];
   iconSizes: IconSizes;
+  icons: { strokeWidth: number };
   tap: { minHeight: number; hitSlop: { top: number; bottom: number; left: number; right: number } };
   insets: ReturnType<typeof useSafeAreaInsets>;
   device: { width: number; density: Density; isSmallScreen: boolean; isTablet: boolean };
   statusBarStyle: 'light' | 'dark';
+  statusBarBackground: string;
   setMode: (mode: ThemeMode) => void;
 };
 
-const iconSizes: IconSizes = { sm: 18, md: 20, lg: 24, xl: 28 };
+const iconSizes: IconSizes = { sm: 18, md: 20, lg: 22, xl: 24 };
 
 function scaleSpacing(spacing: DeliveryTokens['spacing'], factor: number) {
   return Object.entries(spacing).reduce((acc, [key, value]) => {
@@ -39,6 +41,26 @@ function scaleRadius(radius: DeliveryTokens['radius'], factor: number) {
     (acc as any)[key] = Math.round((value as number) * factor);
     return acc;
   }, {} as DeliveryTokens['radius']);
+}
+
+function scaleTypography(typography: DeliveryTokens['typography'], factor: number) {
+  return Object.entries(typography).reduce((acc, [key, style]) => {
+    const fontSize = (style as any).fontSize;
+    const lineHeight = (style as any).lineHeight;
+    (acc as any)[key] = {
+      ...style,
+      ...(fontSize ? { fontSize: Math.round(fontSize * factor * 100) / 100 } : {}),
+      ...(lineHeight ? { lineHeight: Math.round(lineHeight * factor * 100) / 100 } : {}),
+    };
+    return acc;
+  }, {} as DeliveryTokens['typography']);
+}
+
+function scaleIconSizes(sizes: IconSizes, factor: number): IconSizes {
+  return Object.entries(sizes).reduce((acc, [key, value]) => {
+    (acc as any)[key] = Math.round((value as number) * factor);
+    return acc;
+  }, {} as IconSizes);
 }
 
 function buildShadow(elevation: number, opacity = 0.14): ViewStyle {
@@ -68,14 +90,18 @@ export function RestaurantThemeProvider({
 }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const density: Density = width < 360 ? 'compact' : width > 768 ? 'spacious' : 'regular';
+  const isSmallScreen = width <= 380;
+  const density: Density = isSmallScreen ? 'compact' : width > 768 ? 'spacious' : 'regular';
   const scale = density === 'compact' ? 0.94 : density === 'spacious' ? 1.06 : 1;
+  const typeScale = density === 'compact' ? 0.96 : density === 'spacious' ? 1.04 : 1;
+  const iconScale = density === 'compact' ? 0.96 : density === 'spacious' ? 1.04 : 1;
   const [mode, setMode] = useState<ThemeMode>(initialMode);
 
   const tokens: DeliveryTokens = mode === 'dark' ? deliveryTokensDark : deliveryTokensLight;
   const spacing = useMemo(() => scaleSpacing(tokens.spacing, scale), [tokens.spacing, scale]);
   const radius = useMemo(() => scaleRadius(tokens.radius, scale), [tokens.radius, scale]);
-  const typography = tokens.typography;
+  const typography = useMemo(() => scaleTypography(tokens.typography, typeScale), [tokens.typography, typeScale]);
+  const scaledIcons = useMemo(() => scaleIconSizes(iconSizes, iconScale), [iconScale]);
   const shadows = useMemo(() => {
     // Recreate shadows using platform helpers to keep parity across platforms.
     return {
@@ -101,14 +127,16 @@ export function RestaurantThemeProvider({
       radius,
       typography,
       shadows,
-      iconSizes,
+      iconSizes: scaledIcons,
+      icons: { strokeWidth: 1.6 },
       tap: { minHeight: 44, hitSlop: { top: 12, bottom: 12, left: 12, right: 12 } },
       insets,
-      device: { width, density, isSmallScreen: width < 380, isTablet: width >= 768 },
+      device: { width, density, isSmallScreen, isTablet: width >= 768 },
       statusBarStyle: mode === 'dark' ? 'light' : 'dark',
+      statusBarBackground: tokens.palette.background,
       setMode,
     }),
-    [density, insets, mode, radius, shadows, spacing, tokens.palette, typography, width]
+    [density, insets, isSmallScreen, mode, radius, scaledIcons, shadows, spacing, tokens.palette, typography, width]
   );
 
   return <RestaurantThemeContext.Provider value={theme}>{children}</RestaurantThemeContext.Provider>;

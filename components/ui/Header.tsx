@@ -19,7 +19,7 @@ export default function Header({
   onBackPress,
   subdued = false,
 }: HeaderProps) {
-  const { colors, spacing, radius, typography, tap, iconSizes, insets } = useRestaurantTheme();
+  const { colors, spacing, radius, typography, tap, iconSizes, insets, icons } = useRestaurantTheme();
 
   const styles = useMemo(
     () => ({
@@ -28,7 +28,7 @@ export default function Header({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: spacing.lg,
-        paddingTop: spacing.md + insets.top * 0.35,
+        paddingTop: spacing.md + Math.max(insets.top * 0.35, spacing.sm),
         paddingBottom: spacing.md,
         backgroundColor: subdued ? colors.surfaceAlt : colors.surface,
         borderBottomWidth: 1,
@@ -39,10 +39,10 @@ export default function Header({
         minHeight: tap.minHeight,
         borderRadius: radius.sm,
       } as ViewStyle,
-      title: { ...typography.titleM, textAlign: 'center', flex: 1, color: colors.text } as TextStyle,
+      title: { ...typography.titleL, textAlign: 'center', flex: 1, color: colors.text } as TextStyle,
       placeholder: { width: iconSizes.lg + spacing.xs * 2 } as ViewStyle,
     }),
-    [colors.border, colors.surface, colors.surfaceAlt, colors.text, iconSizes.lg, insets.top, radius.sm, spacing.lg, spacing.md, spacing.xs, subdued, tap.minHeight, typography.titleM]
+    [colors.border, colors.surface, colors.surfaceAlt, colors.text, iconSizes.lg, insets.top, radius.sm, spacing.lg, spacing.md, spacing.sm, spacing.xs, subdued, tap.minHeight, typography.titleL]
   );
 
   const handleBackPress = () => {
@@ -57,7 +57,7 @@ export default function Header({
     <View style={styles.header}>
       {showBackButton ? (
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton} hitSlop={tap.hitSlop}>
-          <ArrowLeft size={iconSizes.lg} color={colors.text} />
+          <ArrowLeft size={iconSizes.lg} strokeWidth={icons.strokeWidth} color={colors.text} />
         </TouchableOpacity>
       ) : (
         <View style={styles.placeholder} />

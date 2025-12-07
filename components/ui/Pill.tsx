@@ -16,19 +16,20 @@ export default function Pill({ label, active = false, onPress, style, textStyle 
   const styles = useMemo(
     () => ({
       pill: {
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.xs,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
         borderRadius: radius.pill,
-        backgroundColor: active ? colors.accentSoft : colors.pill,
-        borderWidth: active ? 1 : 0,
-        borderColor: active ? colors.accent : 'transparent',
+        backgroundColor: active ? colors.accent : colors.surfaceAlt,
+        borderWidth: 1,
+        borderColor: active ? colors.accent : colors.borderMuted,
       } as ViewStyle,
       label: {
         ...typography.caption,
-        color: active ? colors.accent : colors.text,
+        color: active ? '#FFFFFF' : colors.textMuted,
+        fontFamily: 'Inter-SemiBold',
       } as TextStyle,
     }),
-    [active, colors.accent, colors.accentSoft, colors.pill, colors.text, radius.pill, spacing.md, spacing.xs, typography.caption]
+    [active, colors.accent, colors.borderMuted, colors.surfaceAlt, colors.textMuted, radius.pill, spacing.lg, spacing.sm, typography.caption]
   );
 
   const content = <Text style={[styles.label, textStyle]}>{label}</Text>;

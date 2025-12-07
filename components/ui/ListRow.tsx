@@ -47,7 +47,7 @@ export default function ListRow({
       <View style={styles.right}>
         {badge}
         {value ? <Text style={styles.value}>{value}</Text> : null}
-        {rightAccessory ?? (onPress ? <ChevronRight size={18} color={theme.colors.secondaryText} /> : null)}
+        {rightAccessory ?? (onPress ? <ChevronRight size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.secondaryText} /> : null)}
       </View>
     </TouchableOpacity>
   );
@@ -57,26 +57,27 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
   return StyleSheet.create({
     row: {
       minHeight: theme.tap.minHeight,
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm + 2,
+      paddingHorizontal: theme.spacing.lg,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      borderRadius: theme.radius.lg,
+      borderRadius: theme.radius.card,
       backgroundColor: theme.colors.surface,
       borderWidth: 1,
       borderColor: theme.colors.border,
       marginBottom: theme.spacing.sm,
+      ...theme.shadows.card,
     },
     left: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: theme.spacing.sm },
     right: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
     icon: {
-      width: 34,
-      height: 34,
+      width: 36,
+      height: 36,
       borderRadius: theme.radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.colors.surfaceAlt,
+      backgroundColor: theme.colors.accentSoft,
     },
     title: { ...theme.typography.subhead, color: theme.colors.text },
     subtitle: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: 2 },

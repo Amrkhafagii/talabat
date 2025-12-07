@@ -53,23 +53,29 @@ export default function PillTabs({ tabs, activeKey, onChange, style, scrollable 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
   return StyleSheet.create({
     scrollContainer: { paddingHorizontal: theme.spacing.lg },
-    container: { flexDirection: 'row', gap: theme.spacing.sm },
+    container: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: theme.radius.pill,
+      padding: theme.spacing.xs,
+      borderWidth: 1,
+      borderColor: theme.colors.borderMuted,
+    },
     tab: {
       paddingHorizontal: theme.spacing.lg,
       paddingVertical: theme.spacing.sm,
       borderRadius: theme.radius.pill,
-      backgroundColor: theme.colors.surfaceAlt,
-      borderWidth: 1,
-      borderColor: theme.colors.borderMuted,
+      backgroundColor: 'transparent',
+      borderWidth: 0,
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.xs,
     },
     tabActive: {
       backgroundColor: theme.colors.accent,
-      borderColor: theme.colors.accent,
     },
-    tabLabel: { ...theme.typography.buttonSmall, color: theme.colors.text },
+    tabLabel: { ...theme.typography.caption, color: theme.colors.textMuted },
     tabLabelActive: { color: '#FFFFFF', fontFamily: 'Inter-SemiBold' },
     badge: {
       backgroundColor: theme.colors.surface,

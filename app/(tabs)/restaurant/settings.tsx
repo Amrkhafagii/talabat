@@ -213,7 +213,7 @@ export default function OperationalSettings() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" backgroundColor={theme.colors.formSurface} />
+      <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <ScreenHeader title="Operational Settings" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={{ paddingBottom: theme.insets.bottom + theme.spacing.xl }}>
         <View style={styles.headerCard}>
@@ -230,7 +230,13 @@ export default function OperationalSettings() {
           </View>
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Accepting Orders</Text>
-            <Switch value={isOpen} onValueChange={handleToggleOpen} disabled={togglingOpen} />
+            <Switch
+              value={isOpen}
+              onValueChange={handleToggleOpen}
+              disabled={togglingOpen}
+              trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }}
+              thumbColor="#FFFFFF"
+            />
           </View>
         </View>
 
@@ -379,14 +385,15 @@ function accordionStyles(theme: ReturnType<typeof useRestaurantTheme>) {
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
   const isCompact = theme.device.isSmallScreen;
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.colors.formSurface },
+    container: { flex: 1, backgroundColor: theme.colors.background },
     loader: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.sm },
     loaderText: { ...theme.typography.body, color: theme.colors.secondaryText },
     headerCard: {
-      backgroundColor: theme.colors.formSurface,
+      backgroundColor: theme.colors.surface,
       padding: isCompact ? theme.spacing.md : theme.spacing.lg,
       borderBottomWidth: 1,
-      borderBottomColor: theme.colors.formBorder,
+      borderBottomColor: theme.colors.border,
+      ...theme.shadows.card,
     },
     headerRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
     avatar: {
@@ -402,12 +409,22 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     avatarText: { ...theme.typography.title2 },
     restaurantName: { ...theme.typography.title2 },
     restaurantSubtitle: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: 4 },
-    switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: theme.spacing.md },
+    switchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: theme.spacing.md,
+      padding: theme.spacing.md,
+      borderRadius: theme.radius.card,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
     switchLabel: { ...theme.typography.body, color: theme.colors.formText },
     card: {
       backgroundColor: theme.colors.surface,
       marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      marginTop: 0,
+      marginTop: theme.spacing.md,
       borderRadius: theme.radius.lg,
       borderWidth: 1,
       borderColor: theme.colors.border,

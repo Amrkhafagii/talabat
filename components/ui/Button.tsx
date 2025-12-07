@@ -35,34 +35,38 @@ export default function Button({
   const { colors, spacing, radius, typography, shadows, tap } = useRestaurantTheme();
 
   const { containerStyle, labelStyle } = useMemo(() => {
-    const sizePadding =
-      size === 'small'
-        ? { paddingHorizontal: spacing.md, paddingVertical: spacing.sm }
-        : size === 'large'
-          ? { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg }
-          : { paddingHorizontal: spacing.lg, paddingVertical: spacing.md };
+    const heights: Record<ButtonSize, number> = { small: 44, medium: 52, large: 56 };
+    const horizontalPadding: Record<ButtonSize, number> = {
+      small: spacing.lg,
+      medium: spacing.xl,
+      large: spacing.xl,
+    };
+    const borderRadius = pill ? radius.pill : radius.cta;
+    const baseHeight = heights[size] ?? heights.medium;
+    const paddingHorizontal = horizontalPadding[size] ?? spacing.xl;
 
     const textBase = size === 'small' ? typography.buttonSmall : typography.button;
     const variants: Record<ButtonVariant, { backgroundColor: string; borderColor?: string; textColor: string; shadow?: ViewStyle }> = {
-      primary: { backgroundColor: colors.accent, textColor: '#FFFFFF', shadow: shadows.raised },
-      secondary: { backgroundColor: colors.accentSoft, textColor: colors.text, shadow: shadows.card },
-      ghost: { backgroundColor: 'transparent', borderColor: colors.accent, textColor: colors.accent, shadow: undefined },
+      primary: { backgroundColor: colors.accent, textColor: '#FFFFFF', shadow: shadows.card },
+      secondary: { backgroundColor: colors.surfaceAlt, borderColor: colors.border, textColor: colors.text, shadow: undefined },
+      ghost: { backgroundColor: 'transparent', borderColor: colors.border, textColor: colors.text, shadow: undefined },
       outline: { backgroundColor: 'transparent', borderColor: colors.accent, textColor: colors.accent, shadow: undefined },
-      danger: { backgroundColor: colors.status.error, textColor: '#FFFFFF', shadow: shadows.raised },
+      danger: { backgroundColor: colors.accentSoft, borderColor: colors.status.warning, textColor: colors.status.warning, shadow: undefined },
     };
     const variantStyles = variants[variant];
 
     const containerStyle: ViewStyle = {
-      borderRadius: pill ? radius.pill : radius.lg,
-      minHeight: tap.minHeight,
+      borderRadius,
+      minHeight: Math.max(tap.minHeight, baseHeight),
       alignItems: 'center',
       justifyContent: 'center',
-      borderWidth: variant === 'ghost' ? 2 : 0,
+      borderWidth: variantStyles.borderColor ? 1 : 0,
       borderColor: variantStyles.borderColor ?? 'transparent',
       backgroundColor: variantStyles.backgroundColor,
       opacity: disabled ? 0.6 : 1,
-      ...(variantStyles.shadow ?? shadows.card),
-      ...sizePadding,
+      ...(variantStyles.shadow ?? {}),
+      paddingHorizontal,
+      paddingVertical: spacing.sm,
       width: fullWidth ? '100%' : undefined,
       flexDirection: 'row',
       gap: spacing.xs,

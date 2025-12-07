@@ -26,12 +26,12 @@ export default function Card({
       backgroundColor: muted ? colors.surfaceAlt : colors.surface,
       borderRadius: radius.card,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: muted ? colors.borderMuted : colors.border,
       padding: padding ?? spacing.lg,
       margin: margin ?? 0,
       ...(shadow ? shadows.card : {}),
     }),
-    [colors.border, colors.surface, colors.surfaceAlt, margin, muted, padding, radius.card, shadow, shadows.card, spacing.lg]
+    [colors.border, colors.borderMuted, colors.surface, colors.surfaceAlt, margin, muted, padding, radius.card, shadow, shadows.card, spacing.lg]
   );
 
   return (

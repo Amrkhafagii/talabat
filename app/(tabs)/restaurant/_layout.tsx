@@ -63,15 +63,15 @@ export default function RestaurantLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.colors.surfaceStrong,
+          backgroundColor: theme.colors.surface,
           borderTopWidth: 1,
-          borderTopColor: theme.colors.borderMuted,
+          borderTopColor: theme.colors.border,
           paddingTop: theme.spacing.xs,
           paddingBottom: theme.insets.bottom + theme.spacing.sm,
-          height: 64 + theme.insets.bottom,
+          height: 72 + theme.insets.bottom,
         },
         tabBarActiveTintColor: theme.colors.accent,
-        tabBarInactiveTintColor: theme.colors.mutedText,
+        tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily: 'Inter-SemiBold',
@@ -83,7 +83,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ size, color }) => (
-            <LayoutDashboard size={size} color={color} />
+            <LayoutDashboard size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
           ),
         }}
       />
@@ -92,7 +92,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Orders',
           tabBarIcon: ({ size, color }) => (
-            <Receipt size={size} color={color} />
+            <Receipt size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
           ),
         }}
       />
@@ -101,7 +101,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Menu',
           tabBarIcon: ({ size, color }) => (
-            <BookOpen size={size} color={color} />
+            <BookOpen size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
           ),
         }}
       />
@@ -110,7 +110,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Wallet',
           tabBarIcon: ({ size, color }) => (
-            <Wallet size={size} color={color} />
+            <Wallet size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
           ),
         }}
       />
@@ -119,7 +119,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ size, color }) => (
-            <Settings size={size} color={color} />
+            <Settings size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
           ),
         }}
       />

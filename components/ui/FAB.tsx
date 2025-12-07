@@ -6,16 +6,17 @@ type FABProps = {
   icon: React.ReactNode;
   onPress: () => void;
   style?: ViewStyle;
+  backgroundColor?: string;
 };
 
-export default function FAB({ icon, onPress, style }: FABProps) {
+export default function FAB({ icon, onPress, style, backgroundColor }: FABProps) {
   const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={[styles.fab, style]}
+      style={[styles.fab, backgroundColor ? { backgroundColor } : null, style]}
       activeOpacity={0.8}
       hitSlop={theme.tap.hitSlop}
     >

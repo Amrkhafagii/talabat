@@ -9,6 +9,9 @@ interface UseRealtimeOrdersProps {
   orderIds?: string[];
 }
 
+const RESTAURANT_ORDER_PAYMENT_STATUSES = ['paid', 'paid_pending_review', 'payment_pending', 'hold', 'initiated', 'captured'];
+const PAYMENT_APPROVED_STATUSES = ['paid', 'captured'];
+
 export function useRealtimeOrders({
   userId,
   restaurantId,
@@ -41,7 +44,7 @@ export function useRealtimeOrders({
       if (userId) {
         query = query.eq('user_id', userId);
       } else if (restaurantId) {
-        query = query.eq('restaurant_id', restaurantId).eq('payment_status', 'paid');
+        query = query.eq('restaurant_id', restaurantId).in('payment_status', RESTAURANT_ORDER_PAYMENT_STATUSES);
       } else if (orderIds && orderIds.length > 0) {
         query = query.in('id', orderIds);
       }
@@ -163,7 +166,7 @@ export function useRealtimeOrders({
     const shouldIncludeOrder = (order: any) => {
       if (userId && order.user_id === userId) return true;
       if (restaurantId && order.restaurant_id === restaurantId) {
-        return order.payment_status === 'paid';
+        return !order.payment_status || RESTAURANT_ORDER_PAYMENT_STATUSES.includes(order.payment_status);
       }
       if (orderIds && orderIds.includes(order.id)) return true;
       return false;
@@ -193,7 +196,7 @@ export function useRealtimeOrders({
           .eq('id', orderId)
           .single();
 
-        if (paymentError || !orderPayment || orderPayment.payment_status !== 'paid') {
+        if (paymentError || !orderPayment || !PAYMENT_APPROVED_STATUSES.includes(orderPayment.payment_status)) {
           console.warn('Cannot update order status until receipt is approved', { orderId, status });
           return false;
         }

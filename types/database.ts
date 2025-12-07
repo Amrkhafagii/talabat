@@ -129,6 +129,7 @@ export interface UserAddress {
 export interface Order {
   id: string;
   order_number: string;
+  short_code?: string | null;
   user_id: string;
   restaurant_id: string;
   delivery_address_id?: string;
@@ -389,6 +390,10 @@ export interface WalletTransaction {
   status: 'pending' | 'completed' | 'failed' | 'on_hold' | 'reversed' | 'processing' | 'review';
   reference?: string;
   metadata?: Record<string, any>;
+  direction?: 'credit' | 'debit';
+  bucket?: 'earnings' | 'payouts' | 'hold' | 'other';
+  order_short_code?: string | null;
+  order_payment_status?: string | null;
   created_at: string;
   updated_at: string;
 }

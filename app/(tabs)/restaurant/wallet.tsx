@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity, TextInput, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput, Alert, Switch, I18nManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Wallet as WalletIcon, Shield, Plus, ArrowRightCircle, CreditCard, Trash2, Star, FileText } from 'lucide-react-native';
+import { Shield, Plus, ArrowRightCircle, CreditCard, Trash2, Star, FileText } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 
@@ -29,22 +29,13 @@ import { getKycStatus, upsertKycSubmission, uploadKycDocument } from '@/utils/db
 import { formatCurrency } from '@/utils/formatters';
 import { logMutationError } from '@/utils/telemetry';
 import { supabase } from '@/utils/supabase';
-
-const statusColors: Record<string, string> = {
-  pending: '#F59E0B',
-  completed: '#22C55E',
-  failed: '#EF4444',
-  on_hold: '#F59E0B',
-  processing: '#3B82F6',
-  review: '#8B5CF6',
-  reversed: '#6B7280',
-};
+import { getPaymentStatusToken } from '@/styles/statusTokens';
+import { BlockSkeleton, ListSkeleton } from '@/components/restaurant/Skeletons';
 
 export default function RestaurantWallet() {
   const { user } = useAuth();
   const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const tabSpacing = theme.device.isSmallScreen ? theme.spacing.md : theme.spacing.lg;
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -58,7 +49,8 @@ export default function RestaurantWallet() {
   const [savingMethod, setSavingMethod] = useState(false);
   const [requestingPayout, setRequestingPayout] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [tab, setTab] = useState<'transactions' | 'methods'>('transactions');
+  const [tab, setTab] = useState<'all' | 'earnings' | 'payouts'>('all');
+  const [showMethods, setShowMethods] = useState(false);
 
   // new method form
   const [methodForm, setMethodForm] = useState({ bankName: '', last4: '', isDefault: false });
@@ -275,11 +267,12 @@ export default function RestaurantWallet() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar style="light" backgroundColor={theme.colors.background} />
+        <StatusBar style="dark" backgroundColor={theme.colors.background} />
         <ScreenHeader title="Wallet & Payouts" onBack={() => router.back()} />
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color={theme.colors.accent} />
-          <Text style={styles.loaderText}>Loading wallet...</Text>
+          <BlockSkeleton width="70%" height={22} />
+          <BlockSkeleton width="52%" height={16} style={{ marginTop: theme.spacing.sm }} />
+          <ListSkeleton rows={3} inset={theme.spacing.lg} />
         </View>
       </SafeAreaView>
     );
@@ -287,133 +280,167 @@ export default function RestaurantWallet() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" backgroundColor={theme.colors.background} />
+      <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <ScreenHeader title="Wallet & Payouts" onBack={() => router.back()} />
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.colors.accent]} tintColor={theme.colors.accent} />
         }
         contentContainerStyle={{ paddingBottom: theme.insets.bottom + theme.spacing.xl }}
       >
         <View style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <WalletIcon size={24} color={theme.colors.accent} />
-            <View>
-              <Text style={styles.balanceLabel}>Available Balance</Text>
-              <Text style={styles.balanceValue}>{formatCurrency(balances.available || wallet?.balance || 0)}</Text>
-              <Text style={styles.subBalance}>Pending: {formatCurrency(balances.pending || 0)}</Text>
-            </View>
-          </View>
-          <Button title={requestingPayout ? 'Loading...' : 'Request Payout'} onPress={handleRequestPayout} disabled={requestingPayout} />
+          <Text style={styles.balanceLabel}>Available Balance</Text>
+          <Text style={styles.balanceValue}>{formatCurrency(balances.available || wallet?.balance || 0)}</Text>
+          <Text style={styles.subBalance}>Pending Balance: {formatCurrency(balances.pending || 0)}</Text>
         </View>
 
         {kycStatusLabel !== 'approved' && (
           <View style={styles.kycBanner}>
-            <Shield size={18} color={theme.colors.accent} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.kycTitle}>Instapay payments are on hold</Text>
-              <Text style={styles.kycText}>Please update your KYC information.</Text>
+            <View style={styles.bannerIcon}>
+              <Shield size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.accent} />
             </View>
-            <TouchableOpacity onPress={() => setKycStep(1)}>
-              <ArrowRightCircle size={20} color={theme.colors.accent} />
-            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.kycTitle}>Complete your KYC</Text>
+              <Text style={styles.kycText}>Please complete your KYC for seamless payouts.</Text>
+            </View>
+            <Button title="Complete Now" size="small" pill variant="secondary" onPress={() => setKycStep(1)} />
           </View>
         )}
 
+        <Button
+          title={requestingPayout ? 'Loading...' : 'Request Payout'}
+          onPress={handleRequestPayout}
+          disabled={requestingPayout}
+          pill
+          fullWidth
+          style={styles.primaryCta}
+        />
+
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Transaction History</Text>
+        </View>
+
         <PillTabs
           tabs={[
-            { key: 'transactions', label: 'Transaction History' },
-            { key: 'methods', label: 'Payout Methods' },
+            { key: 'all', label: 'All' },
+            { key: 'earnings', label: 'Earnings' },
+            { key: 'payouts', label: 'Payouts' },
           ]}
           activeKey={tab}
           onChange={(key) => setTab(key as any)}
           scrollable={false}
-          style={{ paddingHorizontal: tabSpacing, marginBottom: theme.spacing.md }}
+          style={styles.tabPills}
         />
 
-        {tab === 'transactions' ? (
-          <View style={styles.card}>
-            {transactions.length === 0 ? (
-              <Text style={styles.emptyText}>No transactions yet.</Text>
-            ) : (
-              transactions.map((tx) => {
-                const tone = statusColors[tx.status] || theme.colors.secondaryText;
-                return (
-                  <View key={tx.id} style={styles.txRow}>
-                    <View style={styles.txLeft}>
-                      <View style={[styles.txDot, { backgroundColor: tone }]} />
-                      <View>
-                        <Text style={styles.txType}>{tx.type}</Text>
-                        <Text style={styles.txMeta}>{tx.created_at ? new Date(tx.created_at).toLocaleDateString() : ''}</Text>
-                      </View>
+        <View style={styles.card}>
+          {transactions.length === 0 ? (
+            <Text style={styles.emptyText}>No transactions yet.</Text>
+          ) : (
+            getFilteredTransactions(transactions, tab).map((tx) => {
+              const paymentToken = getPaymentStatusToken(
+                tx.status === 'completed' ? 'paid' : tx.status === 'failed' ? 'failed' : 'payment_pending',
+                theme
+              );
+              const isDebit = tx.direction ? tx.direction === 'debit' : tx.amount < 0;
+              const sign = isDebit ? '-' : '+';
+              const iconBg = isDebit ? '#FFEDE2' : '#E9F7EE';
+              const iconColor = isDebit ? theme.colors.accent : theme.colors.status.success;
+              const txTitle = tx.order_short_code ? `Order #${tx.order_short_code}` : tx.reference || tx.type;
+              const txSubtitle = tx.order_short_code ? tx.type : tx.reference || tx.type;
+
+              return (
+                <View key={tx.id} style={styles.txRow}>
+                  <View style={styles.txLeft}>
+                    <View style={[styles.txDot, { backgroundColor: iconBg, borderColor: iconBg }]}>
+                      <ArrowRightCircle size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={iconColor} />
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={[styles.txAmount, tx.amount >= 0 ? styles.positive : styles.negative]}>
-                        {tx.amount >= 0 ? '+' : '-'}
-                        {formatCurrency(Math.abs(tx.amount))}
+                    <View>
+                      <Text style={styles.txType}>{txTitle}</Text>
+                      <Text style={styles.txMeta}>
+                        {tx.created_at ? new Date(tx.created_at).toLocaleDateString() : ''}
+                        {txSubtitle ? `  •  ${txSubtitle}` : ''}
                       </Text>
-                      <Text style={[styles.txStatus, { color: tone }]}>{tx.status}</Text>
                     </View>
                   </View>
-                );
-              })
-            )}
-          </View>
-        ) : (
-          <View style={styles.card}>
-            <View style={styles.methodsHeader}>
-              <Text style={styles.sectionTitle}>Payout Methods</Text>
-              <TouchableOpacity style={styles.addMethodButton} onPress={handleAddMethod} disabled={savingMethod}>
-                <Plus size={16} color="#FFFFFF" />
-                <Text style={styles.addMethodText}>{savingMethod ? 'Saving...' : 'Add'}</Text>
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Bank name"
-              value={methodForm.bankName}
-              onChangeText={(v) => setMethodForm((p) => ({ ...p, bankName: v }))}
-              placeholderTextColor={theme.colors.formPlaceholder}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Last 4 digits"
-              value={methodForm.last4}
-              onChangeText={(v) => setMethodForm((p) => ({ ...p, last4: v }))}
-              keyboardType="number-pad"
-              maxLength={4}
-              placeholderTextColor={theme.colors.formPlaceholder}
-            />
-            <View style={styles.defaultRow}>
-              <Text style={styles.defaultLabel}>Set as default</Text>
-              <Switch value={methodForm.isDefault} onValueChange={(v) => setMethodForm((p) => ({ ...p, isDefault: v }))} />
-            </View>
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <Text style={[styles.txAmount, isDebit ? styles.negative : styles.positive]}>
+                      {sign}
+                      {formatCurrency(Math.abs(tx.amount))}
+                    </Text>
+                    <View style={[styles.badge, { backgroundColor: paymentToken.background }]}>
+                      <Text style={[styles.badgeText, { color: paymentToken.color }]}>{paymentToken.label}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </View>
 
-            {payoutMethods.length === 0 ? (
-              <Text style={styles.emptyText}>No payout methods yet.</Text>
-            ) : (
-              payoutMethods.map((m) => {
-                const active = m.id === selectedMethodId;
-                return (
-                  <View key={m.id} style={[styles.methodRow, active && styles.methodRowActive]}>
+        <View style={styles.manageCard}>
+          <View style={styles.manageHeader}>
+            <Text style={styles.sectionTitle}>Payout Methods</Text>
+            <Button title={showMethods ? 'Hide' : 'Manage'} size="small" variant="secondary" onPress={() => setShowMethods(!showMethods)} />
+          </View>
+          {showMethods && (
+            <View style={{ gap: theme.spacing.sm }}>
+              {payoutMethods.length === 0 ? (
+                <Text style={styles.emptyText}>No payout methods added.</Text>
+              ) : (
+                payoutMethods.map((m) => (
+                  <TouchableOpacity
+                    key={m.id}
+                    style={[styles.methodRow, m.id === selectedMethodId && styles.methodRowActive]}
+                    onPress={() => setSelectedMethodId(m.id)}
+                  >
+                    <CreditCard size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.methodTitle}>{m.bank_name || m.type}</Text>
-                      <Text style={styles.methodMeta}>•••• {m.last4 || '----'}</Text>
+                      <Text style={styles.methodMeta}>•••• {m.last4}</Text>
                     </View>
-                    {m.is_default ? <Star size={16} color={theme.colors.status.success} /> : null}
-                    <TouchableOpacity onPress={() => handleSetDefault(m.id)} hitSlop={theme.tap.hitSlop}>
-                      <Text style={styles.defaultLink}>Set Default</Text>
+                    <TouchableOpacity onPress={() => handleSetDefault(m.id)} disabled={m.is_default}>
+                      {m.is_default ? <Star size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.status.success} /> : null}
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteMethod(m.id)} hitSlop={theme.tap.hitSlop}>
-                      <Trash2 size={16} color={theme.colors.status.error} />
+                    <TouchableOpacity onPress={() => handleDeleteMethod(m.id)}>
+                      <Trash2 size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.status.error} />
                     </TouchableOpacity>
+                  </TouchableOpacity>
+                ))
+              )}
+
+              <View style={styles.addMethodRow}>
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Bank name"
+                    value={methodForm.bankName}
+                    onChangeText={(v) => setMethodForm((p) => ({ ...p, bankName: v }))}
+                    placeholderTextColor={theme.colors.formPlaceholder}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Last 4 digits"
+                    value={methodForm.last4}
+                    onChangeText={(v) => setMethodForm((p) => ({ ...p, last4: v }))}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    placeholderTextColor={theme.colors.formPlaceholder}
+                  />
+                  <View style={styles.defaultRow}>
+                    <Text style={styles.defaultLabel}>Set as default</Text>
+                    <Switch value={methodForm.isDefault} onValueChange={(v) => setMethodForm((p) => ({ ...p, isDefault: v }))} />
                   </View>
-                );
-              })
-            )}
-          </View>
-        )}
+                </View>
+                <TouchableOpacity style={styles.addMethodButton} onPress={handleAddMethod} disabled={savingMethod}>
+                  <Plus size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color="#FFFFFF" />
+                  <Text style={styles.addMethodText}>{savingMethod ? 'Saving...' : 'Add'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
 
         <View style={styles.card}>
           <View style={styles.kycHeader}>
@@ -422,14 +449,15 @@ export default function RestaurantWallet() {
               {kycStatusLabel}
             </Text>
           </View>
-          <View style={styles.stepper}>
+          <View style={styles.progressTrack}>
             {[1, 2, 3].map((step) => (
-              <View key={step} style={styles.step}>
-                <View style={[styles.stepDot, step === kycStep && styles.stepDotActive]} />
-                <Text style={styles.stepLabel}>Step {step}</Text>
-              </View>
+              <View
+                key={step}
+                style={[styles.progressSegment, step <= kycStep ? styles.progressSegmentActive : null]}
+              />
             ))}
           </View>
+          <Text style={styles.kycStepLabel}>Step {kycStep} of 3</Text>
 
           <LabeledInput label="Full Legal Name" value={kycForm.fullName} onChangeText={(v) => setKycForm((p) => ({ ...p, fullName: v }))} />
           <LabeledInput label="Date of Birth" placeholder="YYYY-MM-DD" value={kycForm.dob} onChangeText={(v) => setKycForm((p) => ({ ...p, dob: v }))} />
@@ -442,12 +470,12 @@ export default function RestaurantWallet() {
               {kycForm.docUri ? <Text style={styles.docMeta}>Selected: {kycForm.docUri.split('/').pop()}</Text> : <Text style={styles.docMeta}>Upload ID front/back</Text>}
             </View>
             <TouchableOpacity style={styles.docButton} onPress={pickKycDoc}>
-              <FileText size={16} color="#FFFFFF" />
+              <FileText size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color="#FFFFFF" />
               <Text style={styles.docButtonText}>Upload</Text>
             </TouchableOpacity>
           </View>
 
-          <Button title={kycSaving ? 'Submitting...' : 'Submit KYC'} onPress={handleSubmitKyc} disabled={kycSaving} />
+          <Button title={kycSaving ? 'Submitting...' : 'Submit KYC'} onPress={handleSubmitKyc} disabled={kycSaving} pill />
         </View>
       </ScrollView>
 
@@ -456,16 +484,76 @@ export default function RestaurantWallet() {
   );
 }
 
+function getFilteredTransactions(transactions: WalletTransaction[], tab: 'all' | 'earnings' | 'payouts') {
+  if (tab === 'all') return transactions;
+
+  return transactions.filter((tx) => {
+    const bucket = tx.bucket ?? (tx.amount < 0 ? 'payouts' : 'earnings');
+    if (tab === 'earnings') return bucket === 'earnings';
+    if (tab === 'payouts') return bucket === 'payouts';
+    return true;
+  });
+}
+
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
   const isCompact = theme.device.isSmallScreen;
+  const horizontal = isCompact ? theme.spacing.md : theme.spacing.lg;
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.colors.background },
+    container: { flex: 1, backgroundColor: theme.colors.background, writingDirection: I18nManager.isRTL ? 'rtl' : 'ltr' },
     loader: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.sm },
     loaderText: { ...theme.typography.body, color: theme.colors.secondaryText },
     balanceCard: {
       backgroundColor: theme.colors.surface,
-      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      marginHorizontal: horizontal,
       marginTop: theme.spacing.lg,
+      borderRadius: theme.radius.xl,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      padding: theme.spacing.lg,
+      gap: theme.spacing.xs,
+      ...theme.shadows.card,
+    },
+    balanceLabel: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    balanceValue: { ...theme.typography.titleXl },
+    subBalance: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    kycBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      marginHorizontal: horizontal,
+      marginTop: theme.spacing.md,
+      padding: theme.spacing.md,
+      borderRadius: theme.radius.lg,
+      backgroundColor: theme.colors.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.colors.accentSoft,
+    },
+    bannerIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radius.pill,
+      backgroundColor: '#FFFFFF',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    kycTitle: { ...theme.typography.subhead },
+    kycText: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    primaryCta: { marginHorizontal: horizontal, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: horizontal,
+      marginTop: theme.spacing.sm,
+      marginBottom: theme.spacing.xs,
+    },
+    sectionTitle: { ...theme.typography.subhead },
+    kycStatus: { ...theme.typography.caption, fontFamily: 'Inter-SemiBold' },
+    tabPills: { paddingHorizontal: horizontal, marginBottom: theme.spacing.md },
+    card: {
+      backgroundColor: theme.colors.surface,
+      marginHorizontal: horizontal,
+      marginBottom: theme.spacing.md,
       borderRadius: theme.radius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border,
@@ -473,48 +561,47 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       gap: theme.spacing.sm,
       ...theme.shadows.card,
     },
-    balanceHeader: { flexDirection: 'row', gap: theme.spacing.sm, alignItems: 'center' },
-    balanceLabel: { ...theme.typography.caption, color: theme.colors.secondaryText },
-    balanceValue: { ...theme.typography.title1 },
-    subBalance: { ...theme.typography.caption, color: theme.colors.secondaryText },
-    kycBanner: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      marginBottom: theme.spacing.md,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.lg,
-      backgroundColor: theme.colors.surfaceAlt,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-    },
-    kycTitle: { ...theme.typography.subhead },
-    kycText: { ...theme.typography.caption, color: theme.colors.secondaryText },
-    card: {
+    manageCard: {
       backgroundColor: theme.colors.surface,
-      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      marginHorizontal: horizontal,
       marginBottom: theme.spacing.md,
-      borderRadius: theme.radius.lg,
+      borderRadius: theme.radius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border,
       padding: theme.spacing.lg,
       ...theme.shadows.card,
+      gap: theme.spacing.sm,
     },
+    manageHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    addMethodRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
     txRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingVertical: theme.spacing.sm,
+      paddingVertical: theme.spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.borderMuted,
     },
     txLeft: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
-    txDot: { width: 10, height: 10, borderRadius: 5 },
+    txDot: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.borderMuted,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
     txType: { ...theme.typography.subhead },
     txMeta: { ...theme.typography.caption, color: theme.colors.secondaryText },
     txAmount: { ...theme.typography.subhead },
-    txStatus: { ...theme.typography.caption },
+    badge: {
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.radius.pill,
+    },
+    badgeText: { ...theme.typography.caption, fontFamily: 'Inter-SemiBold' },
     positive: { color: theme.colors.status.success },
     negative: { color: theme.colors.status.error },
     methodsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm },
@@ -551,11 +638,21 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     methodRowActive: { backgroundColor: theme.colors.surfaceAlt },
     methodTitle: { ...theme.typography.subhead },
     methodMeta: { ...theme.typography.caption, color: theme.colors.secondaryText },
-    defaultLink: { ...theme.typography.caption, color: theme.colors.accent },
     emptyText: { ...theme.typography.caption, color: theme.colors.secondaryText },
     kycHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm },
-    sectionTitle: { ...theme.typography.subhead },
-    kycStatus: { ...theme.typography.caption, fontFamily: 'Inter-SemiBold' },
+    progressTrack: {
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+      marginBottom: theme.spacing.sm,
+    },
+    progressSegment: {
+      flex: 1,
+      height: 6,
+      borderRadius: 6,
+      backgroundColor: theme.colors.borderMuted,
+    },
+    progressSegmentActive: { backgroundColor: theme.colors.accent },
+    kycStepLabel: { ...theme.typography.caption, color: theme.colors.secondaryText, marginBottom: theme.spacing.sm },
     stepper: { flexDirection: 'row', gap: theme.spacing.sm, marginBottom: theme.spacing.sm },
     step: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs },
     stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.colors.border },
@@ -574,7 +671,6 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       borderRadius: theme.radius.md,
     },
     docButtonText: { ...theme.typography.buttonSmall, color: '#FFFFFF' },
-    saveButton: { marginHorizontal: theme.spacing.lg, marginBottom: theme.spacing.md },
     toast: { position: 'absolute', bottom: theme.insets.bottom + theme.spacing.md, left: theme.spacing.lg, right: theme.spacing.lg },
   });
 }

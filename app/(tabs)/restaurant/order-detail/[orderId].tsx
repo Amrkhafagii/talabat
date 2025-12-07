@@ -3,12 +3,15 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { ArrowLeft } from 'lucide-react-native';
 
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { getOrderById } from '@/utils/database';
 import { getOrderTimeline, OrderTimelineEvent } from '@/utils/db/orderEvents';
 import { Order } from '@/types/database';
 import TimelineItem from '@/components/ui/TimelineItem';
+import { getOrderStatusToken, getPaymentStatusToken } from '@/styles/statusTokens';
+import { formatOrderTime } from '@/utils/formatters';
 
 export default function OrderDetailScreen() {
   const theme = useRestaurantTheme();
@@ -35,31 +38,31 @@ export default function OrderDetailScreen() {
 
   if (!orderId) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="light" backgroundColor={theme.colors.background} />
-        <Text style={styles.errorText}>Order not found</Text>
-      </SafeAreaView>
-    );
-  }
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" backgroundColor={theme.colors.background} />
+      <Text style={styles.errorText}>Order not found</Text>
+    </SafeAreaView>
+  );
+}
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="light" backgroundColor={theme.colors.background} />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop}>
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Detail</Text>
-          <View style={styles.placeholder} />
-        </View>
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={theme.colors.accent} />
-          <Text style={styles.loadingText}>Loading order...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" backgroundColor={theme.colors.background} />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop} style={styles.backButton}>
+          <ArrowLeft size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Order Detail</Text>
+        <View style={styles.placeholder} />
+      </View>
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <Text style={styles.loadingText}>Loading order...</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
 
   if (!order) {
     return (
@@ -70,15 +73,15 @@ export default function OrderDetailScreen() {
     );
   }
 
-  const paymentBadge = order.payment_status === 'paid' ? 'Paid' : 'Payment on Hold';
-  const paymentColor = order.payment_status === 'paid' ? theme.colors.status.success : theme.colors.status.warning;
+  const paymentToken = getPaymentStatusToken(order.payment_status, theme);
+  const statusToken = getOrderStatusToken(order.status, theme);
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" backgroundColor={theme.colors.background} />
+      <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop}>
-          <Text style={styles.backText}>Back</Text>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop} style={styles.backButton}>
+          <ArrowLeft size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>Order #{order.id.slice(-6).toUpperCase()}</Text>
         <View style={styles.placeholder} />
@@ -86,9 +89,12 @@ export default function OrderDetailScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: theme.insets.bottom + theme.spacing.xl }}>
         <View style={styles.statusBanner}>
-          <Text style={styles.statusLabel}>{statusLabel(order.status)}</Text>
-          <View style={[styles.paymentPill, { borderColor: paymentColor, backgroundColor: paymentColor + '22' }]}>
-            <Text style={[styles.paymentText, { color: paymentColor }]}>{paymentBadge}</Text>
+          <View>
+            <Text style={styles.statusTitle}>{getOrderStatusToken(order.status, theme).label}</Text>
+            <Text style={styles.statusSubtitle}>Ready for pickup by {formatOrderTime(order.created_at)}</Text>
+          </View>
+          <View style={[styles.badge, { backgroundColor: statusToken.background }]}>
+            <Text style={[styles.badgeText, { color: statusToken.color }]}>{statusToken.label}</Text>
           </View>
         </View>
 
@@ -122,21 +128,6 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {order.delivery ? (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Driver</Text>
-            <View style={styles.contactRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.contactName}>{order.delivery.driver?.user_id ? `Driver ${order.delivery.driver.user_id.slice(-4)}` : 'Assigned Driver'}</Text>
-                <Text style={styles.contactMeta}>{order.delivery.driver?.vehicle_type || '—'}</Text>
-              </View>
-              <TouchableOpacity style={styles.contactButton} onPress={() => {}}>
-                <Text style={styles.contactButtonText}>Contact</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : null}
-
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Delivery Address</Text>
           <Text style={styles.addressText}>{order.delivery_address}</Text>
@@ -151,7 +142,7 @@ export default function OrderDetailScreen() {
             timeline.map((event, idx) => (
               <TimelineItem
                 key={`${event.event_type}-${event.created_at}-${idx}`}
-                title={statusLabel(event.event_type)}
+                title={getOrderStatusToken(event.event_type, theme).label}
                 subtitle={event.event_note || undefined}
                 time={new Date(event.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                 completed
@@ -161,29 +152,12 @@ export default function OrderDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      <TouchableOpacity style={styles.bottomCta} activeOpacity={0.9}>
+        <Text style={styles.bottomCtaText}>Mark as Ready for Pickup</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case 'pending':
-      return 'Pending';
-    case 'confirmed':
-      return 'Accepted';
-    case 'preparing':
-      return 'Preparing';
-    case 'ready':
-      return 'Ready for Pickup';
-    case 'picked_up':
-      return 'Out for Delivery';
-    case 'delivered':
-      return 'Delivered';
-    case 'cancelled':
-      return 'Cancelled';
-    default:
-      return status;
-  }
 }
 
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
@@ -211,7 +185,16 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       justifyContent: 'space-between',
       marginBottom: theme.spacing.lg,
     },
-    backText: { ...theme.typography.subhead, color: theme.colors.accent },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
     headerTitle: { ...theme.typography.title2 },
     placeholder: { width: 48 },
     loader: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: theme.spacing.sm },
@@ -219,7 +202,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     errorText: { ...theme.typography.body, color: theme.colors.status.error, textAlign: 'center', marginTop: theme.spacing.lg },
     statusBanner: {
       backgroundColor: theme.colors.surface,
-      borderRadius: theme.radius.lg,
+      borderRadius: theme.radius.card,
       borderWidth: 1,
       borderColor: theme.colors.border,
       padding: theme.spacing.md,
@@ -229,17 +212,17 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       marginBottom: theme.spacing.md,
       ...theme.shadows.card,
     },
-    statusLabel: { ...theme.typography.subhead },
-    paymentPill: {
-      paddingHorizontal: theme.spacing.sm,
+    statusTitle: { ...theme.typography.subhead },
+    statusSubtitle: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: 2 },
+    badge: {
+      paddingHorizontal: theme.spacing.md,
       paddingVertical: theme.spacing.xs,
       borderRadius: theme.radius.pill,
-      borderWidth: 1,
     },
-    paymentText: { ...theme.typography.caption, fontFamily: 'Inter-SemiBold' },
+    badgeText: { ...theme.typography.caption, fontFamily: 'Inter-SemiBold' },
     card: {
       backgroundColor: theme.colors.surface,
-      borderRadius: theme.radius.lg,
+      borderRadius: theme.radius.card,
       borderWidth: 1,
       borderColor: theme.colors.border,
       padding: theme.spacing.md,
@@ -275,5 +258,16 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     contactButtonText: { ...theme.typography.buttonSmall },
     addressText: { ...theme.typography.body },
     addressMeta: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: theme.spacing.xs },
+    bottomCta: {
+      backgroundColor: theme.colors.accent,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radius.cta,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      marginBottom: theme.insets.bottom + theme.spacing.md,
+      ...theme.shadows.card,
+    },
+    bottomCtaText: { ...theme.typography.button, color: '#FFFFFF' },
   });
 }

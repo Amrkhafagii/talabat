@@ -32,7 +32,7 @@ export default function ScreenHeader({
       <View style={styles.left}>
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.iconButton} hitSlop={theme.tap.hitSlop}>
-            <ArrowLeft size={20} color={theme.colors.text} />
+            <ArrowLeft size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
           </TouchableOpacity>
         ) : null}
         <View>
@@ -40,7 +40,7 @@ export default function ScreenHeader({
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           {dateLabel && onDatePress ? (
             <TouchableOpacity onPress={onDatePress} style={styles.dateRow} hitSlop={theme.tap.hitSlop}>
-              <CalendarDays size={16} color={theme.colors.secondaryText} />
+              <CalendarDays size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.secondaryText} />
               <Text style={styles.dateLabel}>{dateLabel}</Text>
             </TouchableOpacity>
           ) : null}
@@ -63,6 +63,9 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       justifyContent: 'space-between',
       paddingHorizontal: theme.spacing.lg,
       paddingVertical: theme.spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
     },
     left: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
     iconButton: {
@@ -73,9 +76,9 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       justifyContent: 'center',
       backgroundColor: theme.colors.surfaceAlt,
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderColor: theme.colors.borderMuted,
     },
-    title: { ...theme.typography.title2, color: theme.colors.text },
+    title: { ...theme.typography.titleL, color: theme.colors.text },
     subtitle: { ...theme.typography.caption, color: theme.colors.secondaryText },
     dateRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, marginTop: theme.spacing.xs },
     dateLabel: { ...theme.typography.caption, color: theme.colors.secondaryText },

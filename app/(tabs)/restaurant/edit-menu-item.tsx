@@ -179,7 +179,7 @@ export default function EditMenuItem() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar style="dark" backgroundColor={theme.colors.formSurface} />
+        <StatusBar style="dark" backgroundColor={theme.colors.background} />
         <ScreenHeader title="Edit Menu Item" onBack={() => router.back()} />
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading...</Text>
@@ -191,7 +191,7 @@ export default function EditMenuItem() {
   if (!menuItem) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar style="dark" backgroundColor={theme.colors.formSurface} />
+        <StatusBar style="dark" backgroundColor={theme.colors.background} />
         <ScreenHeader title="Edit Menu Item" onBack={() => router.back()} />
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Menu item not found.</Text>
@@ -202,10 +202,10 @@ export default function EditMenuItem() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" backgroundColor={theme.colors.formSurface} />
+      <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <ScreenHeader title="Edit Menu Item" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={{ paddingBottom: theme.insets.bottom + theme.spacing.xl }} showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>Item photo</Text>
           <TouchableOpacity style={styles.photoPlaceholder} onPress={pickImage} activeOpacity={0.8}>
             {imageUri ? (
@@ -220,7 +220,7 @@ export default function EditMenuItem() {
           {errors.image && <Text style={styles.errorText}>{errors.image}</Text>}
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.card}>
           <LabeledInput label="Item Name *" value={name} onChangeText={setName} placeholder="e.g., Classic Cheeseburger" errorText={errors.name} />
           <LabeledInput
             label="Description *"
@@ -242,7 +242,7 @@ export default function EditMenuItem() {
           />
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
             {categories.map((cat) => {
@@ -273,19 +273,19 @@ export default function EditMenuItem() {
           </View>
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>Visibility</Text>
           <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>Available</Text>
-            <Switch value={isAvailable} onValueChange={setIsAvailable} />
+            <Switch value={isAvailable} onValueChange={setIsAvailable} trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }} thumbColor="#FFFFFF" />
           </View>
           <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>Mark as popular</Text>
-            <Switch value={isPopular} onValueChange={setIsPopular} />
+            <Switch value={isPopular} onValueChange={setIsPopular} trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }} thumbColor="#FFFFFF" />
           </View>
         </View>
 
-        <Button title={saving ? 'Saving...' : 'Save Changes'} onPress={handleSave} disabled={saving} style={styles.saveButton} />
+        <Button title={saving ? 'Saving...' : 'Save Changes'} onPress={handleSave} disabled={saving} style={styles.saveButton} pill fullWidth />
       </ScrollView>
     </SafeAreaView>
   );
@@ -293,17 +293,27 @@ export default function EditMenuItem() {
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.colors.formSurface },
+    container: { flex: 1, backgroundColor: theme.colors.background },
     loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.lg },
     loadingText: { ...theme.typography.body, color: theme.colors.secondaryText },
-    section: { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg },
+    card: {
+      backgroundColor: theme.colors.surface,
+      marginHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.md,
+      padding: theme.spacing.lg,
+      borderRadius: theme.radius.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      ...theme.shadows.card,
+    },
     sectionTitle: { ...theme.typography.subhead, marginBottom: theme.spacing.sm },
     photoPlaceholder: {
       height: 180,
       borderRadius: theme.radius.lg,
       borderWidth: 1,
-      borderColor: theme.colors.formBorder,
-      backgroundColor: theme.colors.formSurfaceAlt,
+      borderColor: theme.colors.border,
+      borderStyle: 'dashed',
+      backgroundColor: theme.colors.surfaceAlt,
       alignItems: 'center',
       justifyContent: 'center',
       gap: theme.spacing.xs,

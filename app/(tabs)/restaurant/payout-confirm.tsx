@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
+import { AlertCircle, ArrowLeft } from 'lucide-react-native';
 
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { requestPayout } from '@/utils/database';
+import Button from '@/components/ui/Button';
 
 type Params = {
   walletId?: string;
@@ -54,35 +56,53 @@ export default function PayoutConfirmScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" backgroundColor={theme.colors.background} />
+      <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop}>
-          <Text style={styles.backText}>Back</Text>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop} style={styles.backButton}>
+          <ArrowLeft size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Confirm Payout</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <View style={styles.card}>
+      <View style={styles.amountCard}>
         <Text style={styles.label}>You will receive</Text>
         <Text style={styles.amount}>{formatMoney(parsedAmount || 0)}</Text>
-        <Text style={styles.meta}>Paying to: {methodLabel}</Text>
-        <Text style={styles.meta}>From wallet: {currency}</Text>
-        <Text style={styles.meta}>Available • {formatMoney(available || 0)}</Text>
-        <Text style={styles.meta}>Pending • {formatMoney(pending || 0)}</Text>
+      </View>
+
+      <View style={styles.detailCard}>
+        <View style={styles.detailRow}>
+          <Text style={styles.meta}>Paying To</Text>
+          <Text style={styles.detailValue}>{methodLabel}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.meta}>From Wallet</Text>
+          <Text style={styles.detailValue}>{formatMoney(available || parsedAmount || 0)}</Text>
+        </View>
+        <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+          <Text style={styles.meta}>Transaction Fee</Text>
+          <Text style={styles.detailValue}>{formatMoney(0)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.infoBanner}>
+        <AlertCircle size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.accent} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.infoTitle}>Processing Time</Text>
+          <Text style={styles.infoText}>Funds will typically arrive in your bank account within 1-3 business days.</Text>
+        </View>
       </View>
 
       <View style={styles.actions}>
-        <TouchableOpacity style={[styles.button, styles.secondary]} onPress={() => router.back()} hitSlop={theme.tap.hitSlop}>
-          <Text style={[styles.buttonText, styles.secondaryText]}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.primary, !canSubmit && styles.disabled]}
+        <Button
+          title={submitting ? 'Submitting...' : 'Confirm & Request Payout'}
           onPress={handleConfirm}
           disabled={!canSubmit || submitting}
-          hitSlop={theme.tap.hitSlop}
-        >
-          <Text style={styles.buttonText}>{submitting ? 'Submitting...' : 'Confirm & Request'}</Text>
+          fullWidth
+          pill
+        />
+        <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop}>
+          <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -98,28 +118,34 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
       paddingTop: theme.spacing.lg,
       paddingBottom: theme.insets.bottom + theme.spacing.lg,
-      gap: theme.spacing.lg,
+      gap: theme.spacing.md,
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
+    backButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: theme.colors.borderMuted,
+    },
     headerTitle: {
       ...theme.typography.title2,
       flex: 1,
       textAlign: 'center',
     },
-    backText: {
-      ...theme.typography.subhead,
-      color: theme.colors.accent,
-    },
     placeholder: {
       width: 64,
     },
-    card: {
+    amountCard: {
       backgroundColor: theme.colors.surface,
-      borderRadius: theme.radius.lg,
+      borderRadius: theme.radius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border,
       padding: theme.spacing.lg,
@@ -131,43 +157,48 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       color: theme.colors.secondaryText,
     },
     amount: {
-      ...theme.typography.title1,
+      ...theme.typography.titleXl,
+    },
+    detailCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.xl,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      padding: theme.spacing.lg,
+      ...theme.shadows.card,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: theme.spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.borderMuted,
+    },
+    detailValue: {
+      ...theme.typography.subhead,
+      color: theme.colors.text,
     },
     meta: {
       ...theme.typography.body,
       color: theme.colors.secondaryText,
     },
-    actions: {
+    infoBanner: {
       flexDirection: 'row',
-      gap: theme.spacing.sm,
-      flexWrap: isCompact ? 'wrap' : 'nowrap',
-    },
-    button: {
-      flex: 1,
-      borderRadius: theme.radius.lg,
-      paddingVertical: theme.spacing.md,
       alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: theme.tap.minHeight,
-      ...theme.shadows.card,
-    },
-    primary: {
-      backgroundColor: theme.colors.accent,
-    },
-    secondary: {
-      backgroundColor: theme.colors.surfaceStrong,
+      gap: theme.spacing.sm,
+      backgroundColor: theme.colors.accentSoft,
+      borderRadius: theme.radius.lg,
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderColor: theme.colors.accentSoft,
+      padding: theme.spacing.md,
     },
-    disabled: {
-      opacity: 0.6,
+    infoTitle: { ...theme.typography.subhead },
+    infoText: { ...theme.typography.caption, color: theme.colors.secondaryText, lineHeight: 20 },
+    actions: {
+      marginTop: theme.spacing.md,
+      gap: theme.spacing.sm,
     },
-    buttonText: {
-      ...theme.typography.button,
-      color: '#FFFFFF',
-    },
-    secondaryText: {
-      color: theme.colors.text,
-    },
+    cancelText: { ...theme.typography.subhead, color: theme.colors.secondaryText, textAlign: 'center' },
   });
 }

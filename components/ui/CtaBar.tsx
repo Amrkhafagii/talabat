@@ -21,7 +21,6 @@ export default function CtaBar({ label, onPress, disabled }: CtaBarProps) {
         backgroundColor: colors.surface,
         borderTopWidth: 1,
         borderTopColor: colors.border,
-        ...shadows.card,
       } as ViewStyle,
       button: {
         borderRadius: radius.cta,

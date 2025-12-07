@@ -19,39 +19,38 @@ export default function SegmentedControl<T extends string>({
   fullWidth = true,
   style,
 }: SegmentedControlProps<T>) {
-  const { colors, spacing, radius, typography, shadows } = useRestaurantTheme();
+  const { colors, spacing, radius, typography } = useRestaurantTheme();
 
   const styles = useMemo(
     () => ({
       container: {
         flexDirection: 'row',
         backgroundColor: colors.surfaceAlt,
-        borderRadius: radius.lg,
+        borderRadius: radius.pill,
         padding: spacing.xs,
         gap: spacing.xs,
         borderWidth: 1,
-        borderColor: colors.border,
-        ...(shadows.card ?? {}),
+        borderColor: colors.borderMuted,
       } as ViewStyle,
       chip: {
         flex: 1,
         paddingVertical: spacing.sm,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: radius.md,
+        borderRadius: radius.pill,
       } as ViewStyle,
       chipActive: {
         backgroundColor: colors.accent,
       } as ViewStyle,
       chipText: {
-        ...typography.buttonSmall,
-        color: colors.textSubtle,
+        ...typography.caption,
+        color: colors.textMuted,
       } as TextStyle,
       chipTextActive: {
         color: '#FFFFFF',
       } as TextStyle,
     }),
-    [colors.accent, colors.border, colors.surfaceAlt, colors.textSubtle, radius.lg, radius.md, shadows.card, spacing.sm, spacing.xs, typography.buttonSmall]
+    [colors.accent, colors.borderMuted, colors.surfaceAlt, colors.textMuted, radius.pill, spacing.sm, spacing.xs, typography.caption]
   );
 
   return (

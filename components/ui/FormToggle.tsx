@@ -34,7 +34,6 @@ export default function FormToggle<T extends FieldValues>({
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.border,
-      ...(shadows.card ?? {}),
       minHeight: tap.minHeight,
     } as ViewStyle,
     toggleDisabled: { backgroundColor: colors.surfaceAlt, borderColor: colors.borderMuted } as ViewStyle,
@@ -44,8 +43,8 @@ export default function FormToggle<T extends FieldValues>({
     toggle: {
       width: 52,
       height: 30,
-      borderRadius: 15,
-      backgroundColor: colors.borderMuted,
+      borderRadius: 16,
+      backgroundColor: '#E0E0E0',
       justifyContent: 'center',
       paddingHorizontal: spacing.xxs,
     } as ViewStyle,

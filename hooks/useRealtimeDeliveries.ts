@@ -30,7 +30,6 @@ export function useRealtimeDeliveries({
             *,
             order:orders(
               *,
-              user:users(*),
               restaurant:restaurants(*),
               order_items(
                 *,
@@ -52,7 +51,6 @@ export function useRealtimeDeliveries({
             *,
             order:orders(
               *,
-              user:users(*),
               restaurant:restaurants(*),
               order_items(
                 *,

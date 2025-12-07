@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { LocationProvider } from '@/contexts/LocationContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { RestaurantThemeProvider, useRestaurantTheme } from '@/styles/restaurantTheme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,19 +33,32 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <LocationProvider>
-        <CartProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="admin" />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </CartProvider>
-      </LocationProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <RestaurantThemeProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <CartProvider>
+              <ThemedStack />
+            </CartProvider>
+          </LocationProvider>
+        </AuthProvider>
+      </RestaurantThemeProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function ThemedStack() {
+  const theme = useRestaurantTheme();
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+      <StatusBar style={theme.statusBarStyle} />
+    </>
   );
 }

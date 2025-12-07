@@ -14,14 +14,27 @@
     - Add indexes on commonly filtered columns for realtime queries
 */
 
--- Enable realtime on orders table
-ALTER PUBLICATION supabase_realtime ADD TABLE orders;
+-- Enable realtime on orders/deliveries/order_items tables if not already added
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'orders'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE orders;
+  END IF;
 
--- Enable realtime on deliveries table  
-ALTER PUBLICATION supabase_realtime ADD TABLE deliveries;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'deliveries'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE deliveries;
+  END IF;
 
--- Enable realtime on order_items table
-ALTER PUBLICATION supabase_realtime ADD TABLE order_items;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'order_items'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE order_items;
+  END IF;
+END $$;
 
 -- Add indexes for better realtime performance
 CREATE INDEX IF NOT EXISTS idx_orders_user_status ON orders(user_id, status);

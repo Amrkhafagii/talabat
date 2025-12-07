@@ -1,5 +1,6 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import React, { useMemo } from 'react';
+import { TouchableOpacity, Text, ViewStyle, TextStyle } from 'react-native';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface ButtonProps {
   title: string;
@@ -7,6 +8,8 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'danger';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
+  loading?: boolean;
+  loadingText?: string;
   style?: ViewStyle;
   textStyle?: TextStyle;
 }
@@ -17,93 +20,61 @@ export default function Button({
   variant = 'primary',
   size = 'medium',
   disabled = false,
+  loading = false,
+  loadingText,
   style,
   textStyle,
 }: ButtonProps) {
+  const { colors, spacing, radius, typography, shadows, tap } = useRestaurantTheme();
+
+  const { containerStyle, labelStyle } = useMemo(() => {
+    const sizePadding =
+      size === 'small'
+        ? { paddingHorizontal: spacing.md, paddingVertical: spacing.sm }
+        : size === 'large'
+          ? { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg }
+          : { paddingHorizontal: spacing.lg, paddingVertical: spacing.md };
+
+    const textBase = size === 'small' ? typography.buttonSmall : typography.button;
+    const variants: Record<string, { backgroundColor: string; borderColor?: string; textColor: string; shadow?: ViewStyle }> = {
+      primary: { backgroundColor: colors.accent, textColor: '#FFFFFF', shadow: shadows.raised },
+      secondary: { backgroundColor: colors.surfaceStrong, textColor: colors.text, shadow: shadows.card },
+      outline: { backgroundColor: 'transparent', borderColor: colors.accent, textColor: colors.accent, shadow: undefined },
+      danger: { backgroundColor: colors.status.error, textColor: '#FFFFFF', shadow: shadows.raised },
+    };
+    const variantStyles = variants[variant];
+
+    const containerStyle: ViewStyle = {
+      borderRadius: radius.lg,
+      minHeight: tap.minHeight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: variant === 'outline' ? 2 : 0,
+      borderColor: variantStyles.borderColor,
+      backgroundColor: variantStyles.backgroundColor,
+      opacity: disabled ? 0.6 : 1,
+      ...(variantStyles.shadow ?? shadows.card),
+      ...sizePadding,
+    };
+
+    const labelStyle: TextStyle = { ...textBase, color: variantStyles.textColor };
+
+    return { containerStyle, labelStyle };
+  }, [colors, disabled, radius.lg, shadows.card, shadows.raised, size, spacing.lg, spacing.md, spacing.sm, spacing.xl, spacing.xl2, tap.minHeight, typography.button, typography.buttonSmall, variant]);
+
   return (
     <TouchableOpacity
-      style={[
-        styles.button,
-        styles[variant],
-        styles[size],
-        disabled && styles.disabled,
-        style,
-      ]}
+      style={[containerStyle, style]}
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || loading}
       activeOpacity={0.8}
+      hitSlop={tap.hitSlop}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
-      <Text style={[styles.text, styles[`${variant}Text`], styles[`${size}Text`], textStyle]}>
-        {title}
+      <Text style={[labelStyle, textStyle]}>
+        {loading ? loadingText || 'Loading...' : title}
       </Text>
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  primary: {
-    backgroundColor: '#FF6B35',
-  },
-  secondary: {
-    backgroundColor: '#10B981',
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#FF6B35',
-  },
-  danger: {
-    backgroundColor: '#EF4444',
-  },
-  disabled: {
-    backgroundColor: '#9CA3AF',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  small: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  medium: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  large: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  text: {
-    fontFamily: 'Inter-SemiBold',
-  },
-  primaryText: {
-    color: '#FFFFFF',
-  },
-  secondaryText: {
-    color: '#FFFFFF',
-  },
-  outlineText: {
-    color: '#FF6B35',
-  },
-  dangerText: {
-    color: '#FFFFFF',
-  },
-  smallText: {
-    fontSize: 14,
-  },
-  mediumText: {
-    fontSize: 16,
-  },
-  largeText: {
-    fontSize: 18,
-  },
-});

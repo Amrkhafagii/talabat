@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, TextInput, Animated, Modal, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
-import { Plus, Filter, ArrowUp, ArrowDown, Trash2, X } from 'lucide-react-native';
+import { Plus, Filter, ArrowUp, ArrowDown, Trash2, X, GripVertical } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import SearchBar from '@/components/ui/SearchBar';
@@ -25,11 +26,13 @@ import {
 import { Restaurant, MenuItem, Category } from '@/types/database';
 import { reorderCategoryList, ensureOwnership, shouldRefetchOnFocus } from '@/utils/menuOrdering';
 import { logMutationError } from '@/utils/telemetry';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 const baseCategoryFilters = ['All', 'Popular'];
 
 export default function MenuManagement() {
   const { user } = useAuth();
+  const theme = useRestaurantTheme();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -50,6 +53,8 @@ export default function MenuManagement() {
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [renameDrafts, setRenameDrafts] = useState<Record<string, string>>({});
   const [pendingCategories, setPendingCategories] = useState<Category[] | null>(null);
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     if (user) {
@@ -166,19 +171,16 @@ export default function MenuManagement() {
       return;
     }
 
+    const previous = menuItems;
+    setMenuItems(prev => prev.map(item => item.id === itemId ? { ...item, is_available: !isAvailable } : item));
+
     try {
       const { success, error, errorCode } = await updateMenuItem(itemId, { is_available: !isAvailable }, restaurant.id);
 
       if (success) {
-        setMenuItems(prev => 
-          prev.map(item => 
-            item.id === itemId 
-              ? { ...item, is_available: !isAvailable }
-              : item
-          )
-        );
         showToast(!isAvailable ? 'Item marked available' : 'Item marked unavailable');
       } else {
+        setMenuItems(previous);
         const friendly = errorCode === '42501'
           ? 'You cannot update items you do not own.'
           : 'Failed to update item availability';
@@ -188,6 +190,7 @@ export default function MenuManagement() {
     } catch (err) {
       console.error('Error updating availability:', err);
       logMutationError('menu.updateAvailability.failed', { itemId, err: String(err) });
+      setMenuItems(previous);
       Alert.alert('Error', 'Failed to update item availability');
     }
   };
@@ -204,19 +207,16 @@ export default function MenuManagement() {
       return;
     }
 
+    const previous = menuItems;
+    setMenuItems(prev => prev.map(item => item.id === itemId ? { ...item, is_popular: !isPopular } : item));
+
     try {
       const { success, error, errorCode } = await updateMenuItem(itemId, { is_popular: !isPopular }, restaurant.id);
 
       if (success) {
-        setMenuItems(prev => 
-          prev.map(item => 
-            item.id === itemId 
-              ? { ...item, is_popular: !isPopular }
-              : item
-          )
-        );
         showToast(!isPopular ? 'Item marked popular' : 'Item unmarked popular');
       } else {
+        setMenuItems(previous);
         const friendly = errorCode === '42501'
           ? 'You cannot update items you do not own.'
           : 'Failed to update popular status';
@@ -226,15 +226,16 @@ export default function MenuManagement() {
     } catch (err) {
       console.error('Error updating popular status:', err);
       logMutationError('menu.updatePopular.failed', { itemId, err: String(err) });
+      setMenuItems(previous);
       Alert.alert('Error', 'Failed to update popular status');
     }
   };
 
   const handleEditItem = (item: MenuItem) => {
     router.push({
-      pathname: '/restaurant/edit-menu-item',
+      pathname: '/(tabs)/restaurant/menu-item/edit',
       params: { itemId: item.id }
-    });
+    } as any);
   };
 
   const handleDeleteItem = (item: MenuItem) => {
@@ -273,7 +274,7 @@ export default function MenuManagement() {
   };
 
   const addNewItem = () => {
-    router.push('/restaurant/add-menu-item');
+    router.push('/(tabs)/restaurant/menu-item/add' as any);
   };
 
   const showToast = (message: string) => {
@@ -403,9 +404,10 @@ export default function MenuManagement() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar style="light" backgroundColor={theme.colors.background} />
         <Header title="Menu Management" showBackButton />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.accent} />
           <Text style={styles.loadingText}>Loading menu...</Text>
         </View>
       </SafeAreaView>
@@ -415,6 +417,7 @@ export default function MenuManagement() {
   if (error || !restaurant) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar style="light" backgroundColor={theme.colors.background} />
         <Header title="Menu Management" showBackButton />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error || 'Restaurant not found'}</Text>
@@ -430,6 +433,7 @@ export default function MenuManagement() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="light" backgroundColor={theme.colors.background} />
       <Header 
         title="Menu Management" 
         showBackButton 
@@ -444,15 +448,15 @@ export default function MenuManagement() {
           <Text style={styles.statLabel}>Total</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: '#10B981' }]}>{stats.available}</Text>
+          <Text style={[styles.statNumber, { color: theme.colors.status.success }]}>{stats.available}</Text>
           <Text style={styles.statLabel}>Available</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: '#FFB800' }]}>{stats.popular}</Text>
+          <Text style={[styles.statNumber, { color: theme.colors.status.warning }]}>{stats.popular}</Text>
           <Text style={styles.statLabel}>Popular</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: '#EF4444' }]}>{stats.unavailable}</Text>
+          <Text style={[styles.statNumber, { color: theme.colors.status.error }]}>{stats.unavailable}</Text>
           <Text style={styles.statLabel}>Unavailable</Text>
         </View>
       </View>
@@ -470,7 +474,7 @@ export default function MenuManagement() {
             style={styles.filterButton}
             onPress={() => setShowFilters(!showFilters)}
           >
-            <Filter size={20} color="#6B7280" />
+            <Filter size={20} color={theme.colors.secondaryText} />
           </TouchableOpacity>
           <Button title="Add Item" onPress={addNewItem} style={styles.addCta} />
         </View>
@@ -511,39 +515,6 @@ export default function MenuManagement() {
             </View>
           </View>
         )}
-      </View>
-
-      {/* Category Manager */}
-      <View style={styles.categoriesManager}>
-        <Text style={styles.sectionTitle}>Manage Categories</Text>
-        <View style={styles.addCategoryRow}>
-          <TextInput
-            style={[styles.categoryInput, styles.flex1]}
-            placeholder="New category"
-            value={newCategoryName}
-            onChangeText={setNewCategoryName}
-          />
-          <TouchableOpacity style={styles.addCategoryButton} onPress={handleCreateCategory}>
-            <Text style={styles.addCategoryButtonText}>Add</Text>
-          </TouchableOpacity>
-        </View>
-        {categories.map((cat, idx) => (
-          <View key={cat.id} style={styles.manageRow}>
-            <TextInput
-              style={[styles.categoryInput, styles.flex1]}
-              value={cat.name}
-              onChangeText={(val) => handleUpdateCategoryName(cat.id, val)}
-            />
-            <View style={styles.reorderButtons}>
-              <TouchableOpacity onPress={() => moveCategory(idx, 'up')} disabled={idx === 0}>
-                <ArrowUp size={18} color={idx === 0 ? '#D1D5DB' : '#111827'} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => moveCategory(idx, 'down')} disabled={idx === categories.length - 1}>
-                <ArrowDown size={18} color={idx === categories.length - 1 ? '#D1D5DB' : '#111827'} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
       </View>
 
       {/* Menu Items List */}
@@ -633,14 +604,14 @@ export default function MenuManagement() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Manage Categories</Text>
               <TouchableOpacity onPress={() => setShowCategoryManager(false)}>
-                <X size={20} color="#111827" />
+                <X size={20} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalSubtitle}>Global categories are shared; scoped ones belong to your restaurant.</Text>
+            <Text style={styles.modalSubtitle}>Drag or use arrows to reorder. Global categories are shared; scoped belong to you.</Text>
             <ScrollView>
               {categories.map((cat, idx) => (
                 <View key={cat.id} style={styles.manageRow}>
-                  <Text style={styles.sortNumber}>{idx + 1}</Text>
+                  <GripVertical size={16} color={theme.colors.secondaryText} />
                   <TextInput
                     style={[styles.categoryInput, styles.flex1]}
                     value={renameDrafts[cat.id] ?? cat.name}
@@ -650,14 +621,14 @@ export default function MenuManagement() {
                   <Text style={styles.scopePill}>{cat.restaurant_id ? 'Your restaurant' : 'Global'}</Text>
                   <View style={styles.reorderButtons}>
                     <TouchableOpacity onPress={() => moveCategory(idx, 'up')} disabled={idx === 0}>
-                      <ArrowUp size={18} color={idx === 0 ? '#D1D5DB' : '#111827'} />
+                      <ArrowUp size={18} color={idx === 0 ? theme.colors.border : theme.colors.text} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => moveCategory(idx, 'down')} disabled={idx === categories.length - 1}>
-                      <ArrowDown size={18} color={idx === categories.length - 1 ? '#D1D5DB' : '#111827'} />
+                      <ArrowDown size={18} color={idx === categories.length - 1 ? theme.colors.border : theme.colors.text} />
                     </TouchableOpacity>
                   </View>
                   <TouchableOpacity onPress={() => handleDeleteCategory(cat.id)} style={styles.deleteBtn}>
-                    <Trash2 size={16} color="#EF4444" />
+                    <Trash2 size={16} color={theme.colors.status.error} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -680,314 +651,310 @@ export default function MenuManagement() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginTop: 12,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-  },
-  statsBar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  sectionWrapper: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  sectionHeading: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  stickyBar: {
-    backgroundColor: '#FFFFFF',
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  searchSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    gap: 12,
-  },
-  addCta: { minWidth: 110 },
-  searchBar: {
-    flex: 1,
-    margin: 0,
-  },
-  filterButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#FF6B35',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  flex1: { flex: 1 },
-  filtersContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  categoriesManager: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  categoryInput: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontFamily: 'Inter-Regular',
-    color: '#111827',
-  },
-  addCategoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  addCategoryButton: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  addCategoryButtonText: {
-    color: '#FFFFFF',
-    fontFamily: 'Inter-SemiBold',
-  },
-  categoryFilter: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-  },
-  selectedCategoryFilter: {
-    backgroundColor: '#FF6B35',
-  },
-  categoryFilterText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  selectedCategoryFilterText: {
-    color: '#FFFFFF',
-  },
-  manageCategoriesButton: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-  },
-  manageCategoriesText: {
-    fontFamily: 'Inter-Medium',
-    color: '#111827',
-  },
-  filterToggles: {
-    marginTop: 10,
-    gap: 8,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  toggleLabel: {
-    fontFamily: 'Inter-Regular',
-    color: '#374151',
-  },
-  content: {
-    flex: 1,
-  },
-  itemsList: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 80,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  emptyButton: {
-    marginTop: 16,
-  },
-  toast: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: '#111827',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  toastText: {
-    color: '#FFFFFF',
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '80%',
-    gap: 12,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 18,
-    color: '#111827',
-  },
-  modalSubtitle: {
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  scopePill: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  deleteBtn: {
-    padding: 6,
-  },
-  sortNumber: {
-    width: 20,
-    textAlign: 'center',
-    fontFamily: 'Inter-SemiBold',
-    color: '#6B7280',
-  },
-  manageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  reorderButtons: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-});
+function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
+  const isCompact = theme.device.isSmallScreen;
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.lg,
+    },
+    loadingText: {
+      ...theme.typography.body,
+      color: theme.colors.secondaryText,
+      marginTop: theme.spacing.sm,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.lg,
+    },
+    errorText: {
+      ...theme.typography.body,
+      color: theme.colors.status.error,
+      textAlign: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    retryButton: {
+      backgroundColor: theme.colors.accent,
+      paddingHorizontal: theme.spacing.xl,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radius.md,
+    },
+    retryButtonText: {
+      ...theme.typography.button,
+      color: '#FFFFFF',
+    },
+    statsBar: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+      backgroundColor: theme.colors.surface,
+      paddingVertical: theme.spacing.md,
+      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    sectionWrapper: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingTop: theme.spacing.sm,
+      paddingBottom: theme.spacing.xs,
+    },
+    sectionHeading: {
+      ...theme.typography.title2,
+      marginBottom: theme.spacing.xs,
+    },
+    stickyBar: {
+      backgroundColor: theme.colors.surface,
+      paddingBottom: theme.spacing.xs,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      ...theme.shadows.card,
+    },
+    statItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statNumber: {
+      ...theme.typography.title2,
+      marginBottom: 2,
+    },
+    statLabel: {
+      ...theme.typography.caption,
+      color: theme.colors.secondaryText,
+    },
+    searchSection: {
+      flexDirection: 'row',
+      alignItems: isCompact ? 'stretch' : 'center',
+      flexWrap: 'wrap',
+      rowGap: theme.spacing.sm,
+      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      paddingVertical: theme.spacing.md,
+      backgroundColor: theme.colors.surface,
+      gap: theme.spacing.sm,
+    },
+    addCta: { minWidth: isCompact ? '100%' : 110 },
+    searchBar: {
+      flex: 1,
+      minWidth: isCompact ? '100%' : undefined,
+      margin: 0,
+    },
+    filterButton: {
+      width: 44,
+      height: 44,
+      borderRadius: theme.radius.md,
+      backgroundColor: theme.colors.surfaceAlt,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    addButton: {
+      width: 44,
+      height: 44,
+      borderRadius: theme.radius.md,
+      backgroundColor: theme.colors.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    flex1: { flex: 1 },
+    filtersContainer: {
+      backgroundColor: theme.colors.surface,
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      gap: theme.spacing.sm,
+    },
+    sectionTitle: {
+      ...theme.typography.subhead,
+      color: theme.colors.text,
+      marginBottom: theme.spacing.xs,
+    },
+    categoriesManager: {
+      backgroundColor: theme.colors.surface,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      gap: theme.spacing.xs,
+    },
+    categoryInput: {
+      borderWidth: 1,
+      borderColor: theme.colors.formBorder,
+      borderRadius: theme.radius.md,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.formText,
+      backgroundColor: theme.colors.formSurface,
+    },
+    addCategoryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.sm,
+    },
+    addCategoryButton: {
+      backgroundColor: theme.colors.accent,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.radius.md,
+    },
+    addCategoryButtonText: {
+      ...theme.typography.subhead,
+      color: '#FFFFFF',
+      fontFamily: 'Inter-SemiBold',
+    },
+    categoryFilter: {
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      marginRight: theme.spacing.sm,
+      borderRadius: theme.radius.pill,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    selectedCategoryFilter: {
+      backgroundColor: theme.colors.accent,
+      borderColor: theme.colors.accent,
+    },
+    categoryFilterText: {
+      ...theme.typography.subhead,
+      color: theme.colors.secondaryText,
+    },
+    selectedCategoryFilterText: {
+      color: '#FFFFFF',
+      fontFamily: 'Inter-SemiBold',
+    },
+    manageCategoriesButton: {
+      marginTop: theme.spacing.xs,
+      alignSelf: 'flex-start',
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    manageCategoriesText: {
+      ...theme.typography.subhead,
+      color: theme.colors.text,
+    },
+    filterToggles: {
+      gap: theme.spacing.xs,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    toggleLabel: {
+      ...theme.typography.body,
+      color: theme.colors.text,
+    },
+    content: {
+      flex: 1,
+    },
+    itemsList: {
+      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      paddingTop: theme.spacing.md,
+      paddingBottom: 80,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: theme.spacing.xl2,
+      paddingHorizontal: theme.spacing.xl,
+    },
+    emptyTitle: {
+      ...theme.typography.title2,
+      marginBottom: theme.spacing.xs,
+      textAlign: 'center',
+    },
+    emptyText: {
+      ...theme.typography.body,
+      color: theme.colors.secondaryText,
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: theme.spacing.lg,
+    },
+    emptyButton: {
+      marginTop: theme.spacing.sm,
+    },
+    toast: {
+      position: 'absolute',
+      bottom: theme.spacing.lg,
+      left: theme.spacing.lg,
+      right: theme.spacing.lg,
+      backgroundColor: theme.colors.surfaceStrong,
+      paddingVertical: theme.spacing.md,
+      paddingHorizontal: theme.spacing.lg,
+      borderRadius: theme.radius.lg,
+      alignItems: 'center',
+      ...theme.shadows.card,
+    },
+    toastText: {
+      color: theme.colors.text,
+      fontFamily: 'Inter-SemiBold',
+      fontSize: 14,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'flex-end',
+    },
+    modalCard: {
+      backgroundColor: theme.colors.surface,
+      padding: theme.spacing.md,
+      borderTopLeftRadius: theme.radius.xl,
+      borderTopRightRadius: theme.radius.xl,
+      maxHeight: '80%',
+      gap: theme.spacing.sm,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    modalTitle: {
+      ...theme.typography.title2,
+    },
+    modalSubtitle: {
+      ...theme.typography.caption,
+      color: theme.colors.secondaryText,
+    },
+    scopePill: {
+      backgroundColor: theme.colors.surfaceAlt,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.radius.md,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.secondaryText,
+    },
+    deleteBtn: {
+      padding: theme.spacing.xs,
+    },
+    sortNumber: {
+      width: 20,
+      textAlign: 'center',
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.secondaryText,
+    },
+    manageRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.sm,
+    },
+    reorderButtons: {
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+    },
+  });
+}

@@ -1,59 +1,105 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity, TextInput, Alert } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity, TextInput, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Wallet as WalletIcon, Receipt, Shield } from 'lucide-react-native';
+import { StatusBar } from 'expo-status-bar';
+import { Wallet as WalletIcon, Shield, Plus, ArrowRightCircle, CreditCard, Trash2, Star, FileText } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 
+import ScreenHeader from '@/components/ui/ScreenHeader';
+import PillTabs from '@/components/ui/PillTabs';
+import Button from '@/components/ui/Button';
+import LabeledInput from '@/components/ui/LabeledInput';
+import Snackbar from '@/components/ui/Snackbar';
 import { useAuth } from '@/contexts/AuthContext';
-import { getWalletsByUser, getWalletTransactions, ensureRestaurantForUser, updateRestaurant, requestPayout } from '@/utils/database';
-import { Wallet, WalletTransaction, Restaurant } from '@/types/database';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import {
+  ensureRestaurantForUser,
+  getWalletsByUser,
+  getWalletTransactions,
+  requestPayout,
+  getWalletBalances,
+  listPayoutMethods,
+  createPayoutMethod,
+  setDefaultPayoutMethod,
+  deletePayoutMethod,
+} from '@/utils/database';
+import { Wallet, WalletTransaction, Restaurant, PayoutMethod } from '@/types/database';
+import { getKycStatus, upsertKycSubmission, uploadKycDocument } from '@/utils/db/kyc';
 import { formatCurrency } from '@/utils/formatters';
 import { logMutationError } from '@/utils/telemetry';
+import { supabase } from '@/utils/supabase';
+
+const statusColors: Record<string, string> = {
+  pending: '#F59E0B',
+  completed: '#22C55E',
+  failed: '#EF4444',
+  on_hold: '#F59E0B',
+  processing: '#3B82F6',
+  review: '#8B5CF6',
+  reversed: '#6B7280',
+};
 
 export default function RestaurantWallet() {
   const { user } = useAuth();
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const tabSpacing = theme.device.isSmallScreen ? theme.spacing.md : theme.spacing.lg;
+
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [balances, setBalances] = useState<{ available: number; pending: number }>({ available: 0, pending: 0 });
+  const [payoutMethods, setPayoutMethods] = useState<PayoutMethod[]>([]);
+  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
+  const [kyc, setKyc] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [bankForm, setBankForm] = useState({ bankName: '', accountNumber: '', iban: '', instapayType: 'account', instapayHandle: '' });
-  const [payoutAmount, setPayoutAmount] = useState('');
-  const [savingBank, setSavingBank] = useState(false);
+  const [savingMethod, setSavingMethod] = useState(false);
   const [requestingPayout, setRequestingPayout] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [tab, setTab] = useState<'transactions' | 'methods'>('transactions');
+
+  // new method form
+  const [methodForm, setMethodForm] = useState({ bankName: '', last4: '', isDefault: false });
+
+  // KYC form
+  const [kycStep, setKycStep] = useState(1);
+  const [kycForm, setKycForm] = useState({ fullName: '', nationality: '', dob: '', address: '', docUri: '' });
+  const [kycSaving, setKycSaving] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      loadWallet();
-    }
+    if (user) loadWallet();
   }, [user]);
 
   const loadWallet = async () => {
     if (!user) return;
-
     try {
       setLoading(true);
       const rest = await ensureRestaurantForUser(user.id);
       setRestaurant(rest);
-      setBankForm({
-        bankName: (rest as any)?.payout_account?.bankName || '',
-        accountNumber: (rest as any)?.payout_account?.accountNumber || '',
-        iban: (rest as any)?.payout_account?.iban || '',
-        instapayType: (rest as any)?.payout_account?.instapayType || 'account',
-        instapayHandle: (rest as any)?.payout_account?.instapayHandle || '',
-      });
-      const userWallets = await getWalletsByUser(user.id);
-      const restaurantWallet = userWallets.find(w => w.type === 'restaurant') || userWallets[0] || null;
-      setWallet(restaurantWallet);
 
+      const userWallets = await getWalletsByUser(user.id);
+      const restaurantWallet = userWallets.find((w) => w.type === 'restaurant') || userWallets[0] || null;
+      setWallet(restaurantWallet || null);
       if (restaurantWallet) {
         const tx = await getWalletTransactions(restaurantWallet.id);
         setTransactions(tx);
-      } else {
-        setTransactions([]);
+        const bal = await getWalletBalances(restaurantWallet.id);
+        if (bal) setBalances(bal);
+      }
+
+      const methods = await listPayoutMethods(user.id);
+      setPayoutMethods(methods);
+      setSelectedMethodId(methods.find((m) => m.is_default)?.id ?? methods[0]?.id ?? null);
+
+      if (rest) {
+        const k = await getKycStatus(rest.id);
+        setKyc(k);
       }
     } catch (err) {
-      console.error('Error loading restaurant wallet:', err);
+      console.error('load wallet error', err);
+      setToast({ msg: 'Failed to load wallet.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -65,79 +111,175 @@ export default function RestaurantWallet() {
     setRefreshing(false);
   };
 
-  const handleSaveBank = async () => {
-    if (!restaurant) return;
-    if (!bankForm.bankName || !bankForm.accountNumber) {
-      Alert.alert('Bank info required', 'Please enter bank name and account number.');
+  const handleAddMethod = async () => {
+    if (!user) return;
+    if (!methodForm.bankName.trim() || !methodForm.last4.trim()) {
+      setToast({ msg: 'Enter bank name and last4.', type: 'error' });
       return;
     }
     try {
-      setSavingBank(true);
-      const { success, error } = await updateRestaurant(restaurant.id, {
-        payout_account: bankForm,
-        kyc_status: restaurant.kyc_status ?? 'pending',
+      setSavingMethod(true);
+      const method = await createPayoutMethod({
+        user_id: user.id,
+        type: 'bank_account',
+        bank_name: methodForm.bankName.trim(),
+        last4: methodForm.last4.trim(),
+        is_default: methodForm.isDefault,
+        metadata: {},
       } as any);
-      if (success) {
-        setRestaurant((prev) => (prev ? { ...prev, payout_account: bankForm, kyc_status: 'pending' } : prev));
-        Alert.alert('Saved', 'Bank details saved. KYC status set to pending.');
+      if (method) {
+        await loadWallet();
+        setMethodForm({ bankName: '', last4: '', isDefault: false });
       } else {
-        Alert.alert('Error', error || 'Failed to save bank details.');
+        setToast({ msg: 'Failed to add method.', type: 'error' });
       }
     } catch (err) {
-      console.error('Error saving bank details', err);
-      logMutationError('wallet.bank.save.failed', { err: String(err) });
-      Alert.alert('Error', 'Failed to save bank details.');
+      console.error('add method error', err);
+      setToast({ msg: 'Failed to add method.', type: 'error' });
     } finally {
-      setSavingBank(false);
+      setSavingMethod(false);
     }
   };
 
-  const handleRequestPayout = async () => {
+  const handleSetDefault = async (id: string) => {
+    if (!user) return;
+    const ok = await setDefaultPayoutMethod(user.id, id);
+    if (ok) {
+      await loadWallet();
+      setSelectedMethodId(id);
+    } else {
+      setToast({ msg: 'Failed to set default.', type: 'error' });
+    }
+  };
+
+  const handleDeleteMethod = async (id: string) => {
+    Alert.alert('Remove method', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          const ok = await deletePayoutMethod(id);
+          if (ok) {
+            await loadWallet();
+          } else {
+            setToast({ msg: 'Failed to remove method.', type: 'error' });
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleRequestPayout = () => {
     if (!wallet) {
       Alert.alert('No wallet', 'Wallet not found.');
       return;
     }
-    const amount = parseFloat(payoutAmount || '0');
-    if (isNaN(amount) || amount <= 0) {
-      Alert.alert('Invalid amount', 'Enter a payout amount greater than 0.');
+    if (!selectedMethodId) {
+      Alert.alert('Select method', 'Choose a payout method first.');
       return;
     }
-    if (wallet.balance < amount) {
-      Alert.alert('Insufficient balance', 'Amount exceeds available balance.');
+    const amount = balances.available;
+    if (amount <= 0) {
+      Alert.alert('Insufficient balance', 'No available balance to payout.');
+      return;
+    }
+    setRequestingPayout(true);
+    const method = payoutMethods.find((m) => m.id === selectedMethodId);
+    router.push({
+      pathname: '/(tabs)/restaurant/payout-confirm',
+      params: {
+        walletId: wallet.id,
+        amount: amount.toString(),
+        methodId: selectedMethodId,
+        methodLabel: method ? `${method.bank_name || method.type} ••••${method.last4}` : 'Selected method',
+        available: String(balances.available),
+        pending: String(balances.pending),
+        currency: wallet.currency || 'EGP',
+      },
+    } as any);
+    setRequestingPayout(false);
+  };
+
+  const handleSubmitKyc = async () => {
+    if (!restaurant) return;
+    if (!kycForm.fullName || !kycForm.nationality || !kycForm.dob || !kycForm.address) {
+      setToast({ msg: 'Fill all required fields.', type: 'error' });
       return;
     }
     try {
-      setRequestingPayout(true);
-      const ok = await requestPayout(wallet.id, amount, { bank: bankForm.bankName });
-      if (ok) {
-        Alert.alert('Requested', 'Payout request submitted.');
-        setPayoutAmount('');
-        await loadWallet();
-      } else {
-        Alert.alert('Error', 'Failed to submit payout request.');
+      setKycSaving(true);
+      const submissionId = restaurant.id;
+      const payload = {
+        restaurant_id: restaurant.id,
+        submission_id: submissionId,
+        full_name: kycForm.fullName,
+        nationality: kycForm.nationality,
+        dob: kycForm.dob,
+        address: kycForm.address,
+        status: 'pending',
+      };
+      const ok = await upsertKycSubmission(payload);
+      if (!ok) {
+        setToast({ msg: 'Failed to submit KYC.', type: 'error' });
+        return;
       }
+      if (kycForm.docUri) {
+        const uploaded = await uploadKycFile(kycForm.docUri, submissionId);
+        if (!uploaded) {
+          setToast({ msg: 'Document upload failed.', type: 'error' });
+        } else {
+          await uploadKycDocument({ submission_id: submissionId, doc_type: 'id', doc_url: uploaded });
+        }
+      }
+      setToast({ msg: 'KYC submitted for review.', type: 'success' });
+      const status = await getKycStatus(restaurant.id);
+      setKyc(status);
     } catch (err) {
-      console.error('Error requesting payout', err);
-      logMutationError('wallet.payout.failed', { err: String(err) });
-      Alert.alert('Error', 'Failed to submit payout request.');
+      console.error('kyc submit error', err);
+      setToast({ msg: 'KYC submission failed.', type: 'error' });
     } finally {
-      setRequestingPayout(false);
+      setKycSaving(false);
     }
   };
+
+  const uploadKycFile = async (uri: string, ownerId: string) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const ext = uri.split('.').pop()?.split('?')[0] || 'jpg';
+      const path = `${ownerId}/kyc-${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage.from('kyc-docs').upload(path, blob, { cacheControl: '3600', upsert: true });
+      if (error) throw error;
+      const { data: publicUrl } = supabase.storage.from('kyc-docs').getPublicUrl(data.path);
+      return publicUrl?.publicUrl || data.path;
+    } catch (err) {
+      console.error('kyc upload failed', err);
+      return null;
+    }
+  };
+
+  const pickKycDoc = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets?.length) {
+      setKycForm((prev) => ({ ...prev, docUri: result.assets[0].uri }));
+    }
+  };
+
+  const kycStatusLabel = kyc?.submission?.status || 'pending';
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color="#111827" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Wallet</Text>
-          <View style={styles.placeholder} />
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Loading wallet...</Text>
+        <StatusBar style="light" backgroundColor={theme.colors.background} />
+        <ScreenHeader title="Wallet & Payouts" onBack={() => router.back()} />
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color={theme.colors.accent} />
+          <Text style={styles.loaderText}>Loading wallet...</Text>
         </View>
       </SafeAreaView>
     );
@@ -145,254 +287,294 @@ export default function RestaurantWallet() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Wallet</Text>
-        <View style={styles.placeholder} />
-      </View>
-
+      <StatusBar style="light" backgroundColor={theme.colors.background} />
+      <ScreenHeader title="Wallet & Payouts" onBack={() => router.back()} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={['#FF6B35']}
-            tintColor="#FF6B35"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.colors.accent]} tintColor={theme.colors.accent} />
         }
-        contentContainerStyle={styles.content}
+        contentContainerStyle={{ paddingBottom: theme.insets.bottom + theme.spacing.xl }}
       >
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <WalletIcon size={24} color="#FF6B35" />
-            <Text style={styles.balanceLabel}>Balance</Text>
+            <WalletIcon size={24} color={theme.colors.accent} />
+            <View>
+              <Text style={styles.balanceLabel}>Available Balance</Text>
+              <Text style={styles.balanceValue}>{formatCurrency(balances.available || wallet?.balance || 0)}</Text>
+              <Text style={styles.subBalance}>Pending: {formatCurrency(balances.pending || 0)}</Text>
+            </View>
           </View>
-          <Text style={styles.balanceValue}>
-            {wallet ? formatCurrency(wallet.balance) : formatCurrency(0)}
-          </Text>
-          <Text style={styles.balanceSubtext}>
-            Restaurant wallet • {wallet?.currency || 'EGP'} {restaurant ? `• ${restaurant.name}` : ''}
-          </Text>
+          <Button title={requestingPayout ? 'Loading...' : 'Request Payout'} onPress={handleRequestPayout} disabled={requestingPayout} />
         </View>
 
-        <View style={styles.transactionsCard}>
-          <Text style={styles.sectionTitle}>Transactions</Text>
-          {transactions.length === 0 ? (
-            <Text style={styles.emptyText}>No transactions yet.</Text>
-          ) : (
-            <>
-              {transactions.map(tx => (
-                <View key={tx.id} style={styles.txRow}>
-                  <View style={styles.txLeft}>
-                    <Receipt size={18} color="#6B7280" />
-                    <View>
-                      <Text style={styles.txType}>{tx.type}</Text>
-                      <Text style={styles.txMeta}>
-                        {tx.status} • {tx.created_at ? new Date(tx.created_at).toLocaleString() : ''}
+        {kycStatusLabel !== 'approved' && (
+          <View style={styles.kycBanner}>
+            <Shield size={18} color={theme.colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.kycTitle}>Instapay payments are on hold</Text>
+              <Text style={styles.kycText}>Please update your KYC information.</Text>
+            </View>
+            <TouchableOpacity onPress={() => setKycStep(1)}>
+              <ArrowRightCircle size={20} color={theme.colors.accent} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <PillTabs
+          tabs={[
+            { key: 'transactions', label: 'Transaction History' },
+            { key: 'methods', label: 'Payout Methods' },
+          ]}
+          activeKey={tab}
+          onChange={(key) => setTab(key as any)}
+          scrollable={false}
+          style={{ paddingHorizontal: tabSpacing, marginBottom: theme.spacing.md }}
+        />
+
+        {tab === 'transactions' ? (
+          <View style={styles.card}>
+            {transactions.length === 0 ? (
+              <Text style={styles.emptyText}>No transactions yet.</Text>
+            ) : (
+              transactions.map((tx) => {
+                const tone = statusColors[tx.status] || theme.colors.secondaryText;
+                return (
+                  <View key={tx.id} style={styles.txRow}>
+                    <View style={styles.txLeft}>
+                      <View style={[styles.txDot, { backgroundColor: tone }]} />
+                      <View>
+                        <Text style={styles.txType}>{tx.type}</Text>
+                        <Text style={styles.txMeta}>{tx.created_at ? new Date(tx.created_at).toLocaleDateString() : ''}</Text>
+                      </View>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={[styles.txAmount, tx.amount >= 0 ? styles.positive : styles.negative]}>
+                        {tx.amount >= 0 ? '+' : '-'}
+                        {formatCurrency(Math.abs(tx.amount))}
                       </Text>
+                      <Text style={[styles.txStatus, { color: tone }]}>{tx.status}</Text>
                     </View>
                   </View>
-                  <Text style={[styles.txAmount, tx.amount >= 0 ? styles.positive : styles.negative]}>
-                    {tx.amount >= 0 ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
-                  </Text>
-                </View>
-              ))}
-              <View style={styles.statusChips}>
-                <StatusChip label="Pending" color="#F59E0B" count={transactions.filter(t => t.status === 'pending').length} />
-                <StatusChip label="Failed" color="#EF4444" count={transactions.filter(t => t.status === 'failed').length} />
-              </View>
-            </>
-          )}
-        </View>
-
-        <View style={styles.transactionsCard}>
-          <Text style={styles.sectionTitle}>Bank & Payouts</Text>
-          <View style={styles.kycRow}>
-            <Shield size={18} color="#6B7280" />
-            <Text style={styles.kycText}>KYC status: {restaurant?.kyc_status || 'not set'}</Text>
+                );
+              })
+            )}
           </View>
-          <Text style={styles.label}>Bank name</Text>
-          <TextInput
-            style={styles.input}
-            value={bankForm.bankName}
-            onChangeText={(v) => setBankForm(prev => ({ ...prev, bankName: v }))}
-            placeholder="Bank name"
-          />
-          <Text style={styles.label}>Account number</Text>
-          <TextInput
-            style={styles.input}
-            value={bankForm.accountNumber}
-            onChangeText={(v) => setBankForm(prev => ({ ...prev, accountNumber: v }))}
-            placeholder="Account number"
-          />
-          <Text style={styles.label}>IBAN (optional)</Text>
-          <TextInput
-            style={styles.input}
-            value={bankForm.iban}
-            onChangeText={(v) => setBankForm(prev => ({ ...prev, iban: v }))}
-            placeholder="IBAN"
-          />
-
-          <Text style={styles.label}>Instapay type</Text>
-          <View style={styles.typeRow}>
-            {(['account', 'wallet'] as const).map(type => (
-              <TouchableOpacity
-                key={type}
-                style={[styles.typeChip, bankForm.instapayType === type && styles.typeChipActive]}
-                onPress={() => setBankForm(prev => ({ ...prev, instapayType: type }))}
-              >
-                <Text style={[styles.typeChipText, bankForm.instapayType === type && styles.typeChipTextActive]}>
-                  {type === 'account' ? 'Account' : 'Wallet'}
-                </Text>
+        ) : (
+          <View style={styles.card}>
+            <View style={styles.methodsHeader}>
+              <Text style={styles.sectionTitle}>Payout Methods</Text>
+              <TouchableOpacity style={styles.addMethodButton} onPress={handleAddMethod} disabled={savingMethod}>
+                <Plus size={16} color="#FFFFFF" />
+                <Text style={styles.addMethodText}>{savingMethod ? 'Saving...' : 'Add'}</Text>
               </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Bank name"
+              value={methodForm.bankName}
+              onChangeText={(v) => setMethodForm((p) => ({ ...p, bankName: v }))}
+              placeholderTextColor={theme.colors.formPlaceholder}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Last 4 digits"
+              value={methodForm.last4}
+              onChangeText={(v) => setMethodForm((p) => ({ ...p, last4: v }))}
+              keyboardType="number-pad"
+              maxLength={4}
+              placeholderTextColor={theme.colors.formPlaceholder}
+            />
+            <View style={styles.defaultRow}>
+              <Text style={styles.defaultLabel}>Set as default</Text>
+              <Switch value={methodForm.isDefault} onValueChange={(v) => setMethodForm((p) => ({ ...p, isDefault: v }))} />
+            </View>
+
+            {payoutMethods.length === 0 ? (
+              <Text style={styles.emptyText}>No payout methods yet.</Text>
+            ) : (
+              payoutMethods.map((m) => {
+                const active = m.id === selectedMethodId;
+                return (
+                  <View key={m.id} style={[styles.methodRow, active && styles.methodRowActive]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.methodTitle}>{m.bank_name || m.type}</Text>
+                      <Text style={styles.methodMeta}>•••• {m.last4 || '----'}</Text>
+                    </View>
+                    {m.is_default ? <Star size={16} color={theme.colors.status.success} /> : null}
+                    <TouchableOpacity onPress={() => handleSetDefault(m.id)} hitSlop={theme.tap.hitSlop}>
+                      <Text style={styles.defaultLink}>Set Default</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteMethod(m.id)} hitSlop={theme.tap.hitSlop}>
+                      <Trash2 size={16} color={theme.colors.status.error} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        )}
+
+        <View style={styles.card}>
+          <View style={styles.kycHeader}>
+            <Text style={styles.sectionTitle}>KYC Verification</Text>
+            <Text style={[styles.kycStatus, { color: kycStatusLabel === 'approved' ? theme.colors.status.success : theme.colors.status.warning }]}>
+              {kycStatusLabel}
+            </Text>
+          </View>
+          <View style={styles.stepper}>
+            {[1, 2, 3].map((step) => (
+              <View key={step} style={styles.step}>
+                <View style={[styles.stepDot, step === kycStep && styles.stepDotActive]} />
+                <Text style={styles.stepLabel}>Step {step}</Text>
+              </View>
             ))}
           </View>
 
-          <Text style={styles.label}>Instapay number</Text>
-          <TextInput
-            style={styles.input}
-            value={bankForm.instapayHandle}
-            onChangeText={(v) => setBankForm(prev => ({ ...prev, instapayHandle: v }))}
-            placeholder="Instapay account or wallet number"
-            keyboardType="number-pad"
-          />
-          <TouchableOpacity style={styles.primaryButton} onPress={handleSaveBank} disabled={savingBank}>
-            <Text style={styles.primaryButtonText}>{savingBank ? 'Saving...' : 'Save bank details'}</Text>
-          </TouchableOpacity>
+          <LabeledInput label="Full Legal Name" value={kycForm.fullName} onChangeText={(v) => setKycForm((p) => ({ ...p, fullName: v }))} />
+          <LabeledInput label="Date of Birth" placeholder="YYYY-MM-DD" value={kycForm.dob} onChangeText={(v) => setKycForm((p) => ({ ...p, dob: v }))} />
+          <LabeledInput label="Nationality" value={kycForm.nationality} onChangeText={(v) => setKycForm((p) => ({ ...p, nationality: v }))} />
+          <LabeledInput label="Residential Address" value={kycForm.address} onChangeText={(v) => setKycForm((p) => ({ ...p, address: v }))} />
 
-          <View style={styles.payoutRow}>
+          <View style={styles.docRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Payout amount</Text>
-              <TextInput
-                style={styles.input}
-                value={payoutAmount}
-                onChangeText={setPayoutAmount}
-                keyboardType="decimal-pad"
-                placeholder="Amount"
-              />
-              <Text style={styles.helpText}>Max: {formatCurrency(wallet?.balance || 0)}</Text>
+              <Text style={styles.docLabel}>Document Upload</Text>
+              {kycForm.docUri ? <Text style={styles.docMeta}>Selected: {kycForm.docUri.split('/').pop()}</Text> : <Text style={styles.docMeta}>Upload ID front/back</Text>}
             </View>
-            <TouchableOpacity style={[styles.primaryButton, styles.requestButton]} onPress={handleRequestPayout} disabled={requestingPayout}>
-              <Text style={styles.primaryButtonText}>{requestingPayout ? 'Requesting...' : 'Request Payout'}</Text>
+            <TouchableOpacity style={styles.docButton} onPress={pickKycDoc}>
+              <FileText size={16} color="#FFFFFF" />
+              <Text style={styles.docButtonText}>Upload</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.helpText}>Payouts are processed next business day after KYC approval.</Text>
+
+          <Button title={kycSaving ? 'Submitting...' : 'Submit KYC'} onPress={handleSubmitKyc} disabled={kycSaving} />
         </View>
       </ScrollView>
+
+      {toast && <Snackbar visible message={toast.msg} type={toast.type} onClose={() => setToast(null)} style={styles.toast} />}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold', color: '#111827' },
-  placeholder: { width: 24 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  loadingText: { fontSize: 16, color: '#6B7280', fontFamily: 'Inter-Regular', marginTop: 12 },
-  content: { padding: 20, gap: 16 },
-  balanceCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 8,
-  },
-  balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  balanceLabel: { fontFamily: 'Inter-Medium', color: '#6B7280' },
-  balanceValue: { fontSize: 28, fontFamily: 'Inter-Bold', color: '#111827' },
-  balanceSubtext: { fontFamily: 'Inter-Regular', color: '#6B7280', fontSize: 12 },
-  transactionsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter-SemiBold', color: '#111827', marginBottom: 8 },
-  emptyText: { fontFamily: 'Inter-Regular', color: '#6B7280' },
-  statusChips: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  txRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  txLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  txType: { fontFamily: 'Inter-Medium', color: '#111827' },
-  txMeta: { fontFamily: 'Inter-Regular', color: '#6B7280', fontSize: 12 },
-  txAmount: { fontFamily: 'Inter-SemiBold', fontSize: 14 },
-  positive: { color: '#10B981' },
-  negative: { color: '#EF4444' },
-  kycRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  kycText: { fontFamily: 'Inter-Regular', color: '#374151' },
-  label: { fontFamily: 'Inter-Medium', color: '#374151', marginTop: 8, marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontFamily: 'Inter-Regular',
-    color: '#111827',
-  },
-  primaryButton: {
-    backgroundColor: '#FF6B35',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  primaryButtonText: { color: '#FFFFFF', fontFamily: 'Inter-SemiBold' },
-  payoutRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 12 },
-  requestButton: { flex: 1 },
-  helpText: { fontFamily: 'Inter-Regular', color: '#6B7280', fontSize: 12, marginTop: 4 },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  chipDot: { fontFamily: 'Inter-Bold', marginRight: 4 },
-  chipText: { fontFamily: 'Inter-Medium' },
-  typeRow: { flexDirection: 'row', gap: 8, marginVertical: 8 },
-  typeChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
-  },
-  typeChipActive: {
-    borderColor: '#FF6B35',
-    backgroundColor: '#FFF7ED',
-  },
-  typeChipText: { fontFamily: 'Inter-Medium', color: '#374151' },
-  typeChipTextActive: { color: '#C2410C' },
-});
-
-function StatusChip({ label, color, count }: { label: string; color: string; count: number }) {
-  return (
-    <View style={[styles.chip, { backgroundColor: `${color}1A` }]}>
-      <Text style={[styles.chipDot, { color }]}>•</Text>
-      <Text style={[styles.chipText, { color }]}>{label}: {count}</Text>
-    </View>
-  );
+function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
+  const isCompact = theme.device.isSmallScreen;
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.colors.background },
+    loader: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.sm },
+    loaderText: { ...theme.typography.body, color: theme.colors.secondaryText },
+    balanceCard: {
+      backgroundColor: theme.colors.surface,
+      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      marginTop: theme.spacing.lg,
+      borderRadius: theme.radius.xl,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      padding: theme.spacing.lg,
+      gap: theme.spacing.sm,
+      ...theme.shadows.card,
+    },
+    balanceHeader: { flexDirection: 'row', gap: theme.spacing.sm, alignItems: 'center' },
+    balanceLabel: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    balanceValue: { ...theme.typography.title1 },
+    subBalance: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    kycBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      marginBottom: theme.spacing.md,
+      padding: theme.spacing.md,
+      borderRadius: theme.radius.lg,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    kycTitle: { ...theme.typography.subhead },
+    kycText: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    card: {
+      backgroundColor: theme.colors.surface,
+      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      marginBottom: theme.spacing.md,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      padding: theme.spacing.lg,
+      ...theme.shadows.card,
+    },
+    txRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.borderMuted,
+    },
+    txLeft: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+    txDot: { width: 10, height: 10, borderRadius: 5 },
+    txType: { ...theme.typography.subhead },
+    txMeta: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    txAmount: { ...theme.typography.subhead },
+    txStatus: { ...theme.typography.caption },
+    positive: { color: theme.colors.status.success },
+    negative: { color: theme.colors.status.error },
+    methodsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm },
+    addMethodButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+      backgroundColor: theme.colors.accent,
+      borderRadius: theme.radius.pill,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.xs,
+    },
+    addMethodText: { ...theme.typography.buttonSmall, color: '#FFFFFF' },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.radius.md,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      color: theme.colors.text,
+      marginBottom: theme.spacing.sm,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    defaultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: theme.spacing.sm },
+    defaultLabel: { ...theme.typography.body },
+    methodRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      paddingVertical: theme.spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.borderMuted,
+    },
+    methodRowActive: { backgroundColor: theme.colors.surfaceAlt },
+    methodTitle: { ...theme.typography.subhead },
+    methodMeta: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    defaultLink: { ...theme.typography.caption, color: theme.colors.accent },
+    emptyText: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    kycHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm },
+    sectionTitle: { ...theme.typography.subhead },
+    kycStatus: { ...theme.typography.caption, fontFamily: 'Inter-SemiBold' },
+    stepper: { flexDirection: 'row', gap: theme.spacing.sm, marginBottom: theme.spacing.sm },
+    step: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs },
+    stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.colors.border },
+    stepDotActive: { backgroundColor: theme.colors.accent },
+    stepLabel: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    docRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginVertical: theme.spacing.sm },
+    docLabel: { ...theme.typography.body },
+    docMeta: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    docButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+      backgroundColor: theme.colors.accent,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.radius.md,
+    },
+    docButtonText: { ...theme.typography.buttonSmall, color: '#FFFFFF' },
+    saveButton: { marginHorizontal: theme.spacing.lg, marginBottom: theme.spacing.md },
+    toast: { position: 'absolute', bottom: theme.insets.bottom + theme.spacing.md, left: theme.spacing.lg, right: theme.spacing.lg },
+  });
 }

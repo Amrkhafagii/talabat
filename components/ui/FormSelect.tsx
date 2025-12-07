@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, Modal, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, ViewStyle, Modal, ScrollView, TextStyle } from 'react-native';
 import { Control, Controller, FieldPath, FieldValues } from 'react-hook-form';
 import { ChevronDown, Check } from 'lucide-react-native';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface SelectOption {
   label: string;
@@ -28,6 +29,96 @@ export default function FormSelect<T extends FieldValues>({
   disabled = false,
 }: FormSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
+  const { colors, spacing, radius, typography, shadows, tap, iconSizes } = useRestaurantTheme();
+
+  const styles = useMemo(() => {
+    const baseContainer: ViewStyle = {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.formSurface,
+      borderWidth: 1,
+      borderColor: colors.formBorder,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      minHeight: tap.minHeight,
+    };
+
+    return {
+      container: { marginBottom: spacing.lg } as ViewStyle,
+      label: { ...typography.subhead, color: colors.text, marginBottom: spacing.xs },
+      selectContainer: baseContainer,
+      selectText: { ...typography.body, color: colors.formText, flex: 1 } as TextStyle,
+      placeholderText: { color: colors.formPlaceholder } as TextStyle,
+      selectError: { borderColor: colors.status.error, borderWidth: 1.5 } as ViewStyle,
+      selectDisabled: { backgroundColor: colors.formSurfaceAlt, borderColor: colors.border } as ViewStyle,
+      errorText: { ...typography.caption, color: colors.status.error, marginTop: spacing.xs, marginLeft: spacing.xs } as TextStyle,
+      modalOverlay: {
+        flex: 1,
+        backgroundColor: colors.overlay,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: spacing.lg,
+      } as ViewStyle,
+      modalContent: {
+        backgroundColor: colors.surface,
+        borderRadius: radius.xl,
+        width: '100%',
+        maxHeight: '70%',
+        ...shadows.card,
+      } as ViewStyle,
+      modalHeader: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borderMuted,
+      } as ViewStyle,
+      modalTitle: { ...typography.title2, textAlign: 'center' } as TextStyle,
+      optionsList: { maxHeight: 300 } as ViewStyle,
+      optionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borderMuted,
+      } as ViewStyle,
+      selectedOption: { backgroundColor: colors.surfaceAlt } as ViewStyle,
+      optionText: { ...typography.body, color: colors.text, flex: 1 } as TextStyle,
+      selectedOptionText: { color: colors.accent, fontFamily: 'Inter-SemiBold' } as TextStyle,
+      chevron: { marginLeft: spacing.sm } as ViewStyle,
+      iconSize: iconSizes.md,
+    };
+  }, [
+    colors.accent,
+    colors.border,
+    colors.borderMuted,
+    colors.formBorder,
+    colors.formPlaceholder,
+    colors.formSurface,
+    colors.formSurfaceAlt,
+    colors.formText,
+    colors.overlay,
+    colors.status.error,
+    colors.surface,
+    colors.surfaceAlt,
+    colors.text,
+    iconSizes.md,
+    radius.md,
+    radius.xl,
+    shadows.card,
+    spacing.lg,
+    spacing.md,
+    spacing.sm,
+    spacing.xs,
+    tap.minHeight,
+    typography.body,
+    typography.caption,
+    typography.subhead,
+    typography.title2,
+  ]);
 
   return (
     <Controller
@@ -43,23 +134,26 @@ export default function FormSelect<T extends FieldValues>({
               style={[
                 styles.selectContainer,
                 error && styles.selectError,
-                disabled && styles.selectDisabled
+                disabled && styles.selectDisabled,
               ]}
               onPress={() => !disabled && setIsOpen(true)}
               disabled={disabled}
+              hitSlop={tap.hitSlop}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: isOpen, disabled }}
             >
-              <Text style={[
-                styles.selectText,
-                !selectedOption && styles.placeholderText
-              ]}>
+              <Text
+                style={[
+                  styles.selectText,
+                  !selectedOption && styles.placeholderText,
+                ]}
+              >
                 {selectedOption ? selectedOption.label : placeholder}
               </Text>
-              <ChevronDown size={20} color="#6B7280" />
+              <ChevronDown size={styles.iconSize} color={colors.mutedText} />
             </TouchableOpacity>
-            
-            {error && (
-              <Text style={styles.errorText}>{error.message}</Text>
-            )}
+
+            {error && <Text style={styles.errorText}>{error.message}</Text>}
 
             <Modal
               visible={isOpen}
@@ -77,26 +171,31 @@ export default function FormSelect<T extends FieldValues>({
                     <Text style={styles.modalTitle}>{label}</Text>
                   </View>
                   <ScrollView style={styles.optionsList}>
-                    {options.map((option) => (
+                    {options.map(option => (
                       <TouchableOpacity
                         key={option.value}
                         style={[
                           styles.optionItem,
-                          value === option.value && styles.selectedOption
+                          value === option.value && styles.selectedOption,
                         ]}
                         onPress={() => {
                           onChange(option.value);
                           setIsOpen(false);
                         }}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: value === option.value }}
+                        hitSlop={tap.hitSlop}
                       >
-                        <Text style={[
-                          styles.optionText,
-                          value === option.value && styles.selectedOptionText
-                        ]}>
+                        <Text
+                          style={[
+                            styles.optionText,
+                            value === option.value && styles.selectedOptionText,
+                          ]}
+                        >
                           {option.label}
                         </Text>
                         {value === option.value && (
-                          <Check size={20} color="#FF6B35" />
+                          <Check size={styles.iconSize} color={colors.accent} />
                         )}
                       </TouchableOpacity>
                     ))}
@@ -110,106 +209,3 @@ export default function FormSelect<T extends FieldValues>({
     />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  selectContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minHeight: 48,
-  },
-  selectText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#111827',
-    flex: 1,
-  },
-  placeholderText: {
-    color: '#9CA3AF',
-  },
-  selectError: {
-    borderColor: '#EF4444',
-    borderWidth: 2,
-  },
-  selectDisabled: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#D1D5DB',
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#EF4444',
-    fontFamily: 'Inter-Medium',
-    marginTop: 6,
-    marginLeft: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    width: '100%',
-    maxHeight: '70%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  modalHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    textAlign: 'center',
-  },
-  optionsList: {
-    maxHeight: 300,
-  },
-  optionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  selectedOption: {
-    backgroundColor: '#FFF7F5',
-  },
-  optionText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#111827',
-    flex: 1,
-  },
-  selectedOptionText: {
-    color: '#FF6B35',
-    fontFamily: 'Inter-SemiBold',
-  },
-});

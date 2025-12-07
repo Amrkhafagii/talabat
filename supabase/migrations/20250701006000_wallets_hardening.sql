@@ -7,13 +7,23 @@
 */
 
 -- Uniqueness and indexes
-ALTER TABLE public.wallets
-  ADD CONSTRAINT wallets_user_type_key UNIQUE (user_id, type);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'wallets_user_type_key'
+      AND conrelid = 'public.wallets'::regclass
+  ) THEN
+    ALTER TABLE public.wallets
+      ADD CONSTRAINT wallets_user_type_key UNIQUE (user_id, type);
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS wallet_transactions_wallet_id_idx
   ON public.wallet_transactions (wallet_id);
 
 -- RLS: allow users to create their own wallets, but prevent arbitrary balance edits
+DROP POLICY IF EXISTS "Users can insert their own wallet" ON public.wallets;
 CREATE POLICY "Users can insert their own wallet"
   ON public.wallets
   FOR INSERT
@@ -21,6 +31,7 @@ CREATE POLICY "Users can insert their own wallet"
   WITH CHECK (auth.uid() = user_id);
 
 -- Service role can manage wallets (for system payouts)
+DROP POLICY IF EXISTS "Service role can manage wallets" ON public.wallets;
 CREATE POLICY "Service role can manage wallets"
   ON public.wallets
   FOR ALL
@@ -29,6 +40,7 @@ CREATE POLICY "Service role can manage wallets"
   WITH CHECK (true);
 
 -- Service role can manage wallet transactions (users already have SELECT policy)
+DROP POLICY IF EXISTS "Service role can manage wallet transactions" ON public.wallet_transactions;
 CREATE POLICY "Service role can manage wallet transactions"
   ON public.wallet_transactions
   FOR ALL

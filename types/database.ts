@@ -176,6 +176,7 @@ export interface Order {
   payment_auto_verified?: boolean | null;
   payment_txn_duplicate?: boolean | null;
   payment_review_notes?: string | null;
+  payment_hold_reason?: string | null;
   commission_amount?: number;
   eta_promised?: string;
   eta_confidence_low?: string;
@@ -310,10 +311,39 @@ export interface RestaurantStats {
   recentOrders: Order[];
 }
 
+export interface RestaurantDashboard {
+  summary: {
+    sales?: number;
+    orders?: number;
+    customers?: number;
+    menu_items?: number;
+    sales_pct_change?: number;
+    orders_pct_change?: number;
+    aov?: number;
+    customers_pct_change?: number;
+    aov_pct_change?: number;
+  };
+  hourly: {
+    hour: string;
+    sales: number;
+    orders: number;
+    customers: number;
+  }[];
+}
+
+export interface TrustedArrival {
+  customer_id: string;
+  visits: number;
+  last_visit: string | null;
+  avatar_url?: string | null;
+  full_name?: string | null;
+}
+
 export interface Wallet {
   id: string;
   user_id: string;
   balance: number;
+  pending_balance?: number;
   currency: string;
   type: 'customer' | 'restaurant' | 'driver';
   created_at: string;
@@ -326,11 +356,22 @@ export interface WalletTransaction {
   order_id?: string;
   amount: number;
   type: 'deposit' | 'withdrawal' | 'escrow_hold' | 'escrow_release' | 'commission' | 'driver_payout' | 'psp_hold' | 'psp_capture' | 'refund' | 'payout_request';
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'completed' | 'failed' | 'on_hold' | 'reversed' | 'processing' | 'review';
   reference?: string;
   metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
+}
+
+export interface PayoutMethod {
+  id: string;
+  user_id: string;
+  type: string;
+  bank_name?: string;
+  last4?: string;
+  is_default?: boolean;
+  metadata?: Record<string, any>;
+  created_at: string;
 }
 
 export interface DeliveryStats {

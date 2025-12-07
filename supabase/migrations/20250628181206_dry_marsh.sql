@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS categories (
 
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Categories are viewable by everyone" ON categories;
 CREATE POLICY "Categories are viewable by everyone"
   ON categories
   FOR SELECT
@@ -83,6 +84,7 @@ CREATE TABLE IF NOT EXISTS restaurants (
 
 ALTER TABLE restaurants ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Restaurants are viewable by everyone" ON restaurants;
 CREATE POLICY "Restaurants are viewable by everyone"
   ON restaurants
   FOR SELECT
@@ -121,18 +123,21 @@ CREATE TABLE IF NOT EXISTS orders (
 
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own orders" ON orders;
 CREATE POLICY "Users can view their own orders"
   ON orders
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create their own orders" ON orders;
 CREATE POLICY "Users can create their own orders"
   ON orders
   FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own orders" ON orders;
 CREATE POLICY "Users can update their own orders"
   ON orders
   FOR UPDATE
@@ -151,6 +156,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view order items for their orders" ON order_items;
 CREATE POLICY "Users can view order items for their orders"
   ON order_items
   FOR SELECT
@@ -163,6 +169,7 @@ CREATE POLICY "Users can view order items for their orders"
     )
   );
 
+DROP POLICY IF EXISTS "Users can create order items for their orders" ON order_items;
 CREATE POLICY "Users can create order items for their orders"
   ON order_items
   FOR INSERT

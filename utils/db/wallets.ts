@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { Wallet, WalletTransaction } from '@/types/database';
+import { Wallet, WalletTransaction, PayoutMethod } from '@/types/database';
 
 export async function getWalletsByUser(userId: string): Promise<Wallet[]> {
   const { data, error } = await supabase
@@ -140,18 +140,84 @@ export async function grantDelayCreditIdempotent(userId: string, amount: number,
   return true;
 }
 
-export async function requestPayout(walletId: string, amount: number, metadata?: Record<string, any>): Promise<boolean> {
-  const { error } = await supabase.from('wallet_transactions').insert({
+export async function requestPayout(walletId: string, amount: number, metadata?: Record<string, any>, methodId?: string): Promise<boolean> {
+  const { error } = await supabase.from('payout_requests').insert({
     wallet_id: walletId,
-    amount: -Math.abs(amount),
-    type: 'payout_request',
+    amount: Math.abs(amount),
     status: 'pending',
-    reference: 'Restaurant payout request',
     metadata: metadata ?? {},
+    method_id: methodId ?? null,
   });
 
   if (error) {
     console.error('Error requesting payout:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function getWalletBalances(walletId: string): Promise<{ available: number; pending: number } | null> {
+  const { data, error } = await supabase.rpc('get_wallet_balances', { p_wallet_id: walletId });
+  if (error) {
+    console.error('Error fetching wallet balances', error);
+    return null;
+  }
+  const [row] = (data as any[]) || [];
+  return row ?? null;
+}
+
+export async function listPayoutMethods(userId: string): Promise<PayoutMethod[]> {
+  const { data, error } = await supabase
+    .from('payout_methods')
+    .select('*')
+    .eq('user_id', userId)
+    .order('is_default', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Error fetching payout methods', error);
+    return [];
+  }
+  return (data || []) as PayoutMethod[];
+}
+
+export async function createPayoutMethod(payload: Omit<PayoutMethod, 'id' | 'created_at'>): Promise<PayoutMethod | null> {
+  const { data, error } = await supabase
+    .from('payout_methods')
+    .insert(payload)
+    .select('*')
+    .single();
+  if (error) {
+    console.error('Error creating payout method', error);
+    return null;
+  }
+  return data as PayoutMethod;
+}
+
+export async function setDefaultPayoutMethod(userId: string, methodId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('payout_methods')
+    .update({ is_default: false })
+    .eq('user_id', userId);
+  if (error) {
+    console.error('Error clearing defaults', error);
+    return false;
+  }
+  const { error: setError } = await supabase
+    .from('payout_methods')
+    .update({ is_default: true })
+    .eq('id', methodId)
+    .eq('user_id', userId);
+  if (setError) {
+    console.error('Error setting default payout method', setError);
+    return false;
+  }
+  return true;
+}
+
+export async function deletePayoutMethod(methodId: string): Promise<boolean> {
+  const { error } = await supabase.from('payout_methods').delete().eq('id', methodId);
+  if (error) {
+    console.error('Error deleting payout method', error);
     return false;
   }
   return true;

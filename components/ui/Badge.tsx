@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, ViewStyle, TextStyle } from 'react-native';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface BadgeProps {
   text: string;
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'hold';
   size?: 'small' | 'medium';
   style?: ViewStyle;
   textStyle?: TextStyle;
@@ -16,66 +17,55 @@ export default function Badge({
   style,
   textStyle,
 }: BadgeProps) {
+  const { colors, spacing, radius, typography } = useRestaurantTheme();
+
+  const { containerStyle, labelStyle } = useMemo(() => {
+    const sizePadding =
+      size === 'small'
+        ? { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }
+        : { paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2 };
+
+    const baseColorMap: Record<NonNullable<typeof variant>, string> = {
+      primary: colors.accent,
+      secondary: colors.mutedText,
+      success: colors.status.success,
+      warning: colors.status.warning,
+      danger: colors.status.error,
+      hold: colors.status.hold,
+    };
+    const baseColor = baseColorMap[variant];
+
+    const withOpacity = (hex: string, alpha = 0.16) => {
+      const cleaned = hex.replace('#', '');
+      const val = Math.round(alpha * 255)
+        .toString(16)
+        .padStart(2, '0');
+      return `#${cleaned}${val}`;
+    };
+
+    const containerStyle: ViewStyle = {
+      borderRadius: radius.sm,
+      backgroundColor: withOpacity(baseColor),
+      minHeight: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...sizePadding,
+    };
+
+    const labelStyle: TextStyle = {
+      ...(size === 'small' ? typography.caption : typography.subhead),
+      color: baseColor,
+      fontFamily: 'Inter-SemiBold',
+    };
+
+    return { containerStyle, labelStyle };
+  }, [colors.accent, colors.mutedText, colors.status.error, colors.status.hold, colors.status.success, colors.status.warning, radius.sm, size, spacing.md, spacing.sm, spacing.xs, typography.caption, typography.subhead, variant]);
+
   return (
-    <View style={[styles.badge, styles[variant], styles[size], style]}>
-      <Text style={[styles.text, styles[`${variant}Text`], styles[`${size}Text`], textStyle]}>
+    <View style={[containerStyle, style]} accessibilityRole="text">
+      <Text style={[labelStyle, textStyle]}>
         {text}
       </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primary: {
-    backgroundColor: '#FFF7F5',
-  },
-  secondary: {
-    backgroundColor: '#F3F4F6',
-  },
-  success: {
-    backgroundColor: '#D1FAE5',
-  },
-  warning: {
-    backgroundColor: '#FEF3C7',
-  },
-  danger: {
-    backgroundColor: '#FEE2E2',
-  },
-  small: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  medium: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  text: {
-    fontFamily: 'Inter-SemiBold',
-  },
-  primaryText: {
-    color: '#FF6B35',
-  },
-  secondaryText: {
-    color: '#6B7280',
-  },
-  successText: {
-    color: '#10B981',
-  },
-  warningText: {
-    color: '#F59E0B',
-  },
-  dangerText: {
-    color: '#EF4444',
-  },
-  smallText: {
-    fontSize: 10,
-  },
-  mediumText: {
-    fontSize: 12,
-  },
-});

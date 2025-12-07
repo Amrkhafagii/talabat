@@ -191,6 +191,42 @@ const orderSchema = z.object({
     .min(1, 'Payment method is required'),
 });
 
+// Payout & wallet schemas
+export const payoutMethodSchema = z.object({
+  type: z.enum(['bank_account', 'instapay', 'card']),
+  bankName: z.string().min(1, 'Bank name is required'),
+  last4: z.string().length(4, 'Last 4 digits required').optional(),
+  isDefault: z.boolean().optional(),
+  metadata: z.record(z.any()).optional(),
+});
+
+export const payoutRequestSchema = z.object({
+  walletId: z.string().uuid('Wallet ID required'),
+  amount: z.number().positive('Amount must be greater than 0'),
+  methodId: z.string().uuid().optional(),
+  metadata: z.record(z.any()).optional(),
+});
+
+// KYC schemas
+export const kycSubmissionSchema = z.object({
+  restaurantId: z.string().uuid('Restaurant ID is required'),
+  status: z.enum(['pending', 'reviewing', 'approved', 'rejected']).default('pending'),
+  notes: z.string().max(500).optional(),
+});
+
+export const kycDocumentSchema = z.object({
+  submissionId: z.string().uuid('Submission ID is required'),
+  docType: z.string().min(1, 'Document type is required'),
+  docUrl: z.string().url('Document URL must be valid'),
+});
+
+// Order events/timeline
+export const orderEventSchema = z.object({
+  orderId: z.string().uuid('Order ID is required'),
+  eventType: z.string().min(1, 'Event type is required'),
+  eventNote: z.string().max(500).optional(),
+});
+
 // Contact/Support schemas
 const contactSchema = z.object({
   name: z

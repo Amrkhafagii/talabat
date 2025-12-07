@@ -15,18 +15,21 @@ CREATE TABLE IF NOT EXISTS public.user_push_tokens (
 
 ALTER TABLE public.user_push_tokens ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own push tokens" ON public.user_push_tokens;
 CREATE POLICY "Users can view their own push tokens"
   ON public.user_push_tokens
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own push tokens" ON public.user_push_tokens;
 CREATE POLICY "Users can insert their own push tokens"
   ON public.user_push_tokens
   FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own push tokens" ON public.user_push_tokens;
 CREATE POLICY "Users can delete their own push tokens"
   ON public.user_push_tokens
   FOR DELETE

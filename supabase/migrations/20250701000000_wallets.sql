@@ -34,12 +34,14 @@ ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;
 
 -- Simple owner policies (adjust as needed for service role)
+DROP POLICY IF EXISTS "Users can view their own wallet" ON public.wallets;
 CREATE POLICY "Users can view their own wallet"
   ON public.wallets
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can view their own wallet transactions" ON public.wallet_transactions;
 CREATE POLICY "Users can view their own wallet transactions"
   ON public.wallet_transactions
   FOR SELECT

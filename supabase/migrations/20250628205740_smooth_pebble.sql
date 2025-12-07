@@ -39,24 +39,28 @@ CREATE TABLE IF NOT EXISTS user_addresses (
 
 ALTER TABLE user_addresses ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own addresses" ON user_addresses;
 CREATE POLICY "Users can view their own addresses"
   ON user_addresses
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create their own addresses" ON user_addresses;
 CREATE POLICY "Users can create their own addresses"
   ON user_addresses
   FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own addresses" ON user_addresses;
 CREATE POLICY "Users can update their own addresses"
   ON user_addresses
   FOR UPDATE
   TO authenticated
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own addresses" ON user_addresses;
 CREATE POLICY "Users can delete their own addresses"
   ON user_addresses
   FOR DELETE

@@ -4,6 +4,7 @@ import { getPushTokens } from './pushTokens';
 import { sendPushNotification } from '../push';
 import { payoutDriverDelivery } from './wallets';
 import { computeEtaBand, etaTimestampsFromNow, getRestaurantSla, logAudit, createDeliveryEvent, weatherFactorFromSeverity } from './trustedArrival';
+import { logOrderEvent } from './orderEvents';
 
 type SubstitutionDecision = {
   original_item_id: string;
@@ -304,12 +305,13 @@ async function getRestaurantOrders(restaurantId: string, filters?: OrderFilters)
   return data || [];
 }
 
-async function getOrderById(orderId: string): Promise<Order | null> {
+export async function getOrderById(orderId: string): Promise<Order | null> {
   const { data, error } = await supabase
     .from('orders')
     .select(`
       *,
       restaurant:restaurants(*),
+      user:users(*),
       order_items(
         *,
         menu_item:menu_items(*)

@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, TextInput, StyleSheet, ViewStyle, TextStyle, StyleProp, TextInputProps } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, TextInput, ViewStyle, TextStyle, StyleProp, TextInputProps } from 'react-native';
 import { Control, Controller, FieldPath, FieldValues } from 'react-hook-form';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface FormFieldProps<T extends FieldValues> {
   control: Control<T>;
@@ -39,6 +40,40 @@ export default function FormField<T extends FieldValues>({
   disabled = false,
   rightElement,
 }: FormFieldProps<T>) {
+  const { colors, spacing, radius, typography, tap } = useRestaurantTheme();
+
+  const styles = useMemo(() => {
+    const baseInput: TextStyle = {
+      flex: 1,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: colors.formText,
+    };
+
+    return {
+      container: { marginBottom: spacing.lg } as ViewStyle,
+      label: { ...typography.subhead, color: colors.text, marginBottom: spacing.xs } as TextStyle,
+      inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.formSurface,
+        borderWidth: 1,
+        borderColor: colors.formBorder,
+        borderRadius: radius.md,
+        minHeight: tap.minHeight,
+      } as ViewStyle,
+      input: baseInput,
+      multilineInput: { paddingTop: spacing.sm, minHeight: 80 } as TextStyle,
+      inputWithRightElement: { paddingRight: spacing.sm } as TextStyle,
+      inputError: { borderColor: colors.status.error, borderWidth: 1.5 } as ViewStyle,
+      inputDisabled: { backgroundColor: colors.formSurfaceAlt, borderColor: colors.border } as ViewStyle,
+      rightElement: { paddingHorizontal: spacing.sm, paddingVertical: spacing.sm } as ViewStyle,
+      errorText: { ...typography.caption, color: colors.status.error, marginTop: spacing.xs, marginLeft: spacing.xs } as TextStyle,
+    };
+  }, [colors.border, colors.formBorder, colors.formSurface, colors.formSurfaceAlt, colors.formText, colors.status.error, colors.text, radius.md, spacing.lg, spacing.md, spacing.sm, spacing.xs, tap.minHeight, typography.caption, typography.subhead]);
+
   return (
     <Controller
       control={control}
@@ -75,7 +110,7 @@ export default function FormField<T extends FieldValues>({
               maxLength={maxLength}
               editable={!disabled}
               textAlignVertical={multiline ? 'top' : 'center'}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.formPlaceholder}
             />
             {rightElement && (
               <View style={styles.rightElement}>
@@ -91,58 +126,3 @@ export default function FormField<T extends FieldValues>({
     />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    minHeight: 48,
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#111827',
-  },
-  multilineInput: {
-    paddingTop: 12,
-    minHeight: 80,
-  },
-  inputWithRightElement: {
-    paddingRight: 8,
-  },
-  inputError: {
-    borderColor: '#EF4444',
-    borderWidth: 2,
-  },
-  inputDisabled: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#D1D5DB',
-  },
-  rightElement: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#EF4444',
-    fontFamily: 'Inter-Medium',
-    marginTop: 6,
-    marginLeft: 4,
-  },
-});

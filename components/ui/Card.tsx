@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, ViewStyle } from 'react-native';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface CardProps {
   children: React.ReactNode;
@@ -16,30 +17,24 @@ export default function Card({
   margin = 0,
   shadow = true,
 }: CardProps) {
+  const { colors, radius, spacing, shadows } = useRestaurantTheme();
+
+  const cardStyle = useMemo<ViewStyle>(
+    () => ({
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: padding ?? spacing.lg,
+      margin: margin ?? 0,
+      ...(shadow ? shadows.card : {}),
+    }),
+    [colors.border, colors.surface, margin, padding, radius.lg, shadow, shadows.card, spacing.lg]
+  );
+
   return (
-    <View
-      style={[
-        styles.card,
-        { padding, margin },
-        shadow && styles.shadow,
-        style,
-      ]}
-    >
+    <View style={[cardStyle, style]}>
       {children}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-  },
-  shadow: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-});

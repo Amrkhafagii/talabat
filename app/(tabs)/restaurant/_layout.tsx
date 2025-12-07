@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
-import { LayoutDashboard, BookOpen, Receipt, Settings, BarChart3 } from 'lucide-react-native';
+import { LayoutDashboard, BookOpen, Receipt, Settings, Wallet } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert } from 'react-native';
 import { fetchInstapayStatus } from '@/utils/instapayCheck';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function RestaurantLayout() {
   const { user, userType, loading } = useAuth();
+  const theme = useRestaurantTheme();
 
   useEffect(() => {
     if (!loading && user) {
@@ -61,18 +63,18 @@ export default function RestaurantLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.colors.surfaceStrong,
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 70,
+          borderTopColor: theme.colors.borderMuted,
+          paddingTop: theme.spacing.xs,
+          paddingBottom: theme.insets.bottom + theme.spacing.sm,
+          height: 64 + theme.insets.bottom,
         },
-        tabBarActiveTintColor: '#FF6B35',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: theme.colors.accent,
+        tabBarInactiveTintColor: theme.colors.mutedText,
         tabBarLabelStyle: {
           fontSize: 12,
-          fontFamily: 'Inter-Medium',
+          fontFamily: 'Inter-SemiBold',
           marginTop: 4,
         },
       }}>
@@ -86,6 +88,15 @@ export default function RestaurantLayout() {
         }}
       />
       <Tabs.Screen
+        name="orders"
+        options={{
+          title: 'Orders',
+          tabBarIcon: ({ size, color }) => (
+            <Receipt size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="menu"
         options={{
           title: 'Menu',
@@ -95,20 +106,11 @@ export default function RestaurantLayout() {
         }}
       />
       <Tabs.Screen
-        name="metrics"
+        name="wallet"
         options={{
-          title: 'Metrics',
+          title: 'Wallet',
           tabBarIcon: ({ size, color }) => (
-            <BarChart3 size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="orders"
-        options={{
-          title: 'Orders',
-          tabBarIcon: ({ size, color }) => (
-            <Receipt size={size} color={color} />
+            <Wallet size={size} color={color} />
           ),
         }}
       />
@@ -122,7 +124,61 @@ export default function RestaurantLayout() {
         }}
       />
       
-      {/* Non-tab screens - these won't appear in the tab bar */}
+      {/* Hidden stack destinations */}
+      <Tabs.Screen
+        name="metrics"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="performance"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="order-detail/[orderId]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="payout-confirm"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="kyc/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="kyc/[step]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="category-manager"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="menu-item/add"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="menu-item/edit"
+        options={{
+          href: null,
+        }}
+      />
       <Tabs.Screen
         name="add-menu-item"
         options={{
@@ -131,12 +187,6 @@ export default function RestaurantLayout() {
       />
       <Tabs.Screen
         name="edit-menu-item"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="wallet"
         options={{
           href: null,
         }}

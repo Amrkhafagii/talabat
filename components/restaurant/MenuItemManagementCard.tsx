@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { CreditCard as Edit, Trash2, Eye, EyeOff, Star, Clock } from 'lucide-react-native';
-import Card from '../ui/Card';
+import React, { useMemo } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { Pencil, Trash2, Star, Clock, GripVertical } from 'lucide-react-native';
 import { deriveAvailabilityBadge } from '@/utils/menuOrdering';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface MenuItemManagement {
   id: string;
@@ -27,6 +27,7 @@ interface MenuItemManagementCardProps {
   onDelete: () => void;
   onToggleAvailability: () => void;
   onTogglePopular: () => void;
+  dragHandle?: React.ReactNode;
 }
 
 export default function MenuItemManagementCard({
@@ -35,111 +36,103 @@ export default function MenuItemManagementCard({
   onDelete,
   onToggleAvailability,
   onTogglePopular,
+  dragHandle,
 }: MenuItemManagementCardProps) {
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
-    <Card style={[
-      styles.card,
-      !item.isAvailable ? styles.unavailableCard : undefined,
-      item.highlight ? styles.highlightCard : undefined
-    ] as any}>
-      <View style={styles.content}>
-        <Image source={{ uri: item.image }} style={styles.image} />
-        
-        <View style={styles.details}>
-          <View style={styles.header}>
+    <View
+      style={[
+        styles.card,
+        !item.isAvailable ? styles.unavailableCard : undefined,
+        item.highlight ? styles.highlightCard : undefined,
+      ]}
+    >
+      <Image source={{ uri: item.image }} style={styles.image} />
+      <View style={styles.body}>
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
             <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-            <View style={styles.badges}>
-              {item.isPopular && (
-                <View style={styles.popularBadge}>
-                  <Star size={10} color="#FFFFFF" fill="#FFFFFF" />
-                  <Text style={styles.popularText}>Popular</Text>
-                </View>
-              )}
-              <StatusPill
-                isAvailable={item.isAvailable}
-                isScheduled={item.isScheduled}
-                availabilityLabel={item.availabilityLabel}
-              />
-            </View>
+            <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
           </View>
+          {dragHandle ?? <GripVertical size={18} color={theme.colors.secondaryText} />}
+        </View>
 
-          <Text style={styles.description} numberOfLines={2}>
-            {item.description}
-          </Text>
-
-          {item.photoStatus && item.photoStatus !== 'approved' && (
-            <View style={styles.photoStatusRow}>
-              <Text
-                style={[
-                  styles.photoStatusText,
-                  item.photoStatus === 'pending' ? styles.photoStatusPending : styles.photoStatusRejected,
-                ]}
-                numberOfLines={1}
-              >
-                {item.photoStatus === 'pending' ? 'Waiting for admin approval' : 'Photo rejected - update required'}
-              </Text>
+        <View style={styles.badges}>
+          {item.isPopular && (
+            <View style={styles.popularBadge}>
+              <Star size={12} color="#FFFFFF" fill="#FFFFFF" />
+              <Text style={styles.popularText}>Popular</Text>
             </View>
           )}
+          <StatusPill
+            isAvailable={item.isAvailable}
+            isScheduled={item.isScheduled}
+            availabilityLabel={item.availabilityLabel}
+            styles={styles}
+          />
+        </View>
 
-          <View style={styles.meta}>
-            <Text style={styles.category}>{item.category}</Text>
-            <View style={styles.prepTime}>
-              <Clock size={12} color="#6B7280" />
-              <Text style={styles.prepTimeText}>{item.preparationTime}min</Text>
-            </View>
+        {item.photoStatus && item.photoStatus !== 'approved' && (
+          <Text
+            style={[
+              styles.photoStatusText,
+              item.photoStatus === 'pending' ? styles.photoStatusPending : styles.photoStatusRejected,
+            ]}
+            numberOfLines={1}
+          >
+            {item.photoStatus === 'pending' ? 'Photo awaiting approval' : 'Photo rejected - update needed'}
+          </Text>
+        )}
+
+        <View style={styles.metaRow}>
+          <View style={styles.chip}>
+            <Text style={styles.chipText}>{item.category}</Text>
           </View>
+          <View style={styles.prep}>
+            <Clock size={12} color={theme.colors.secondaryText} />
+            <Text style={styles.prepText}>{item.preparationTime} min</Text>
+          </View>
+        </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.toggleButton]}
-                onPress={onToggleAvailability}
-              >
-                {item.isAvailable ? (
-                  <Eye size={16} color="#10B981" />
-                ) : (
-                  <EyeOff size={16} color="#EF4444" />
-                )}
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[
-                  styles.actionButton, 
-                  styles.toggleButton,
-                  item.isPopular && styles.popularActionButton
-                ]}
-                onPress={onTogglePopular}
-              >
-                <Star 
-                  size={16} 
-                  color={item.isPopular ? "#FFFFFF" : "#6B7280"} 
-                  fill={item.isPopular ? "#FFFFFF" : "transparent"}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, styles.editButton]}
-                onPress={onEdit}
-              >
-                <Edit size={16} color="#FFFFFF" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, styles.deleteButton]}
-                onPress={onDelete}
-              >
-                <Trash2 size={16} color="#FFFFFF" />
-              </TouchableOpacity>
+        <View style={styles.footer}>
+          <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+          <View style={styles.toggles}>
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Available</Text>
+              <Switch value={item.isAvailable} onValueChange={onToggleAvailability} />
             </View>
+            <TouchableOpacity style={[styles.starButton, item.isPopular && styles.starButtonActive]} onPress={onTogglePopular}>
+              <Star size={14} color={item.isPopular ? '#FFFFFF' : theme.colors.secondaryText} fill={item.isPopular ? '#FFFFFF' : 'transparent'} />
+              <Text style={[styles.toggleLabel, { color: item.isPopular ? '#FFFFFF' : theme.colors.text }]}>Popular</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.actions}>
+            <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={onEdit}>
+              <Pencil size={14} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={onDelete}>
+              <Trash2 size={14} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
-    </Card>
+    </View>
   );
 }
 
-function StatusPill({ isAvailable, isScheduled, availabilityLabel }: { isAvailable: boolean; isScheduled?: boolean; availabilityLabel?: string }) {
+function StatusPill({
+  isAvailable,
+  isScheduled,
+  availabilityLabel,
+  styles,
+}: {
+  isAvailable: boolean;
+  isScheduled?: boolean;
+  availabilityLabel?: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
   const badge = deriveAvailabilityBadge({ isAvailable, isScheduled, availabilityLabel });
 
   if (badge.type === 'unavailable') {
@@ -163,168 +156,88 @@ function StatusPill({ isAvailable, isScheduled, availabilityLabel }: { isAvailab
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: 16,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  highlightCard: {
-    borderWidth: 1.5,
-    borderColor: '#FF6B35',
-  },
-  unavailableCard: {
-    opacity: 0.7,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-  },
-  content: {
-    flexDirection: 'row',
-  },
-  image: {
-    width: 100,
-    height: 120,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-  },
-  details: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  name: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    flex: 1,
-    marginRight: 8,
-  },
-  badges: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  popularBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFB800',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  popularText: {
-    fontSize: 8,
-    color: '#FFFFFF',
-    fontFamily: 'Inter-SemiBold',
-    marginLeft: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  availableBadge: {
-    backgroundColor: '#D1FAE5',
-  },
-  unavailableBadge: {
-    backgroundColor: '#FEE2E2',
-  },
-  scheduledBadge: {
-    backgroundColor: '#E0E7FF',
-  },
-  statusText: {
-    fontSize: 8,
-    fontFamily: 'Inter-SemiBold',
-  },
-  availableText: {
-    color: '#10B981',
-  },
-  unavailableText: {
-    color: '#EF4444',
-  },
-  scheduledText: {
-    color: '#4338CA',
-  },
-  description: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  photoStatusRow: {
-    marginBottom: 8,
-  },
-  photoStatusText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-  },
-  photoStatusPending: {
-    color: '#92400E',
-  },
-  photoStatusRejected: {
-    color: '#B91C1C',
-  },
-  meta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  category: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontFamily: 'Inter-Medium',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  prepTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  prepTimeText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginLeft: 4,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  price: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  toggleButton: {
-    backgroundColor: '#F3F4F6',
-  },
-  popularActionButton: {
-    backgroundColor: '#FFB800',
-  },
-  editButton: {
-    backgroundColor: '#3B82F6',
-  },
-  deleteButton: {
-    backgroundColor: '#EF4444',
-  },
-});
+function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
+  return StyleSheet.create({
+    card: {
+      flexDirection: 'row',
+      borderRadius: theme.radius.lg,
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      overflow: 'hidden',
+      marginBottom: theme.spacing.md,
+      ...theme.shadows.card,
+    },
+    highlightCard: { borderColor: theme.colors.accent },
+    unavailableCard: { opacity: 0.75 },
+    image: { width: 110, height: '100%' },
+    body: { flex: 1, padding: theme.spacing.md, gap: theme.spacing.sm },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    name: { ...theme.typography.subhead, flex: 1 },
+    description: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: 2 },
+    badges: { flexDirection: 'row', gap: theme.spacing.xs, alignItems: 'center' },
+    popularBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.accent,
+      borderRadius: theme.radius.pill,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      gap: 4,
+    },
+    popularText: { ...theme.typography.caption, color: '#FFFFFF', fontFamily: 'Inter-SemiBold' },
+    statusBadge: {
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.radius.pill,
+    },
+    availableBadge: { backgroundColor: `${theme.colors.status.success}22` },
+    unavailableBadge: { backgroundColor: `${theme.colors.status.error}22` },
+    scheduledBadge: { backgroundColor: `${theme.colors.status.info}22` },
+    statusText: { ...theme.typography.caption, fontFamily: 'Inter-SemiBold' },
+    availableText: { color: theme.colors.status.success },
+    unavailableText: { color: theme.colors.status.error },
+    scheduledText: { color: theme.colors.status.info },
+    photoStatusText: { ...theme.typography.caption, color: theme.colors.status.warning },
+    photoStatusPending: {},
+    photoStatusRejected: { color: theme.colors.status.error },
+    metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    chip: {
+      backgroundColor: theme.colors.surfaceAlt,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.radius.pill,
+      borderWidth: 1,
+      borderColor: theme.colors.borderMuted,
+    },
+    chipText: { ...theme.typography.caption },
+    prep: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs },
+    prepText: { ...theme.typography.caption, color: theme.colors.secondaryText },
+    footer: { gap: theme.spacing.xs },
+    price: { ...theme.typography.subhead },
+    toggles: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    toggleRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs },
+    toggleLabel: { ...theme.typography.caption, color: theme.colors.text },
+    starButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.radius.pill,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    starButtonActive: { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent },
+    actions: { flexDirection: 'row', gap: theme.spacing.xs, marginTop: theme.spacing.xs },
+    actionButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    editButton: { backgroundColor: theme.colors.status.info },
+    deleteButton: { backgroundColor: theme.colors.status.error },
+  });
+}

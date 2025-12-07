@@ -7,6 +7,7 @@
 */
 
 -- Allow users to update their own push tokens (e.g., token rotation)
+DROP POLICY IF EXISTS "Users can update their own push tokens" ON public.user_push_tokens;
 CREATE POLICY "Users can update their own push tokens"
   ON public.user_push_tokens
   FOR UPDATE
@@ -15,8 +16,17 @@ CREATE POLICY "Users can update their own push tokens"
   WITH CHECK (auth.uid() = user_id);
 
 -- Ensure each push token is stored once and speed up lookups
-ALTER TABLE public.user_push_tokens
-  ADD CONSTRAINT user_push_tokens_token_key UNIQUE (token);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'user_push_tokens_token_key'
+      AND conrelid = 'public.user_push_tokens'::regclass
+  ) THEN
+    ALTER TABLE public.user_push_tokens
+      ADD CONSTRAINT user_push_tokens_token_key UNIQUE (token);
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS user_push_tokens_user_id_idx
   ON public.user_push_tokens (user_id);

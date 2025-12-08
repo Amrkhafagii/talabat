@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { useAppTheme } from '@/styles/appTheme';
 
 type StateProps = {
   loading?: boolean;
@@ -14,11 +15,13 @@ type StateProps = {
 };
 
 export function AdminState({ loading, error, emptyMessage, actionLabel, onAction, hint, children, useIos = false }: StateProps) {
-  const theme = useIos ? iosStyles : styles;
+  const appTheme = useAppTheme();
+  const themedStyles = useMemo(() => createStyles(appTheme), [appTheme]);
+  const theme = useIos ? iosStyles : themedStyles;
   if (loading) {
     return (
       <View style={theme.center}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color={appTheme.colors.primary[500]} />
         <Text style={theme.helper}>Loading…</Text>
       </View>
     );
@@ -52,13 +55,20 @@ export function AdminState({ loading, error, emptyMessage, actionLabel, onAction
   return <>{children}</>;
 }
 
-const styles = StyleSheet.create({
-  center: { alignItems: 'center', justifyContent: 'center', padding: 16 },
-  helper: { color: '#4B5563', marginTop: 8, textAlign: 'center' },
-  error: { color: '#B91C1C' },
-  cta: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#0F172A', borderRadius: 8 },
-  ctaText: { color: '#FFFFFF', fontWeight: '700' },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    center: { alignItems: 'center', justifyContent: 'center', padding: theme.spacing.md },
+    helper: { color: theme.colors.textMuted, marginTop: theme.spacing.xs, textAlign: 'center' },
+    error: { color: theme.colors.status.error },
+    cta: {
+      marginTop: theme.spacing.xs,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      backgroundColor: theme.colors.primary[500],
+      borderRadius: theme.radius.md,
+    },
+    ctaText: { color: theme.colors.textInverse, fontWeight: '700' },
+  });
 
 const iosStyles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', padding: iosSpacing.md, backgroundColor: 'transparent' },

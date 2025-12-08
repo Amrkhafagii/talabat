@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -12,6 +12,7 @@ import FormField from '@/components/ui/FormField';
 import Card from '@/components/ui/Card';
 import { supabase } from '@/utils/supabase';
 import { resetPasswordSchema, ResetPasswordFormData } from '@/utils/validation/schemas';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function ResetPassword() {
   const params = useLocalSearchParams();
@@ -37,6 +38,8 @@ export default function ResetPassword() {
   });
 
   const password = watch('password');
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     // Extract access token from URL parameters
@@ -104,7 +107,7 @@ export default function ResetPassword() {
       score: strength,
       checks,
       label: strength < 2 ? 'Weak' : strength < 4 ? 'Medium' : 'Strong',
-      color: strength < 2 ? '#EF4444' : strength < 4 ? '#F59E0B' : '#10B981',
+      color: strength < 2 ? theme.colors.status.error : strength < 4 ? theme.colors.status.warning : theme.colors.status.success,
     };
   };
 
@@ -118,7 +121,7 @@ export default function ResetPassword() {
         <View style={styles.content}>
           <Card style={styles.successCard}>
             <View style={styles.successIcon}>
-              <CheckCircle size={64} color="#10B981" />
+              <CheckCircle size={64} color={theme.colors.status.success} />
             </View>
             
             <Text style={styles.successTitle}>Password Reset Successful!</Text>
@@ -156,7 +159,7 @@ export default function ResetPassword() {
           <View style={styles.content}>
             <View style={styles.headerSection}>
               <View style={styles.iconContainer}>
-                <Lock size={48} color="#FF6B35" />
+                <Lock size={48} color={theme.colors.primary[500]} />
               </View>
               <Text style={styles.title}>Create New Password</Text>
               <Text style={styles.subtitle}>
@@ -183,9 +186,9 @@ export default function ResetPassword() {
                 rightElement={
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                     {showPassword ? (
-                      <EyeOff size={20} color="#6B7280" />
+                      <EyeOff size={20} color={theme.colors.textMuted} />
                     ) : (
-                      <Eye size={20} color="#6B7280" />
+                      <Eye size={20} color={theme.colors.textMuted} />
                     )}
                   </TouchableOpacity>
                 }
@@ -210,7 +213,7 @@ export default function ResetPassword() {
                           {
                             backgroundColor: level <= passwordStrength.score 
                               ? passwordStrength.color 
-                              : '#E5E7EB'
+                      : theme.colors.border
                           }
                         ]}
                       />
@@ -248,9 +251,9 @@ export default function ResetPassword() {
                 rightElement={
                   <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                     {showConfirmPassword ? (
-                      <EyeOff size={20} color="#6B7280" />
+                      <EyeOff size={20} color={theme.colors.textMuted} />
                     ) : (
-                      <Eye size={20} color="#6B7280" />
+                      <Eye size={20} color={theme.colors.textMuted} />
                     )}
                   </TouchableOpacity>
                 }
@@ -276,161 +279,161 @@ export default function ResetPassword() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 40,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    minHeight: '100%',
-  },
-  headerSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFF7F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  formSection: {
-    marginBottom: 40,
-  },
-  errorContainer: {
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontFamily: 'Inter-Medium',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  passwordStrengthContainer: {
-    marginTop: -12,
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  strengthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  strengthLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  strengthValue: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
-  },
-  strengthBar: {
-    flexDirection: 'row',
-    gap: 2,
-    marginBottom: 12,
-  },
-  strengthSegment: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-  },
-  strengthChecks: {
-    gap: 2,
-  },
-  checkItem: {
-    fontSize: 11,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-  },
-  checkPassed: {
-    color: '#10B981',
-  },
-  submitButton: {
-    marginTop: 8,
-  },
-  securityNote: {
-    backgroundColor: '#F0F9FF',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 'auto',
-    marginBottom: 20,
-  },
-  securityText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#0369A1',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  // Success state styles
-  successCard: {
-    alignItems: 'center',
-    marginTop: 64,
-    paddingVertical: 32,
-  },
-  successIcon: {
-    marginBottom: 24,
-  },
-  successTitle: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  successMessage: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  signInButton: {
-    alignSelf: 'stretch',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    keyboardAvoidingView: {
+      flex: 1,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingBottom: Platform.OS === 'ios' ? 20 : 40,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 24,
+      paddingTop: 32,
+      minHeight: '100%',
+    },
+    headerSection: {
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    iconContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: theme.colors.primary[50],
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    title: {
+      fontSize: 24,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+      lineHeight: 24,
+      textAlign: 'center',
+    },
+    formSection: {
+      marginBottom: 40,
+    },
+    errorContainer: {
+      backgroundColor: theme.colors.statusSoft.error,
+      borderWidth: 1,
+      borderColor: theme.colors.status.error,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 20,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Medium',
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    passwordStrengthContainer: {
+      marginTop: -12,
+      marginBottom: 16,
+      padding: 12,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    strengthHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    strengthLabel: {
+      fontSize: 12,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.textMuted,
+    },
+    strengthValue: {
+      fontSize: 12,
+      fontFamily: 'Inter-SemiBold',
+    },
+    strengthBar: {
+      flexDirection: 'row',
+      gap: 2,
+      marginBottom: 12,
+    },
+    strengthSegment: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+    },
+    strengthChecks: {
+      gap: 2,
+    },
+    checkItem: {
+      fontSize: 11,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textSubtle,
+    },
+    checkPassed: {
+      color: theme.colors.status.success,
+    },
+    submitButton: {
+      marginTop: 8,
+    },
+    securityNote: {
+      backgroundColor: theme.colors.statusSoft.info,
+      borderWidth: 1,
+      borderColor: theme.colors.status.info,
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 'auto',
+      marginBottom: 20,
+    },
+    securityText: {
+      fontSize: 12,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.status.info,
+      textAlign: 'center',
+      lineHeight: 16,
+    },
+    successCard: {
+      alignItems: 'center',
+      marginTop: 64,
+      paddingVertical: 32,
+    },
+    successIcon: {
+      marginBottom: 24,
+    },
+    successTitle: {
+      fontSize: 24,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    successMessage: {
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: 32,
+    },
+    signInButton: {
+      alignSelf: 'stretch',
+    },
+  });

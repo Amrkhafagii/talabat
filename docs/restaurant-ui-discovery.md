@@ -3,19 +3,13 @@
 Notes extracted from the provided restaurant mocks (Dashboard, Orders, Menu, Wallet, Performance). These values are the target reference for Phase 2 theming and component rebuild. Font family is Inter (already bundled); weights and sizes below assume Inter Regular/SemiBold/Bold.
 
 ## Palette
-- Primary / CTA: `#FF6B00` (hero orange across CTAs, active tabs, nav highlight)
-- Primary soft: `#FFE8D6` (pills, soft backgrounds, subtle dividers)
-- Background: `#F7F7F7` (page background behind cards/lists)
-- Surface: `#FFFFFF` (cards, inputs, nav bar)
-- Border: `#E7E7E7` (card outlines, dividers, pill outlines)
-- Text strong: `#2B2B2B`
-- Text muted: `#707070`
-- Text subtle/placeholder: `#9A9A9A`
-- Success: `#16A34A` (wallet credits, online chip dot)
-- Warning/On-hold: `#F97373` (payment hold chip, reject button text)
-- Info (in-progress): `#4B88FF` (orders “In Progress” chip)
-- Light green fill: `#E9F7EE` (earnings row icon bg)
-- Light orange fill: `#FFEDE2` (payout row icon bg, soft alerts)
+- Primary / CTA: `theme.colors.primary[500]` (hero orange across CTAs, active tabs, nav highlight) with strong/pressed at `theme.colors.primary[600]`.
+- Primary soft: `theme.colors.primary[100]` (pills, soft backgrounds, subtle dividers).
+- Background: `theme.colors.background` (page background behind cards/lists).
+- Surface: `theme.colors.surface`; Surface alt: `theme.colors.surfaceAlt`; Border: `theme.colors.border`.
+- Text strong: `theme.colors.text`; Text muted: `theme.colors.textMuted`; Text subtle/placeholder: `theme.colors.textSubtle` / `theme.colors.formPlaceholder`.
+- Success: `theme.colors.status.success` (wallet credits, online chip dot); Warning/On-hold: `theme.colors.status.warning`; Info (in-progress): `theme.colors.status.info`.
+- Soft fills: success `theme.colors.statusSoft.success`; warning/on-hold `theme.colors.statusSoft.warning`; info `theme.colors.statusSoft.info`; use `theme.colors.pill` for neutral gray pills.
 
 ## Typography
 - Title XL: 28 / 34, Bold (e.g., big currency on wallet)
@@ -54,21 +48,21 @@ Use consistent shadow tokens so cards and pills read softly on both iOS/Android.
 - List row leading icons: 20–22
 
 ## Component specs
-- Header bar: centered title, left back button when applicable; right notification icon; height ~56 + safe area; background surface white; hairline bottom border `#E7E7E7`.
-- Segmented tabs (Active/Past, All/Earnings/Payouts, filters): soft gray background `#F0F0F0`, pills radius 22; active pill orange fill `#FF6B00` with white text; inactive text `#707070`.
-- Cards (orders, stats, wallet balance, alerts): white surface, 18 radius, 1px border `#E7E7E7`, card shadow (light). Internal divider where meta splits header/body: 1px `#E7E7E7`.
-- Status chips: pill radius 14, height ~28; NEW uses orange soft bg `#FFE8D6` + orange text; IN PROGRESS uses light blue bg `#E8F0FF` + text `#4B88FF`; PAYMENT HOLD uses light red bg `#FFE5E5` + text `#F97373`; Paid/Pending chips follow success/warning palette.
+- Header bar: centered title, left back button when applicable; right notification icon; height ~56 + safe area; background `theme.colors.surface`; hairline bottom border `theme.colors.border`.
+- Segmented tabs (Active/Past, All/Earnings/Payouts, filters): soft gray background `theme.colors.surfaceAlt`, pills radius 22; active pill fill `theme.colors.primary[500]` with `theme.colors.textInverse`; inactive text `theme.colors.textMuted`.
+- Cards (orders, stats, wallet balance, alerts): `theme.colors.surface`, 18 radius, 1px border `theme.colors.border`, light card shadow. Internal dividers: 1px `theme.colors.border`.
+- Status chips: pill radius 14, height ~28; NEW uses `theme.colors.primary[100]` bg + `theme.colors.primary[500]` text; IN PROGRESS uses `theme.colors.statusSoft.info` + `theme.colors.status.info`; PAYMENT HOLD uses `theme.colors.statusSoft.warning` + `theme.colors.status.warning`; Paid/Pending chips use `theme.colors.status.success` / `theme.colors.status.warning` with matching soft fills.
 - Buttons:
-  - Primary: orange fill `#FF6B00`, white text, 20 radius, 52 height.
-  - Secondary ghost (reject): soft red fill `#FFE5E5`, text `#F97373`, 20 radius, 52 height.
-  - Tertiary/outline (wallet “Complete Now” ghost): orange outline/text on pale orange bg.
-- Toggle: iOS-style switch; track orange when on, light gray `#E0E0E0` when off; knob white with subtle shadow.
-- List rows (recent orders, wallet history): white card with 18 radius, horizontal padding 16, vertical padding 14; trailing amount right-aligned; status text colored (blue for In Progress, green for Completed); leading icon circle uses soft tinted bg.
-- Search bar (menu): 44 height, radius 12–14, light gray background `#F0F0F0`, left search icon `#9A9A9A`, placeholder `#9A9A9A`.
-- FAB (menu add): 56x56, orange fill, white “+”, shadow raised.
+  - Primary: `theme.colors.primary[500]` fill, `theme.colors.textInverse`, 20 radius, 52 height.
+  - Secondary ghost (reject): `theme.colors.statusSoft.error` fill, `theme.colors.status.error` text, 20 radius, 52 height.
+  - Tertiary/outline (wallet “Complete Now” ghost): `theme.colors.primary[500]` outline/text on `theme.colors.primary[100]`.
+- Toggle: track `theme.colors.primary[500]` when on, `theme.colors.borderMuted` when off; knob uses surface + subtle shadow.
+- List rows (recent orders, wallet history): `theme.colors.surface` card with 18 radius, horizontal padding 16, vertical padding 14; status text uses status tokens; leading icon circles use `theme.colors.statusSoft.*` fills.
+- Search bar (menu): 44 height, radius 12–14, background `theme.colors.surfaceAlt`, icon `theme.colors.textSubtle`, placeholder `theme.colors.formPlaceholder`.
+- FAB (menu add): 56x56, `theme.colors.primary[500]` fill, `theme.colors.textInverse`, raised shadow.
 
 ## Navigation
-- Bottom tab bar: white surface, subtle top border `#E7E7E7`, height ~72 including safe area; active tint orange, inactive `#9A9A9A`; labels 12, SemiBold; icons 22–24.
+- Bottom tab bar: `theme.colors.surface`, subtle top border `theme.colors.border`, height ~72 including safe area; active tint `theme.colors.primary[500]`, inactive `theme.colors.textMuted`; labels 12, SemiBold; icons 22–24.
 - Stack headers (wallet/performance detail): title centered; back chevron on left; optional help icon on right (wallet).
 
 ## Device responsiveness

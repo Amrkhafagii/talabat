@@ -112,7 +112,7 @@ function UserTypeCard({
               { backgroundColor: isSelected ? option.color : styles.iconContainer.backgroundColor },
             ]}
           >
-            <IconComponent size={iconSize} color={isSelected ? '#FFFFFF' : styles.iconColor} />
+            <IconComponent size={iconSize} color={isSelected ? styles.textInverse : styles.iconColor} />
           </Animated.View>
 
           <View style={styles.textContainer}>
@@ -154,6 +154,7 @@ type SelectorStyles = {
   checkmark: TextStyle;
   rippleEffect: ViewStyle;
   hitSlop: { top: number; bottom: number; left: number; right: number };
+  textInverse: string;
 };
 
 function buildStyles(theme: ReturnType<typeof useRestaurantTheme>): SelectorStyles {
@@ -204,6 +205,7 @@ function buildStyles(theme: ReturnType<typeof useRestaurantTheme>): SelectorStyl
       ...shadows.card,
     },
     iconColor: colors.mutedText || colors.textSubtle,
+    textInverse: colors.textInverse,
     textContainer: { flex: 1 },
     title: { ...(typography.title2 || typography.titleM), marginBottom: spacing.xs },
     description: { ...typography.body, color: colors.secondaryText || colors.textMuted, lineHeight: 20 },
@@ -215,7 +217,7 @@ function buildStyles(theme: ReturnType<typeof useRestaurantTheme>): SelectorStyl
       alignItems: 'center',
       ...shadows.card,
     },
-    checkmark: { color: colors.surface, fontSize: 16, fontFamily: 'Inter-Bold' },
+    checkmark: { color: colors.textInverse, fontSize: 16, fontFamily: 'Inter-Bold' },
     rippleEffect: {
       position: 'absolute',
       top: 0,

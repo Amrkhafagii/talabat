@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Star, Clock, ShoppingCart } from 'lucide-react-native';
@@ -11,6 +11,7 @@ import { useCart } from '@/hooks/useCart';
 import { getRestaurantById, getMenuItemsByRestaurant } from '@/utils/database';
 import { Restaurant, MenuItem as MenuItemType } from '@/types/database';
 import { isRestaurantOpenNow } from '@/utils/hours';
+import { useAppTheme } from '@/styles/appTheme';
 
 const baseCategories = ['All', 'Popular', 'Mains', 'Sides', 'Beverages', 'Desserts'];
 
@@ -23,6 +24,8 @@ export default function RestaurantDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { cart, addToCart, removeFromCart, getTotalItems } = useCart();
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const restaurantId = params.restaurantId as string;
 
@@ -80,7 +83,7 @@ export default function RestaurantDetail() {
       <SafeAreaView style={styles.container}>
         <Header title="Loading..." showBackButton />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={styles.loadingText}>Loading restaurant...</Text>
         </View>
       </SafeAreaView>
@@ -120,11 +123,11 @@ export default function RestaurantDetail() {
             <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
             <View style={styles.restaurantMeta}>
               <View style={styles.rating}>
-                <Star size={16} color="#FFB800" fill="#FFB800" />
+                <Star size={16} color={theme.colors.status.warning} fill={theme.colors.status.warning} />
                 <Text style={styles.ratingText}>{restaurant.rating}</Text>
               </View>
               <View style={styles.delivery}>
-                <Clock size={16} color="#6B7280" />
+                <Clock size={16} color={theme.colors.textMuted} />
                 <Text style={styles.deliveryText}>{restaurant.delivery_time} min</Text>
               </View>
             </View>
@@ -216,7 +219,7 @@ export default function RestaurantDetail() {
             disabled={!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)}
           >
             <View style={styles.cartInfo}>
-              <ShoppingCart size={20} color="#FFFFFF" />
+              <ShoppingCart size={20} color={theme.colors.textInverse} />
               <Text style={styles.cartCount}>{getTotalItems()}</Text>
             </View>
             <Text style={styles.cartText}>
@@ -230,202 +233,199 @@ export default function RestaurantDetail() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginTop: 12,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-  },
-  restaurantInfo: {
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
-  },
-  restaurantImage: {
-    width: '100%',
-    height: 200,
-  },
-  restaurantDetails: {
-    padding: 20,
-  },
-  restaurantName: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  restaurantCuisine: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginBottom: 12,
-  },
-  restaurantMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 20,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: '#374151',
-    marginLeft: 4,
-    fontFamily: 'Inter-Medium',
-  },
-  delivery: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  deliveryText: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginLeft: 4,
-    fontFamily: 'Inter-Regular',
-  },
-  searchSection: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 8,
-  },
-  menuSearchBar: {
-    margin: 0,
-  },
-  categoryTabs: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-    marginBottom: 8,
-  },
-  categoryTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-  },
-  selectedTab: {
-    backgroundColor: '#FF6B35',
-  },
-  categoryTabText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  selectedTabText: {
-    color: '#FFFFFF',
-  },
-  menuItems: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 16,
-  },
-  emptyCategory: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  emptyCategoryText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  cartButtonContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  cartButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  cartInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cartCount: {
-    fontSize: 14,
-    fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
-    marginLeft: 8,
-  },
-  cartText: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  cartTotal: {
-    fontSize: 16,
-    fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
-  },
-  cartButtonDisabled: {
-    backgroundColor: '#D1D5DB',
-  },
-  closedBanner: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-    borderWidth: 1,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    padding: 12,
-  },
-  closedTitle: {
-    fontFamily: 'Inter-SemiBold',
-    color: '#B91C1C',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  closedSubtitle: {
-    fontFamily: 'Inter-Regular',
-    color: '#991B1B',
-    fontSize: 12,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginTop: 12,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    errorText: {
+      fontSize: 16,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Regular',
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    retryButton: {
+      backgroundColor: theme.colors.primary[500],
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    retryButtonText: {
+      color: theme.colors.textInverse,
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+    },
+    restaurantInfo: {
+      backgroundColor: theme.colors.surface,
+      marginBottom: 8,
+    },
+    restaurantImage: {
+      width: '100%',
+      height: 200,
+    },
+    restaurantDetails: {
+      padding: 20,
+    },
+    restaurantName: {
+      fontSize: 24,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+      marginBottom: 4,
+    },
+    restaurantCuisine: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginBottom: 12,
+    },
+    restaurantMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    rating: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: 20,
+    },
+    ratingText: {
+      fontSize: 14,
+      color: theme.colors.text,
+      marginLeft: 4,
+      fontFamily: 'Inter-Medium',
+    },
+    delivery: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    deliveryText: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      marginLeft: 4,
+      fontFamily: 'Inter-Regular',
+    },
+    searchSection: {
+      backgroundColor: theme.colors.surface,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      marginBottom: 8,
+    },
+    menuSearchBar: {
+      margin: 0,
+    },
+    categoryTabs: {
+      backgroundColor: theme.colors.surface,
+      paddingVertical: 16,
+      marginBottom: 8,
+    },
+    categoryTab: {
+      paddingHorizontal: 20,
+      paddingVertical: 8,
+      marginHorizontal: 4,
+      borderRadius: 20,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    selectedTab: {
+      backgroundColor: theme.colors.primary[500],
+    },
+    categoryTabText: {
+      fontSize: 14,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.textMuted,
+    },
+    selectedTabText: {
+      color: theme.colors.textInverse,
+    },
+    menuItems: {
+      backgroundColor: theme.colors.surface,
+      paddingTop: 16,
+    },
+    emptyCategory: {
+      alignItems: 'center',
+      paddingVertical: 32,
+    },
+    emptyCategoryText: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+    },
+    cartButtonContainer: {
+      backgroundColor: theme.colors.surface,
+      padding: 20,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+    cartButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.primary[500],
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderRadius: 12,
+      ...theme.shadows.raised,
+    },
+    cartInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    cartCount: {
+      fontSize: 14,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.textInverse,
+      marginLeft: 8,
+    },
+    cartText: {
+      flex: 1,
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.textInverse,
+      textAlign: 'center',
+    },
+    cartTotal: {
+      fontSize: 16,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.textInverse,
+    },
+    cartButtonDisabled: {
+      backgroundColor: theme.colors.borderMuted,
+    },
+    closedBanner: {
+      backgroundColor: theme.colors.statusSoft.error,
+      borderColor: theme.colors.status.error,
+      borderWidth: 1,
+      marginHorizontal: 16,
+      marginBottom: 12,
+      borderRadius: 12,
+      padding: 12,
+    },
+    closedTitle: {
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.status.error,
+      fontSize: 14,
+      marginBottom: 4,
+    },
+    closedSubtitle: {
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+      fontSize: 12,
+    },
+  });

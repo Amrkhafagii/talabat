@@ -241,7 +241,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       justifyContent: 'center',
       alignItems: 'center',
     },
-    notificationCount: { fontSize: 10, fontFamily: 'Inter-Bold', color: '#FFFFFF' },
+    notificationCount: { fontSize: 10, fontFamily: 'Inter-Bold', color: theme.colors.textInverse },
     tabsWrapper: { paddingHorizontal: horizontal, paddingBottom: theme.spacing.md },
     filterButton: { padding: theme.spacing.xs },
     ordersLoading: {

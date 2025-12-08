@@ -65,7 +65,7 @@ export default function PayoutConfirmScreen() {
       <Header title="Payout Confirmed" showBackButton />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.iconWrap}>
-          <CheckCircle2 size={48} color="#10B981" />
+          <CheckCircle2 size={48} color={theme.colors.status.success} />
         </View>
         <Text style={styles.title}>Payout Confirmed</Text>
         <Text style={styles.amount}>{formatCurrency(Number(payout?.request?.amount ?? 0))}</Text>
@@ -129,7 +129,7 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>, horizontal: 
       width: 96,
       height: 96,
       borderRadius: 48,
-      backgroundColor: '#D1FAE5',
+      backgroundColor: theme.colors.statusSoft.success,
       justifyContent: 'center',
       alignItems: 'center',
       marginTop: theme.spacing.md,

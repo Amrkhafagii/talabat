@@ -268,6 +268,6 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       marginBottom: theme.insets.bottom + theme.spacing.md,
       ...theme.shadows.card,
     },
-    bottomCtaText: { ...theme.typography.button, color: '#FFFFFF' },
+    bottomCtaText: { ...theme.typography.button, color: theme.colors.textInverse },
   });
 }

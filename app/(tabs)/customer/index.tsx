@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Filter } from 'lucide-react-native';
@@ -12,6 +12,7 @@ import { getCategories, getRestaurants } from '@/utils/database';
 import { Category, Restaurant, RestaurantFilters } from '@/types/database';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { computeEtaBand } from '@/utils/db/trustedArrival';
+import { useAppTheme } from '@/styles/appTheme';
 
 export default function CustomerHome() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,6 +28,8 @@ export default function CustomerHome() {
   const [maxDeliveryFee, setMaxDeliveryFee] = useState<number>(50);
   const [showPromotedOnly, setShowPromotedOnly] = useState<boolean>(false);
   const { selectedAddress, coords } = useLocationContext();
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const params = useLocalSearchParams();
 
@@ -134,7 +137,7 @@ export default function CustomerHome() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={styles.loadingText}>Loading restaurants...</Text>
         </View>
       </SafeAreaView>
@@ -160,7 +163,7 @@ export default function CustomerHome() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.locationContainer}>
-            <MapPin size={20} color="#FF6B35" />
+            <MapPin size={20} color={theme.colors.primary[500]} />
             <View style={styles.locationText}>
               <Text style={styles.deliverTo}>Deliver to</Text>
               <Text style={styles.address}>
@@ -174,7 +177,7 @@ export default function CustomerHome() {
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.filterButton} onPress={openFilters}>
-              <Filter size={20} color="#6B7280" />
+              <Filter size={20} color={theme.colors.textMuted} />
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.profileButton}
@@ -195,8 +198,8 @@ export default function CustomerHome() {
 
         {/* Active Filters Indicator */}
         {(selectedCuisines.length > 0 || minRating > 0 || maxDeliveryFee < 50 || showPromotedOnly) && (
-          <View style={styles.activeFiltersContainer}>
-            <Text style={styles.activeFiltersText}>
+            <View style={styles.activeFiltersContainer}>
+              <Text style={styles.activeFiltersText}>
               Filters active ({
                 [
                   selectedCuisines.length > 0 && 'Cuisine',
@@ -310,164 +313,165 @@ export default function CustomerHome() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginTop: 12,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  locationText: {
-    marginLeft: 8,
-  },
-  deliverTo: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  address: {
-    fontSize: 16,
-    color: '#111827',
-    fontFamily: 'Inter-SemiBold',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  filterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FF6B35',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileInitial: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-Bold',
-  },
-  searchContainer: {
-    marginHorizontal: 20,
-    marginVertical: 16,
-  },
-  activeFiltersContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFF7F5',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FF6B35',
-  },
-  activeFiltersText: {
-    fontSize: 14,
-    color: '#FF6B35',
-    fontFamily: 'Inter-Medium',
-  },
-  editFiltersText: {
-    fontSize: 14,
-    color: '#FF6B35',
-    fontFamily: 'Inter-SemiBold',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  viewAll: {
-    fontSize: 14,
-    color: '#FF6B35',
-    fontFamily: 'Inter-Medium',
-  },
-  categoriesContainer: {
-    paddingLeft: 20,
-  },
-  promotedContainer: {
-    paddingLeft: 20,
-  },
-  restaurantsContainer: {
-    paddingHorizontal: 20,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginTop: 12,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    errorText: {
+      fontSize: 16,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Regular',
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    retryButton: {
+      backgroundColor: theme.colors.primary[500],
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    retryButtonText: {
+      color: theme.colors.textInverse,
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: theme.colors.surface,
+    },
+    locationContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    locationText: {
+      marginLeft: 8,
+    },
+    deliverTo: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+    },
+    address: {
+      fontSize: 16,
+      color: theme.colors.text,
+      fontFamily: 'Inter-SemiBold',
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    filterButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.surfaceAlt,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    profileButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.primary[500],
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    profileInitial: {
+      color: theme.colors.textInverse,
+      fontSize: 16,
+      fontFamily: 'Inter-Bold',
+    },
+    searchContainer: {
+      marginHorizontal: 20,
+      marginVertical: 16,
+    },
+    activeFiltersContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginHorizontal: 20,
+      marginBottom: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: theme.colors.primary[100],
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.primary[500],
+    },
+    activeFiltersText: {
+      fontSize: 14,
+      color: theme.colors.primary[500],
+      fontFamily: 'Inter-Medium',
+    },
+    editFiltersText: {
+      fontSize: 14,
+      color: theme.colors.primary[500],
+      fontFamily: 'Inter-SemiBold',
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+      paddingHorizontal: 20,
+      marginBottom: 16,
+    },
+    viewAll: {
+      fontSize: 14,
+      color: theme.colors.primary[500],
+      fontFamily: 'Inter-Medium',
+    },
+    categoriesContainer: {
+      paddingLeft: 20,
+    },
+    promotedContainer: {
+      paddingLeft: 20,
+    },
+    restaurantsContainer: {
+      paddingHorizontal: 20,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: 32,
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+    },
+  });

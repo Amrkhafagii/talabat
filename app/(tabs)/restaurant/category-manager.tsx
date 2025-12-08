@@ -294,6 +294,6 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       justifyContent: 'center',
       ...theme.shadows.card,
     },
-    addButtonText: { ...theme.typography.button, color: '#FFFFFF' },
+    addButtonText: { ...theme.typography.button, color: theme.colors.textInverse },
   });
 }

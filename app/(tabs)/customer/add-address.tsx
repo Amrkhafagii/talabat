@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -15,6 +15,7 @@ import FormToggle from '@/components/ui/FormToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { createUserAddress, getUserAddresses } from '@/utils/database';
 import { addressSchema, AddressFormData } from '@/utils/validation/schemas';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 const addressTypeOptions = [
   { label: 'Home', value: 'Home' },
@@ -28,6 +29,8 @@ export default function AddAddress() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [geoCountry, setGeoCountry] = useState<string | undefined>(undefined);
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const {
     control,
@@ -227,7 +230,7 @@ export default function AddAddress() {
           <Text style={styles.sectionTitle}>Quick Fill</Text>
           <View style={styles.gpsContainer}>
             <View style={styles.gpsInfo}>
-              <MapPin size={20} color="#FF6B35" />
+                <MapPin size={20} color={theme.colors.primary[500]} />
               <View style={styles.gpsTextContainer}>
                 <Text style={styles.gpsTitle}>Use Current Location</Text>
                 <Text style={styles.gpsSubtitle}>
@@ -355,7 +358,7 @@ export default function AddAddress() {
         {watch('latitude') && watch('longitude') && (
           <View style={styles.section}>
             <View style={styles.locationInfo}>
-              <Navigation size={16} color="#10B981" />
+              <Navigation size={16} color={theme.colors.status.success} />
               <Text style={styles.locationInfoText}>
                 GPS coordinates saved for accurate delivery
               </Text>
@@ -366,124 +369,126 @@ export default function AddAddress() {
 
       {/* Save Button */}
       <View style={styles.bottomContainer}>
-        <Button
-          title={saving ? "Saving..." : "Save Address"}
-          onPress={handleSubmit(onSubmit)}
-          disabled={saving || !isValid}
-        />
+          <Button
+            title={saving ? "Saving..." : "Save Address"}
+            onPress={handleSubmit(onSubmit)}
+            disabled={saving || !isValid}
+          />
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  gpsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  gpsInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  gpsTextContainer: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  gpsTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  gpsSubtitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  gpsButton: {
-    marginLeft: 12,
-  },
-  errorContainer: {
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-  },
-  webNotice: {
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-  },
-  webNoticeText: {
-    fontSize: 14,
-    color: '#92400E',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-  },
-  rowContainer: {
-    flexDirection: 'row',
-  },
-  flex1: {
-    flex: 1,
-  },
-  marginLeft: {
-    marginLeft: 12,
-  },
-  locationInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D1FAE5',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-  },
-  locationInfoText: {
-    fontSize: 14,
-    color: '#065F46',
-    fontFamily: 'Inter-Medium',
-    marginLeft: 8,
-  },
-  bottomContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 16,
+    },
+    gpsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.colors.surface,
+      padding: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      ...theme.shadows.card,
+    },
+    gpsInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    gpsTextContainer: {
+      marginLeft: 12,
+      flex: 1,
+    },
+    gpsTitle: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 2,
+    },
+    gpsSubtitle: {
+      fontSize: 14,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+    },
+    gpsButton: {
+      marginLeft: 12,
+    },
+    errorContainer: {
+      backgroundColor: theme.colors.statusSoft.error,
+      borderWidth: 1,
+      borderColor: theme.colors.status.error,
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 12,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Regular',
+      lineHeight: 20,
+    },
+    webNotice: {
+      backgroundColor: theme.colors.primary[50],
+      borderWidth: 1,
+      borderColor: theme.colors.primary[100],
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 12,
+    },
+    webNoticeText: {
+      fontSize: 14,
+      color: theme.colors.text,
+      fontFamily: 'Inter-Regular',
+      lineHeight: 20,
+    },
+    rowContainer: {
+      flexDirection: 'row',
+    },
+    flex1: {
+      flex: 1,
+    },
+    marginLeft: {
+      marginLeft: 12,
+    },
+    locationInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.statusSoft.success,
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.status.success,
+    },
+    locationInfoText: {
+      fontSize: 14,
+      color: theme.colors.status.success,
+      fontFamily: 'Inter-Medium',
+      marginLeft: 8,
+    },
+    bottomContainer: {
+      backgroundColor: theme.colors.surface,
+      padding: 20,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+  });

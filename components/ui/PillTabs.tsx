@@ -73,10 +73,12 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       gap: theme.spacing.xs,
     },
     tabActive: {
-      backgroundColor: theme.colors.accent,
+      backgroundColor: theme.colors.primary[100],
+      borderWidth: 1,
+      borderColor: theme.colors.primary[500],
     },
     tabLabel: { ...theme.typography.caption, color: theme.colors.textMuted },
-    tabLabelActive: { color: '#FFFFFF', fontFamily: 'Inter-SemiBold' },
+    tabLabelActive: { color: theme.colors.primary[500], fontFamily: 'Inter-SemiBold' },
     badge: {
       backgroundColor: theme.colors.surface,
       paddingHorizontal: theme.spacing.xs,
@@ -85,8 +87,8 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       borderWidth: 1,
       borderColor: theme.colors.borderMuted,
     },
-    badgeActive: { backgroundColor: '#FFFFFF22', borderColor: '#FFFFFF44' },
+    badgeActive: { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary[500] },
     badgeText: { ...theme.typography.caption, color: theme.colors.secondaryText },
-    badgeTextActive: { color: '#FFFFFF' },
+    badgeTextActive: { color: theme.colors.primary[500] },
   });
 }

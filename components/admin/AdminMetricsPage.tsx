@@ -163,7 +163,7 @@ const hero = StyleSheet.create({
   },
   headerRow: { marginBottom: iosSpacing.md },
   title: { ...iosTypography.title1, color: '#FFFFFF' },
-  subtitle: { ...iosTypography.subhead, color: '#E5E7EB' },
+  subtitle: { ...iosTypography.subhead, color: iosColors.separator },
   circleRow: { flexDirection: 'row', justifyContent: 'space-between' },
 });
 
@@ -214,7 +214,7 @@ const healthStyles = StyleSheet.create({
     padding: iosSpacing.sm,
   },
   value: { ...iosTypography.title2, color: '#FFFFFF' },
-  label: { ...iosTypography.caption, color: '#E5E7EB', textAlign: 'center', marginTop: iosSpacing.xs },
+  label: { ...iosTypography.caption, color: iosColors.separator, textAlign: 'center', marginTop: iosSpacing.xs },
 });
 
 function QueueRow({ user, type, status }: { user: string; type: string; status: string }) {

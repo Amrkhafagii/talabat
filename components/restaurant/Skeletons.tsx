@@ -70,7 +70,7 @@ export function ListSkeleton({ rows = 3, gap = 12, inset, lineHeight = 14 }: Lis
 }
 
 const styles = StyleSheet.create({
-  block: { backgroundColor: '#EDEDED' },
+  block: {},
   card: { padding: 16, borderWidth: 1, gap: 10 },
 });
 

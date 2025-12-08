@@ -91,6 +91,7 @@ export default function RestaurantDashboard() {
     { key: 'customers', title: 'New Customers', value: summary?.customers ?? 0 },
   ] as const;
 
+  const quickActions = useMemo(() => buildQuickActions(theme), [theme]);
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   if (loading) {
@@ -177,7 +178,7 @@ export default function RestaurantDashboard() {
               hitSlop={theme.tap.hitSlop}
             >
               <View style={[styles.iconPill, { backgroundColor: action.tint }]}>
-                <action.icon size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color="#FFFFFF" />
+                <action.icon size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={action.iconColor} />
               </View>
               <Text style={styles.quickActionLabel}>{action.label}</Text>
               <ArrowUpRight size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.secondaryText} />
@@ -216,43 +217,59 @@ export default function RestaurantDashboard() {
   );
 }
 
-const quickActions = [
-  {
-    key: 'orders',
-    label: 'Manage Orders',
-    icon: Clock3,
-    tint: '#FF7A1A',
-    onPress: () => router.push('/(tabs)/restaurant/orders'),
-  },
-  {
-    key: 'menu',
-    label: 'Edit Menu',
-    icon: UtensilsCrossed,
-    tint: '#3B82F6',
-    onPress: () => router.push('/(tabs)/restaurant/menu'),
-  },
-  {
-    key: 'wallet',
-    label: 'Wallet & Payouts',
-    icon: Wallet,
-    tint: '#22C55E',
-    onPress: () => router.push('/(tabs)/restaurant/wallet'),
-  },
-  {
-    key: 'performance',
-    label: 'Performance',
-    icon: BarChart3,
-    tint: '#8B5CF6',
-    onPress: () => router.push('/(tabs)/restaurant/performance'),
-  },
-  {
-    key: 'settings',
-    label: 'Operational Settings',
-    icon: Settings,
-    tint: '#F59E0B',
-    onPress: () => router.push('/(tabs)/restaurant/settings'),
-  },
-] as const;
+type QuickAction = {
+  key: string;
+  label: string;
+  icon: typeof Clock3;
+  tint: string;
+  iconColor: string;
+  onPress: () => void;
+};
+
+function buildQuickActions(theme: ReturnType<typeof useRestaurantTheme>): QuickAction[] {
+  return [
+    {
+      key: 'orders',
+      label: 'Manage Orders',
+      icon: Clock3,
+      tint: theme.colors.primary[100],
+      iconColor: theme.colors.primary[600],
+      onPress: () => router.push('/(tabs)/restaurant/orders'),
+    },
+    {
+      key: 'menu',
+      label: 'Edit Menu',
+      icon: UtensilsCrossed,
+      tint: theme.colors.statusSoft.info,
+      iconColor: theme.colors.status.info,
+      onPress: () => router.push('/(tabs)/restaurant/menu'),
+    },
+    {
+      key: 'wallet',
+      label: 'Wallet & Payouts',
+      icon: Wallet,
+      tint: theme.colors.statusSoft.success,
+      iconColor: theme.colors.status.success,
+      onPress: () => router.push('/(tabs)/restaurant/wallet'),
+    },
+    {
+      key: 'performance',
+      label: 'Performance',
+      icon: BarChart3,
+      tint: theme.colors.statusSoft.info,
+      iconColor: theme.colors.status.info,
+      onPress: () => router.push('/(tabs)/restaurant/performance'),
+    },
+    {
+      key: 'settings',
+      label: 'Operational Settings',
+      icon: Settings,
+      tint: theme.colors.statusSoft.warning,
+      iconColor: theme.colors.status.warning,
+      onPress: () => router.push('/(tabs)/restaurant/settings'),
+    },
+  ];
+}
 
 function formatMoney(value: number) {
   return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -301,7 +318,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     },
     retryButtonText: {
       ...theme.typography.button,
-      color: '#FFFFFF',
+      color: theme.colors.textInverse,
     },
     hero: {
       flexDirection: 'row',
@@ -350,7 +367,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       paddingHorizontal: 4,
       paddingVertical: 2,
     },
-    notificationCount: { ...theme.typography.caption, color: '#FFFFFF', fontFamily: 'Inter-Bold' },
+    notificationCount: { ...theme.typography.caption, color: theme.colors.textInverse, fontFamily: 'Inter-Bold' },
     statsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',

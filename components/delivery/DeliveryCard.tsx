@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MapPin, Navigation, Phone, CircleCheck as CheckCircle, Package } from 'lucide-react-native';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface DeliveryOrder {
   id: string;
@@ -36,6 +37,8 @@ export default function DeliveryCard({
   onComplete,
 }: DeliveryCardProps) {
   const isActive = order.status === 'active';
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <Card style={[styles.card, isActive ? styles.activeCard : undefined] as any}>
@@ -65,14 +68,14 @@ export default function DeliveryCard({
 
       <View style={styles.addressInfo}>
         <View style={styles.addressContainer}>
-          <MapPin size={16} color="#6B7280" />
+          <MapPin size={16} color={theme.colors.textMuted} />
           <View style={styles.addressDetails}>
             {isActive && <Text style={styles.addressLabel}>Pickup</Text>}
             <Text style={styles.addressText}>{order.pickupAddress}</Text>
           </View>
         </View>
         <View style={styles.addressContainer}>
-          <MapPin size={16} color="#FF6B35" />
+          <MapPin size={16} color={theme.colors.primary[500]} />
           <View style={styles.addressDetails}>
             {isActive && <Text style={styles.addressLabel}>Delivery</Text>}
             <Text style={styles.addressText}>{order.deliveryAddress}</Text>
@@ -88,26 +91,26 @@ export default function DeliveryCard({
       {isActive ? (
         <View style={styles.activeActions}>
           {onCall && (
-            <TouchableOpacity style={styles.callButton} onPress={onCall}>
-              <Phone size={18} color="#FFFFFF" />
+            <TouchableOpacity style={[styles.actionButton, styles.callButton]} onPress={onCall}>
+              <Phone size={18} color={theme.colors.textInverse} />
               <Text style={styles.callButtonText}>Call</Text>
             </TouchableOpacity>
           )}
           {onNavigate && (
-            <TouchableOpacity style={styles.navigateButton} onPress={onNavigate}>
-              <Navigation size={18} color="#FFFFFF" />
+            <TouchableOpacity style={[styles.actionButton, styles.navigateButton]} onPress={onNavigate}>
+              <Navigation size={18} color={theme.colors.textInverse} />
               <Text style={styles.navigateButtonText}>Navigate</Text>
             </TouchableOpacity>
           )}
           {onPickup && (
-            <TouchableOpacity style={styles.pickupButton} onPress={onPickup}>
-              <Package size={18} color="#FFFFFF" />
+            <TouchableOpacity style={[styles.actionButton, styles.pickupButton]} onPress={onPickup}>
+              <Package size={18} color={theme.colors.textInverse} />
               <Text style={styles.pickupButtonText}>Picked Up</Text>
             </TouchableOpacity>
           )}
           {onComplete && (
-            <TouchableOpacity style={styles.completeButton} onPress={onComplete}>
-              <CheckCircle size={18} color="#FFFFFF" />
+            <TouchableOpacity style={[styles.actionButton, styles.completeButton]} onPress={onComplete}>
+              <CheckCircle size={18} color={theme.colors.textInverse} />
               <Text style={styles.completeButtonText}>Delivered to Customer</Text>
             </TouchableOpacity>
           )}
@@ -119,168 +122,133 @@ export default function DeliveryCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: 12,
-  },
-  activeCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF6B35',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  restaurantName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  customerName: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  payment: {
-    alignItems: 'flex-end',
-  },
-  paymentAmount: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    color: '#10B981',
-  },
-  paymentLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  itemsSection: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  itemsTitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  itemText: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 18,
-  },
-  moreItems: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    fontFamily: 'Inter-Regular',
-    fontStyle: 'italic',
-  },
-  addressInfo: {
-    marginBottom: 12,
-  },
-  addressContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  addressDetails: {
-    marginLeft: 8,
-    flex: 1,
-  },
-  addressLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Medium',
-    marginBottom: 2,
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#111827',
-    fontFamily: 'Inter-Regular',
-  },
-  meta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  distance: {
-    fontSize: 14,
-    color: '#374151',
-    fontFamily: 'Inter-Medium',
-  },
-  time: {
-    fontSize: 14,
-    color: '#374151',
-    fontFamily: 'Inter-Medium',
-  },
-  activeActions: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  callButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3B82F6',
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  callButtonText: {
-    fontSize: 13,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-    marginLeft: 4,
-  },
-  navigateButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  navigateButtonText: {
-    fontSize: 13,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-    marginLeft: 4,
-  },
-  pickupButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F59E0B',
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  pickupButtonText: {
-    fontSize: 13,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-    marginLeft: 4,
-  },
-  completeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF6B35',
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  completeButtonText: {
-    fontSize: 13,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-    marginLeft: 4,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+  StyleSheet.create({
+    card: {
+      marginBottom: theme.spacing.md,
+    },
+    activeCard: {
+      borderLeftWidth: 4,
+      borderLeftColor: theme.colors.primary[500],
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: theme.spacing.sm,
+    },
+    restaurantName: {
+      ...theme.typography.subhead,
+      marginBottom: 4,
+    },
+    customerName: {
+      ...theme.typography.caption,
+      color: theme.colors.textMuted,
+    },
+    payment: {
+      alignItems: 'flex-end',
+    },
+    paymentAmount: {
+      ...theme.typography.title2,
+      color: theme.colors.status.success,
+    },
+    paymentLabel: {
+      ...theme.typography.caption,
+      color: theme.colors.textMuted,
+    },
+    itemsSection: {
+      marginBottom: theme.spacing.sm,
+      paddingBottom: theme.spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.borderMuted,
+      gap: theme.spacing.xs,
+    },
+    itemsTitle: {
+      ...theme.typography.caption,
+      color: theme.colors.text,
+    },
+    itemText: {
+      ...theme.typography.caption,
+      color: theme.colors.textMuted,
+    },
+    moreItems: {
+      ...theme.typography.caption,
+      color: theme.colors.textSubtle,
+      fontStyle: 'italic',
+    },
+    addressInfo: {
+      marginBottom: theme.spacing.sm,
+      gap: theme.spacing.xs,
+    },
+    addressContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: theme.spacing.sm,
+    },
+    addressDetails: {
+      flex: 1,
+      gap: 2,
+    },
+    addressLabel: {
+      ...theme.typography.caption,
+      color: theme.colors.textMuted,
+    },
+    addressText: {
+      ...theme.typography.body,
+      color: theme.colors.text,
+    },
+    meta: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing.md,
+    },
+    distance: {
+      ...theme.typography.caption,
+      color: theme.colors.text,
+    },
+    time: {
+      ...theme.typography.caption,
+      color: theme.colors.text,
+    },
+    activeActions: {
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+    },
+    actionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.radius.lg,
+      gap: theme.spacing.xs,
+    },
+    callButton: {
+      backgroundColor: theme.colors.status.info,
+    },
+    navigateButton: {
+      backgroundColor: theme.colors.status.success,
+    },
+    pickupButton: {
+      backgroundColor: theme.colors.status.warning,
+    },
+    completeButton: {
+      backgroundColor: theme.colors.primary[500],
+    },
+    callButtonText: {
+      ...theme.typography.buttonSmall,
+      color: theme.colors.textInverse,
+    },
+    navigateButtonText: {
+      ...theme.typography.buttonSmall,
+      color: theme.colors.textInverse,
+    },
+    pickupButtonText: {
+      ...theme.typography.buttonSmall,
+      color: theme.colors.textInverse,
+    },
+    completeButtonText: {
+      ...theme.typography.buttonSmall,
+      color: theme.colors.textInverse,
+    },
+  });

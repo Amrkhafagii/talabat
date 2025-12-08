@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Wallet as WalletIcon, Receipt } from 'lucide-react-native';
@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getWalletsByUser, getWalletTransactions } from '@/utils/database';
 import { Wallet, WalletTransaction } from '@/types/database';
 import { formatCurrency } from '@/utils/formatters';
+import { useAppTheme } from '@/styles/appTheme';
 
 export default function CustomerWallet() {
   const { user } = useAuth();
@@ -16,6 +17,8 @@ export default function CustomerWallet() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     if (user) {
@@ -58,13 +61,13 @@ export default function CustomerWallet() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color="#111827" />
+            <ArrowLeft size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Wallet</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={styles.loadingText}>Loading wallet...</Text>
         </View>
       </SafeAreaView>
@@ -77,7 +80,7 @@ export default function CustomerWallet() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#111827" />
+          <ArrowLeft size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wallet</Text>
         <View style={styles.placeholder} />
@@ -89,15 +92,15 @@ export default function CustomerWallet() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#FF6B35']}
-            tintColor="#FF6B35"
+            colors={[theme.colors.primary[500]]}
+            tintColor={theme.colors.primary[500]}
           />
         }
         contentContainerStyle={styles.content}
       >
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <WalletIcon size={24} color="#FF6B35" />
+            <WalletIcon size={24} color={theme.colors.primary[500]} />
             <Text style={styles.balanceLabel}>Balance</Text>
           </View>
           <Text style={styles.balanceValue}>
@@ -125,7 +128,7 @@ export default function CustomerWallet() {
             transactions.map(tx => (
               <View key={tx.id} style={styles.txRow}>
                 <View style={styles.txLeft}>
-                  <Receipt size={18} color="#6B7280" />
+                  <Receipt size={18} color={theme.colors.textMuted} />
                   <View>
                     <Text style={styles.txType}>{tx.type}</Text>
                     <Text style={styles.txMeta}>
@@ -145,67 +148,70 @@ export default function CustomerWallet() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold', color: '#111827' },
-  placeholder: { width: 24 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  loadingText: { fontSize: 16, color: '#6B7280', fontFamily: 'Inter-Regular', marginTop: 12 },
-  content: { padding: 20, gap: 16 },
-  balanceCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 8,
-  },
-  balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  balanceLabel: { fontFamily: 'Inter-Medium', color: '#6B7280' },
-  balanceValue: { fontSize: 28, fontFamily: 'Inter-Bold', color: '#111827' },
-  balanceSubtext: { fontFamily: 'Inter-Regular', color: '#6B7280', fontSize: 12 },
-  transactionsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter-SemiBold', color: '#111827', marginBottom: 8 },
-  emptyText: { fontFamily: 'Inter-Regular', color: '#6B7280' },
-  emptyState: { gap: 6 },
-  emptyTitle: { fontFamily: 'Inter-SemiBold', color: '#111827', fontSize: 14 },
-  txRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  txLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  txType: { fontFamily: 'Inter-Medium', color: '#111827' },
-  txMeta: { fontFamily: 'Inter-Regular', color: '#6B7280', fontSize: 12 },
-  txAmount: { fontFamily: 'Inter-SemiBold', fontSize: 14 },
-  positive: { color: '#10B981' },
-  negative: { color: '#EF4444' },
-  errorBox: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-    borderWidth: 1,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  errorText: { fontFamily: 'Inter-Regular', color: '#B91C1C' },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    headerTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold', color: theme.colors.text },
+    placeholder: { width: 24 },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+    loadingText: { fontSize: 16, color: theme.colors.textMuted, fontFamily: 'Inter-Regular', marginTop: 12 },
+    content: { padding: 20, gap: 16 },
+    balanceCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      gap: 8,
+      ...theme.shadows.card,
+    },
+    balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    balanceLabel: { fontFamily: 'Inter-Medium', color: theme.colors.textMuted },
+    balanceValue: { fontSize: 28, fontFamily: 'Inter-Bold', color: theme.colors.text },
+    balanceSubtext: { fontFamily: 'Inter-Regular', color: theme.colors.textMuted, fontSize: 12 },
+    transactionsCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      gap: 8,
+    },
+    sectionTitle: { fontSize: 16, fontFamily: 'Inter-SemiBold', color: theme.colors.text, marginBottom: 8 },
+    emptyText: { fontFamily: 'Inter-Regular', color: theme.colors.textMuted },
+    emptyState: { gap: 6 },
+    emptyTitle: { fontFamily: 'Inter-SemiBold', color: theme.colors.text, fontSize: 14 },
+    txRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    txLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    txType: { fontFamily: 'Inter-Medium', color: theme.colors.text },
+    txMeta: { fontFamily: 'Inter-Regular', color: theme.colors.textMuted, fontSize: 12 },
+    txAmount: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: theme.colors.text },
+    positive: { color: theme.colors.status.success },
+    negative: { color: theme.colors.status.error },
+    errorBox: {
+      backgroundColor: theme.colors.statusSoft.error,
+      borderColor: theme.colors.status.error,
+      borderWidth: 1,
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 12,
+    },
+    errorText: { fontFamily: 'Inter-Regular', color: theme.colors.status.error },
+  });

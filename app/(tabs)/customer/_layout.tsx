@@ -4,9 +4,11 @@ import { Chrome as Home, ShoppingCart, Receipt, User } from 'lucide-react-native
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert } from 'react-native';
 import { fetchInstapayStatus } from '@/utils/instapayCheck';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function CustomerLayout() {
   const { user, userType, loading } = useAuth();
+  const theme = useRestaurantTheme();
 
   useEffect(() => {
     if (!loading && user) {
@@ -61,15 +63,15 @@ export default function CustomerLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.colors.surface,
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
+          borderTopColor: theme.colors.border,
           paddingTop: 8,
           paddingBottom: 8,
           height: 70,
         },
-        tabBarActiveTintColor: '#FF6B35',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: theme.colors.primary[500],
+        tabBarInactiveTintColor: theme.colors.textSubtle,
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily: 'Inter-Medium',

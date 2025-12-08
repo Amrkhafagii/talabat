@@ -1,15 +1,15 @@
 ## Restaurant Design System (Delivery Console)
 
-Tokens live in `styles/deliveryTokens.ts` and are applied via `styles/restaurantTheme.tsx`. The theme scales with `useWindowDimensions` (compact ≤380px, tablet ≥768px) and safe-area insets.
+Tokens live in `styles/appTheme.tsx` (re-exported via `styles/restaurantTheme.tsx`) and scale with `useWindowDimensions` (compact ≤380px, tablet ≥768px) and safe-area insets.
 
 ### Color Palette
-- Accent: `accent` (primary orange), soft pill: `accentSoft`, background/surface/surfaceAlt, border/borderMuted.
-- Text: `text`, `secondaryText`, `textMuted`.
-- Status: `status.success` (`#22C55E`), `status.warning` (`#FBBF24`), `status.error` (`#F87171`), `status.info` (`#2563EB`), `status.hold` = warning.
+- Accent / Primary: `colors.primary[500]` (CTA), `colors.primary[600]` (pressed), `colors.primary[100]` (soft/pills); background/surface/surfaceAlt, border/borderMuted from `colors`.
+- Text: `colors.text`, `colors.textMuted`/`secondaryText`, `colors.textSubtle`/`formPlaceholder`.
+- Status: `colors.status.success|warning|error|info|hold`; soft fills via `colors.statusSoft.*`; neutral pill `colors.pill`.
 
 ### Spacing & Radius
-- Spacing scale: `xs 4`, `sm 8`, `md 12`, `lg 16`, `xl 20`, `xl2 24` (scaled per device density).
-- Radii: `sm 6`, `md 10`, `lg 14`, `xl 18`, `pill 999`, `cta 14` (scaled per density).
+- Spacing scale: `xxs 4`, `xs 8`, `sm 12`, `md 16`, `lg 20`, `xl 24`, `xl2 32` (scaled per density).
+- Radii: `sm 12`, `md 14`, `lg 18`, `xl 22`, `pill 999`, `card 18`, `cta 20` (scaled per density).
 
 ### Typography (Inter)
 - Titles: `titleXl 28/34`, `titleL 24/30`, `titleM 20/26`.

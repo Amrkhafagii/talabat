@@ -36,35 +36,17 @@
 ### Design Tokens Locked from Mocks (source of truth)
 Use these for all new delivery UI; dark variant is only for the dark earnings screen.
 
-**Light (Delivery)**
-- Primary orange: `#FF6B35`
-- Primary orange-strong (CTA hover/pressed): `#FF7E3F`
-- Accent soft (chips/backgrounds): `#FFE8DB`
-- Background: `#F8F6F3`
-- Surface / card: `#FFFFFF`
-- Surface alt: `#F4F1ED`
-- Border: `#E5E1DA`
-- Shadow (cards): `rgba(0,0,0,0.08)` with 0,6,14 blur equivalent
-- Text strong: `#1B1B1B`
-- Text muted: `#6B7280`
-- Text subtle: `#8A8F99`
-- Success green: `#1FB360`
-- Warning amber: `#F59E0B`
-- Error red: `#D92D20`
-- Positive green (earnings amounts): `#16A34A`
-- Gray pill bg: `#F0F1F5`
+**Light (Delivery)** (use `deliveryTokensLight`)
+- Primary CTA: `deliveryTokensLight.palette.accent`; pressed/strong: `palette.accentStrong`; soft pills/backgrounds: `palette.accentSoft`.
+- Background: `palette.background`; Surface / card: `palette.surface`; Surface alt: `palette.surfaceAlt`; Border: `palette.border`; muted border: `palette.borderMuted`.
+- Text strong: `palette.text`; Text muted: `palette.textMuted`; Text subtle/placeholder: `palette.textSubtle` / `palette.formPlaceholder`.
+- Success / Warning / Error: `palette.success` / `palette.warning` / `palette.error`; Positive amounts: `palette.positive`; Neutral pill bg: `palette.pill`.
+- Shadows: `deliveryTokensLight.shadows.card` (cards) and `deliveryTokensLight.shadows.raised` (raised CTA/FAB).
 
-**Dark (Earnings)**
-- Background: `#0F1524`
-- Surface: `#121A2C`
-- Surface-strong: `#0D1322`
-- Primary text: `#FFFFFF`
-- Secondary text: `#9FB3D9`
-- Accent blue: `#1F3B73`
-- CTA / highlight: `#1E3A8A`
-- Success green: `#22C55E`
-- Warning amber: `#FBBF24`
-- Error red: `#F87171`
+**Dark (Earnings)** (use `deliveryTokensDark`)
+- Background: `deliveryTokensDark.palette.background`; Surface: `palette.surface`; Surface-strong: `palette.surfaceStrong`.
+- Primary text: `palette.text`; Secondary text: `palette.textMuted`; CTA/highlight: `palette.accent` with pressed `palette.accentStrong`.
+- Status colors: `palette.success` / `palette.warning` / `palette.error`; Pill bg: `palette.pill`.
 
 **Typography**
 - Title XL: 28/34, weight 700
@@ -76,16 +58,14 @@ Use these for all new delivery UI; dark variant is only for the dark earnings sc
 - Button: 16/20, weight 700; Small button: 14/18, weight 700
 
 **Spacing (dp)**
-- xxs 4, xs 8, sm 12, md 16, lg 20, xl 24, 2xl 32
+- Use `deliveryTokensLight.spacing` / `deliveryTokensDark.spacing`: xxs 4, xs 8, sm 12, md 16, lg 20, xl 24, 2xl 32
 
 **Radii**
-- Card: 18
-- Field/segmented/pill: 12–14
-- CTA large (bottom bars): 18–24 with pill option 999
+- From `deliveryTokensLight.radius`: Card 18; Field/segmented/pill 12–14; CTA large (bottom bars) 18–24 with pill option 999
 
 **Shadows (iOS/Android target)**
-- Card: elevation 6 / shadowOpacity ~0.08, radius 12
-- Raised CTA: elevation 10 / shadowOpacity ~0.14, radius 16
+- Card: elevation 6 / shadowOpacity ~0.08, radius 12 (see `deliveryTokensLight.shadows.card`)
+- Raised CTA: elevation 10 / shadowOpacity ~0.14, radius 16 (see `deliveryTokensLight.shadows.raised`)
 
 ### Notes for Phase 2+
 - Replace `styles/restaurantTheme.tsx` usage in delivery surfaces with the above tokens.

@@ -70,7 +70,7 @@ export default function RestaurantLayout() {
           paddingBottom: theme.insets.bottom + theme.spacing.sm,
           height: 72 + theme.insets.bottom,
         },
-        tabBarActiveTintColor: theme.colors.accent,
+        tabBarActiveTintColor: theme.colors.primary[500],
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarLabelStyle: {
           fontSize: 12,

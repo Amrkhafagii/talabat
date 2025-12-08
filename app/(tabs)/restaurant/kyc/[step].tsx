@@ -126,6 +126,6 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       alignItems: 'center',
       ...theme.shadows.card,
     },
-    ctaText: { ...theme.typography.button, color: '#FFFFFF' },
+    ctaText: { ...theme.typography.button, color: theme.colors.textInverse },
   });
 }

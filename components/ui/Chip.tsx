@@ -21,12 +21,13 @@ export default function Chip({ label, active = false, onPress, variant = 'neutra
     const paletteByVariant: Record<ChipVariant, { bg: string; border?: string; text: string }> = {
       neutral: { bg: colors.surfaceAlt, border: colors.borderMuted, text: colors.textMuted },
       outline: { bg: 'transparent', border: colors.border, text: colors.text },
-      accent: { bg: colors.accent, text: '#FFFFFF' },
+      accent: { bg: colors.primary[500], text: colors.textInverse },
     };
     const palette = paletteByVariant[variant];
-    const activePalette = variant === 'accent'
-      ? palette
-      : { bg: colors.accent, border: colors.accent, text: '#FFFFFF' };
+    const activePalette =
+      variant === 'accent'
+        ? palette
+        : { bg: colors.primary[100], border: colors.primary[500], text: colors.primary[500] };
 
     const background = active ? activePalette.bg : palette.bg;
     const border = active ? activePalette.border : palette.border;
@@ -49,7 +50,7 @@ export default function Chip({ label, active = false, onPress, variant = 'neutra
     const labelStyle: TextStyle = { ...typography.caption, color: textColor, fontFamily: 'Inter-SemiBold' };
 
     return { containerStyle, labelStyle };
-  }, [active, colors.accent, colors.border, colors.borderMuted, colors.surfaceAlt, colors.text, colors.textMuted, radius.pill, shadows.card, spacing.md, spacing.xs, tap.minHeight, typography.caption, variant]);
+  }, [active, colors.border, colors.borderMuted, colors.primary, colors.surfaceAlt, colors.text, colors.textInverse, colors.textMuted, radius.pill, shadows.card, spacing.md, spacing.xs, tap.minHeight, typography.caption, variant]);
 
   return (
     <TouchableOpacity

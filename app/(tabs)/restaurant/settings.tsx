@@ -235,7 +235,7 @@ export default function OperationalSettings() {
               onValueChange={handleToggleOpen}
               disabled={togglingOpen}
               trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }}
-              thumbColor="#FFFFFF"
+              thumbColor={theme.colors.textInverse}
             />
           </View>
         </View>

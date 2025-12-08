@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useAppTheme } from '@/styles/appTheme';
 
 interface Category {
   id: string;
@@ -13,6 +14,9 @@ interface CategoryCardProps {
 }
 
 export default function CategoryCard({ category, onPress }: CategoryCardProps) {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <TouchableOpacity style={styles.categoryCard} onPress={onPress}>
       <Text style={styles.categoryEmoji}>{category.emoji}</Text>
@@ -21,27 +25,24 @@ export default function CategoryCard({ category, onPress }: CategoryCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  categoryCard: {
-    alignItems: 'center',
-    marginRight: 16,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  categoryEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  categoryName: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#374151',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    categoryCard: {
+      alignItems: 'center',
+      marginRight: 16,
+      backgroundColor: theme.colors.surface,
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      borderRadius: 12,
+      ...theme.shadows.card,
+    },
+    categoryEmoji: {
+      fontSize: 32,
+      marginBottom: 8,
+    },
+    categoryName: {
+      fontSize: 12,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.text,
+    },
+  });

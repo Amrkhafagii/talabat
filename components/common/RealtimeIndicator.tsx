@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Wifi, WifiOff } from 'lucide-react-native';
 import { supabase } from '@/utils/supabase';
+import { useAppTheme } from '@/styles/appTheme';
 
 interface RealtimeIndicatorProps {
   show?: boolean;
@@ -10,6 +11,8 @@ interface RealtimeIndicatorProps {
 export default function RealtimeIndicator({ show = true }: RealtimeIndicatorProps) {
   const [isConnected, setIsConnected] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     if (!show) return;
@@ -46,9 +49,9 @@ export default function RealtimeIndicator({ show = true }: RealtimeIndicatorProp
   return (
     <View style={[styles.container, !isConnected && styles.disconnected]}>
       {isConnected ? (
-        <Wifi size={12} color="#10B981" />
+        <Wifi size={12} color={theme.colors.status.success} />
       ) : (
-        <WifiOff size={12} color="#EF4444" />
+        <WifiOff size={12} color={theme.colors.status.error} />
       )}
       <Text style={[styles.text, !isConnected && styles.disconnectedText]}>
         {isConnected ? 'Live' : 'Offline'}
@@ -57,26 +60,27 @@ export default function RealtimeIndicator({ show = true }: RealtimeIndicatorProp
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D1FAE5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  disconnected: {
-    backgroundColor: '#FEE2E2',
-  },
-  text: {
-    fontSize: 10,
-    fontFamily: 'Inter-SemiBold',
-    color: '#10B981',
-    marginLeft: 4,
-  },
-  disconnectedText: {
-    color: '#EF4444',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.statusSoft.success,
+      paddingHorizontal: theme.spacing.xs,
+      paddingVertical: theme.spacing.xxs,
+      borderRadius: theme.radius.pill,
+      alignSelf: 'flex-start',
+    },
+    disconnected: {
+      backgroundColor: theme.colors.statusSoft.error,
+    },
+    text: {
+      fontSize: 10,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.status.success,
+      marginLeft: theme.spacing.xxs,
+    },
+    disconnectedText: {
+      color: theme.colors.status.error,
+    },
+  });

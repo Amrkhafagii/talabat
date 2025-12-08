@@ -277,11 +277,21 @@ export default function EditMenuItem() {
           <Text style={styles.sectionTitle}>Visibility</Text>
           <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>Available</Text>
-            <Switch value={isAvailable} onValueChange={setIsAvailable} trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }} thumbColor="#FFFFFF" />
+            <Switch
+              value={isAvailable}
+              onValueChange={setIsAvailable}
+              trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }}
+              thumbColor={theme.colors.textInverse}
+            />
           </View>
           <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>Mark as popular</Text>
-            <Switch value={isPopular} onValueChange={setIsPopular} trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }} thumbColor="#FFFFFF" />
+            <Switch
+              value={isPopular}
+              onValueChange={setIsPopular}
+              trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }}
+              thumbColor={theme.colors.textInverse}
+            />
           </View>
         </View>
 
@@ -332,7 +342,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     },
     chipActive: { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent },
     chipText: { ...theme.typography.body, color: theme.colors.formText },
-    chipTextActive: { color: '#FFFFFF', fontFamily: 'Inter-SemiBold' },
+    chipTextActive: { color: theme.colors.textInverse, fontFamily: 'Inter-SemiBold' },
     newCategoryRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginTop: theme.spacing.sm },
     input: {
       borderWidth: 1,
@@ -349,7 +359,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       paddingVertical: theme.spacing.sm,
       borderRadius: theme.radius.md,
     },
-    addCategoryButtonText: { ...theme.typography.buttonSmall, color: '#FFFFFF' },
+    addCategoryButtonText: { ...theme.typography.buttonSmall, color: theme.colors.textInverse },
     toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: theme.spacing.sm },
     toggleLabel: { ...theme.typography.body, color: theme.colors.formText },
     saveButton: { marginHorizontal: theme.spacing.lg, marginVertical: theme.spacing.lg },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -12,6 +12,7 @@ import FormField from '@/components/ui/FormField';
 import Card from '@/components/ui/Card';
 import { supabase } from '@/utils/supabase';
 import { forgotPasswordSchema, ForgotPasswordFormData } from '@/utils/validation/schemas';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
@@ -82,6 +83,9 @@ export default function ForgotPassword() {
     }
   };
 
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   if (emailSent) {
     return (
       <SafeAreaView style={styles.container}>
@@ -101,7 +105,7 @@ export default function ForgotPassword() {
             <View style={styles.content}>
               <Card style={styles.successCard}>
                 <View style={styles.successIcon}>
-                  <CheckCircle size={64} color="#10B981" />
+                  <CheckCircle size={64} color={theme.colors.status.success} />
                 </View>
                 
                 <Text style={styles.successTitle}>Email Sent!</Text>
@@ -170,7 +174,7 @@ export default function ForgotPassword() {
           <View style={styles.content}>
             <View style={styles.headerSection}>
               <View style={styles.iconContainer}>
-                <Mail size={48} color="#FF6B35" />
+                <Mail size={48} color={theme.colors.primary[500]} />
               </View>
               <Text style={styles.title}>Forgot your password?</Text>
               <Text style={styles.subtitle}>
@@ -223,184 +227,192 @@ export default function ForgotPassword() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 40,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    minHeight: '100%',
-  },
-  headerSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFF7F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  formSection: {
-    marginBottom: 40,
-  },
-  errorContainer: {
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontFamily: 'Inter-Medium',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  submitButton: {
-    marginTop: 8,
-  },
-  footerSection: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  footerText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  footerLink: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FF6B35',
-  },
-  securityNote: {
-    backgroundColor: '#F0F9FF',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 'auto',
-    marginBottom: 20,
-  },
-  securityText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#0369A1',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  // Success state styles
-  successCard: {
-    alignItems: 'center',
-    marginBottom: 32,
-    paddingVertical: 32,
-  },
-  successIcon: {
-    marginBottom: 24,
-  },
-  successTitle: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  successMessage: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  emailText: {
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  instructionsContainer: {
-    alignSelf: 'stretch',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
-  },
-  instructionsTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  instructionItem: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#374151',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  noteText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  actionButtons: {
-    gap: 12,
-    marginBottom: 24,
-  },
-  resendButton: {
-    marginBottom: 8,
-  },
-  backButton: {
-    marginTop: 8,
-  },
-  helpContainer: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-    borderRadius: 8,
-    padding: 12,
-  },
-  helpText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#92400E',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    keyboardAvoidingView: {
+      flex: 1,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingBottom: Platform.OS === 'ios' ? 20 : 40,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 24,
+      paddingTop: 32,
+      minHeight: '100%',
+    },
+    headerSection: {
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    iconContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: theme.colors.primary[50],
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    title: {
+      fontSize: 24,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+      lineHeight: 24,
+      textAlign: 'center',
+    },
+    formSection: {
+      marginBottom: 40,
+    },
+    errorContainer: {
+      backgroundColor: theme.colors.statusSoft.error,
+      borderWidth: 1,
+      borderColor: theme.colors.status.error,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 20,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Medium',
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    submitButton: {
+      marginTop: 8,
+    },
+    footerSection: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    footerText: {
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+    },
+    footerLink: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.primary[500],
+    },
+    securityNote: {
+      backgroundColor: theme.colors.statusSoft.info,
+      borderWidth: 1,
+      borderColor: theme.colors.status.info,
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 'auto',
+      marginBottom: 20,
+    },
+    securityText: {
+      fontSize: 12,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.status.info,
+      textAlign: 'center',
+      lineHeight: 16,
+    },
+    // Success state styles
+    successCard: {
+      alignItems: 'center',
+      marginBottom: 32,
+      paddingVertical: 32,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      ...theme.shadows.card,
+    },
+    successIcon: {
+      marginBottom: 24,
+    },
+    successTitle: {
+      fontSize: 24,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    successMessage: {
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: 24,
+    },
+    emailText: {
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+    },
+    instructionsContainer: {
+      alignSelf: 'stretch',
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    instructionsTitle: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 12,
+    },
+    instructionItem: {
+      fontSize: 14,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.text,
+      lineHeight: 20,
+      marginBottom: 4,
+    },
+    noteText: {
+      fontSize: 12,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textSubtle,
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
+    actionButtons: {
+      gap: 12,
+      marginBottom: 24,
+    },
+    resendButton: {
+      marginBottom: 8,
+    },
+    backButton: {
+      marginTop: 8,
+    },
+    helpContainer: {
+      backgroundColor: theme.colors.statusSoft.warning,
+      borderWidth: 1,
+      borderColor: theme.colors.status.warning,
+      borderRadius: 8,
+      padding: 12,
+    },
+    helpText: {
+      fontSize: 12,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.status.warning,
+      textAlign: 'center',
+      lineHeight: 16,
+    },
+  });

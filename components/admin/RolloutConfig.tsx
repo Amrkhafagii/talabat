@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, Switch, ActivityIndicator } from 'react-native';
 import { styles } from '@/styles/adminMetrics';
+import { iosColors } from '@/styles/iosTheme';
 import type { TrustedRolloutConfig } from '@/utils/db/config';
 
 type Props = {
@@ -41,7 +42,7 @@ export default function RolloutConfig({
       <Text style={styles.sectionTitle}>Rollout flags</Text>
       {configLoading || !config ? (
         <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color="#FF6B35" />
+          <ActivityIndicator size="small" color={iosColors.primary} />
           <Text style={styles.row}>Loading config…</Text>
         </View>
       ) : (

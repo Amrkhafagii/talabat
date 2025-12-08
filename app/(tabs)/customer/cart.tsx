@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, CreditCard, MapPin, ChevronDown, ShieldCheck } from 'lucide-react-native';
@@ -14,6 +14,7 @@ import CartItemCard from '@/components/customer/CartItemCard';
 import { computeEtaBand } from '@/utils/db/trustedArrival';
 import { estimateTravelMinutes } from '@/utils/etaService';
 import { supabase } from '@/utils/supabase';
+import { useAppTheme } from '@/styles/appTheme';
 
 export default function Cart() {
   const { cart, updateQuantity, clearCart, getTotalItems } = useCart();
@@ -37,6 +38,8 @@ export default function Cart() {
   >([]);
   const [restaurantMeta, setRestaurantMeta] = useState<Restaurant | null>(null);
   const fallbackPayMobile = '01023494000';
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     loadCartData();
@@ -462,13 +465,13 @@ export default function Cart() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color="#111827" />
+            <ArrowLeft size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Cart</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={styles.loadingText}>Loading cart...</Text>
         </View>
       </SafeAreaView>
@@ -480,7 +483,7 @@ export default function Cart() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color="#111827" />
+            <ArrowLeft size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Cart</Text>
           <View style={styles.placeholder} />
@@ -502,12 +505,12 @@ export default function Cart() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cart</Text>
-        <View style={styles.placeholder} />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Cart</Text>
+          <View style={styles.placeholder} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
@@ -516,7 +519,7 @@ export default function Cart() {
           <Text style={styles.sectionTitle}>Delivery Address</Text>
           {selectedAddress ? (
             <TouchableOpacity style={styles.addressCard} onPress={handleSelectAddress}>
-              <MapPin size={20} color="#FF6B35" />
+              <MapPin size={20} color={theme.colors.primary[500]} />
               <View style={styles.addressInfo}>
                 <Text style={styles.addressType}>{selectedAddress.label}</Text>
                 <Text style={styles.addressText}>
@@ -527,11 +530,11 @@ export default function Cart() {
                   {selectedAddress.city}, {selectedAddress.state} {selectedAddress.postal_code}
                 </Text>
               </View>
-              <ChevronDown size={20} color="#6B7280" />
+              <ChevronDown size={20} color={theme.colors.textMuted} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.addAddressCard} onPress={handleSelectAddress}>
-              <MapPin size={20} color="#6B7280" />
+              <MapPin size={20} color={theme.colors.textMuted} />
               <Text style={styles.addAddressText}>Add delivery address</Text>
             </TouchableOpacity>
           )}
@@ -602,7 +605,7 @@ export default function Cart() {
                 await Linking.openURL('https://ipn.eg/S/amrkhafagi/instapay/4VH6jb');
               }}
             >
-              <CreditCard size={20} color="#FF6B35" />
+              <CreditCard size={20} color={theme.colors.primary[500]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.paymentText}>Instapay</Text>
               </View>
@@ -640,7 +643,10 @@ export default function Cart() {
             </View>
             {etaLabel && (
               <View style={[styles.etaBadge, etaTrusted ? styles.etaTrusted : styles.etaCaution]}>
-                <ShieldCheck size={14} color={etaTrusted ? '#065F46' : '#92400E'} />
+                <ShieldCheck
+                  size={14}
+                  color={etaTrusted ? theme.colors.status.success : theme.colors.status.warning}
+                />
                 <Text style={[styles.etaText, etaTrusted ? styles.etaTrustedText : styles.etaCautionText]}>
                   {etaTrusted ? 'Trusted arrival' : 'Arrival estimate'} • {etaLabel}
                 </Text>
@@ -667,360 +673,358 @@ export default function Cart() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  placeholder: {
-    width: 32,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginTop: 12,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  shopButton: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  shopButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-  },
-  content: {
-    flex: 1,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  addressCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  addressInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  addressType: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginTop: 2,
-    lineHeight: 18,
-  },
-  addAddressCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
-  },
-  addAddressText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Medium',
-    marginLeft: 8,
-  },
-  itemsContainer: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    overflow: 'hidden',
-  },
-  paymentOptions: {
-    gap: 12,
-  },
-  paymentOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  selectedPayment: {
-    borderColor: '#FF6B35',
-    backgroundColor: '#FFF7F5',
-  },
-  paymentText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#111827',
-    marginLeft: 12,
-    flex: 1,
-  },
-  paymentDetail: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  receiptSection: {
-    marginBottom: 16,
-  },
-  receiptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  receiptStatus: {
-    color: '#10B981',
-    fontFamily: 'Inter-SemiBold',
-  },
-  receiptStatusPending: {
-    color: '#EF4444',
-    fontFamily: 'Inter-SemiBold',
-  },
-  receiptButton: {
-    backgroundColor: '#FFF7F5',
-    borderWidth: 1,
-    borderColor: '#FFEDD5',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    marginBottom: 6,
-  },
-  receiptButtonText: {
-    color: '#FF6B35',
-    fontFamily: 'Inter-SemiBold',
-    textAlign: 'center',
-  },
-  receiptHelper: {
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    fontSize: 12,
-  },
-  receiptError: {
-    color: '#EF4444',
-    fontFamily: 'Inter-Regular',
-    marginBottom: 8,
-  },
-  summaryContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 12,
-  },
-  sectionHint: {
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    fontSize: 12,
-    marginBottom: 6,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  summaryValue: {
-    fontSize: 16,
-    color: '#111827',
-    fontFamily: 'Inter-Medium',
-  },
-  totalRow: {
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  totalLabel: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  totalValue: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-  },
-  substitutionCard: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    gap: 6,
-  },
-  substitutionTitle: {
-    fontFamily: 'Inter-SemiBold',
-    color: '#92400E',
-    fontSize: 14,
-  },
-  substitutionText: {
-    fontFamily: 'Inter-Regular',
-    color: '#92400E',
-    fontSize: 13,
-  },
-  subButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  subButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  subAccept: {
-    backgroundColor: '#065F46',
-  },
-  subAcceptText: {
-    color: '#FFFFFF',
-    fontFamily: 'Inter-SemiBold',
-  },
-  subDecline: {
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1,
-    borderColor: '#FBBF24',
-  },
-  subDeclineText: {
-    color: '#92400E',
-    fontFamily: 'Inter-SemiBold',
-  },
-  subChat: {
-    backgroundColor: '#E5E7EB',
-  },
-  subChatText: {
-    color: '#111827',
-    fontFamily: 'Inter-SemiBold',
-  },
-  etaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  etaTrusted: {
-    backgroundColor: '#ECFDF3',
-    borderColor: '#D1FAE5',
-  },
-  etaCaution: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
-  },
-  etaText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 13,
-  },
-  etaTrustedText: {
-    color: '#065F46',
-  },
-  etaCautionText: {
-    color: '#92400E',
-  },
-  bottomContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  placeOrderButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  disabledButton: {
-    backgroundColor: '#9CA3AF',
-  },
-  placeOrderText: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  orderTotal: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    backButton: {
+      padding: 4,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+    },
+    placeholder: {
+      width: 32,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginTop: 12,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 8,
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      textAlign: 'center',
+      marginBottom: 24,
+    },
+    shopButton: {
+      backgroundColor: theme.colors.primary[500],
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    shopButtonText: {
+      color: theme.colors.textInverse,
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+    },
+    content: {
+      flex: 1,
+    },
+    section: {
+      backgroundColor: theme.colors.surface,
+      marginBottom: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 16,
+    },
+    addressCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: theme.colors.formSurface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.formBorder,
+    },
+    addressInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    addressType: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+    },
+    addressText: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginTop: 2,
+      lineHeight: 18,
+    },
+    addAddressCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+      backgroundColor: theme.colors.formSurface,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: theme.colors.border,
+      borderStyle: 'dashed',
+    },
+    addAddressText: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Medium',
+      marginLeft: 8,
+    },
+    itemsContainer: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      overflow: 'hidden',
+    },
+    paymentOptions: {
+      gap: 12,
+    },
+    paymentOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: theme.colors.formSurface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.formBorder,
+    },
+    selectedPayment: {
+      borderColor: theme.colors.primary[500],
+      backgroundColor: theme.colors.primary[100],
+    },
+    paymentText: {
+      fontSize: 16,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.text,
+      marginLeft: 12,
+      flex: 1,
+    },
+    paymentDetail: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+    },
+    receiptSection: {
+      marginBottom: 16,
+    },
+    receiptHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    receiptStatus: {
+      color: theme.colors.status.success,
+      fontFamily: 'Inter-SemiBold',
+    },
+    receiptStatusPending: {
+      color: theme.colors.status.warning,
+      fontFamily: 'Inter-SemiBold',
+    },
+    receiptButton: {
+      backgroundColor: theme.colors.primary[100],
+      borderWidth: 1,
+      borderColor: theme.colors.primary[100],
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      marginBottom: 6,
+    },
+    receiptButtonText: {
+      color: theme.colors.primary[500],
+      fontFamily: 'Inter-SemiBold',
+      textAlign: 'center',
+    },
+    receiptHelper: {
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      fontSize: 12,
+    },
+    receiptError: {
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Regular',
+      marginBottom: 8,
+    },
+    summaryContainer: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      gap: 12,
+    },
+    sectionHint: {
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      fontSize: 12,
+      marginBottom: 6,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    summaryLabel: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+    },
+    summaryValue: {
+      fontSize: 16,
+      color: theme.colors.text,
+      fontFamily: 'Inter-Medium',
+    },
+    totalRow: {
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+    totalLabel: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+    },
+    totalValue: {
+      fontSize: 18,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+    },
+    substitutionCard: {
+      backgroundColor: theme.colors.statusSoft.warning,
+      borderColor: theme.colors.status.warning,
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 12,
+      gap: 6,
+    },
+    substitutionTitle: {
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.status.warning,
+      fontSize: 14,
+    },
+    substitutionText: {
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.status.warning,
+      fontSize: 13,
+    },
+    subButtons: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    subButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 10,
+    },
+    subAccept: {
+      backgroundColor: theme.colors.status.success,
+    },
+    subAcceptText: {
+      color: theme.colors.textInverse,
+      fontFamily: 'Inter-SemiBold',
+    },
+    subDecline: {
+      backgroundColor: theme.colors.statusSoft.warning,
+      borderWidth: 1,
+      borderColor: theme.colors.status.warning,
+    },
+    subDeclineText: {
+      color: theme.colors.status.warning,
+      fontFamily: 'Inter-SemiBold',
+    },
+    subChat: {
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    subChatText: {
+      color: theme.colors.text,
+      fontFamily: 'Inter-SemiBold',
+    },
+    etaBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 12,
+      padding: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+    },
+    etaTrusted: {
+      backgroundColor: theme.colors.statusSoft.success,
+      borderColor: theme.colors.status.success,
+    },
+    etaCaution: {
+      backgroundColor: theme.colors.statusSoft.warning,
+      borderColor: theme.colors.status.warning,
+    },
+    etaText: {
+      fontFamily: 'Inter-Medium',
+      fontSize: 13,
+      color: theme.colors.text,
+    },
+    etaTrustedText: {
+      color: theme.colors.status.success,
+    },
+    etaCautionText: {
+      color: theme.colors.status.warning,
+    },
+    bottomContainer: {
+      backgroundColor: theme.colors.surface,
+      padding: 20,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+    placeOrderButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.colors.primary[500],
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+      borderRadius: 12,
+      ...theme.shadows.raised,
+    },
+    disabledButton: {
+      backgroundColor: theme.colors.borderMuted,
+    },
+    placeOrderText: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.textInverse,
+    },
+    orderTotal: {
+      fontSize: 18,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.textInverse,
+    },
+  });

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, MapPin, CreditCard, Bell, CircleHelp as HelpCircle, LogOut, CreditCard as Edit, Plus } from 'lucide-react-native';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile, getUserAddresses } from '@/utils/database';
@@ -36,6 +37,8 @@ const profileOptions = [
 
 export default function Profile() {
   const { user, signOut } = useAuth();
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [userProfile, setUserProfile] = useState<UserType | null>(null);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,11 +106,11 @@ export default function Profile() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#111827" />
+          <ArrowLeft size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
         <TouchableOpacity style={styles.editButton} onPress={editProfile}>
-          <Edit size={20} color="#FF6B35" />
+          <Edit size={20} color={theme.colors.primary[500]} />
         </TouchableOpacity>
       </View>
 
@@ -148,7 +151,7 @@ export default function Profile() {
         <View style={styles.addressSection}>
           <View style={styles.addressHeader}>
             <View style={styles.addressHeaderLeft}>
-              <MapPin size={20} color="#FF6B35" />
+              <MapPin size={20} color={theme.colors.primary[500]} />
               <Text style={styles.addressTitle}>Delivery Addresses</Text>
             </View>
             <TouchableOpacity onPress={manageAddresses}>
@@ -174,7 +177,7 @@ export default function Profile() {
             </View>
           ) : (
             <TouchableOpacity style={styles.addAddressCard} onPress={manageAddresses}>
-              <Plus size={24} color="#6B7280" />
+              <Plus size={24} color={theme.colors.textMuted} />
               <Text style={styles.addAddressText}>Add delivery address</Text>
             </TouchableOpacity>
           )}
@@ -193,7 +196,7 @@ export default function Profile() {
               >
                 <View style={styles.optionLeft}>
                   <View style={styles.optionIcon}>
-                    <IconComponent size={20} color="#FF6B35" />
+                    <IconComponent size={20} color={theme.colors.primary[500]} />
                   </View>
                   <Text style={styles.optionText}>{option.title}</Text>
                 </View>
@@ -205,7 +208,7 @@ export default function Profile() {
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-          <LogOut size={20} color="#EF4444" />
+          <LogOut size={20} color={theme.colors.status.error} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -213,10 +216,10 @@ export default function Profile() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -224,9 +227,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     padding: 4,
@@ -234,13 +237,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
-    color: '#111827',
+    color: theme.colors.text,
   },
   editButton: {
     padding: 4,
   },
   profileSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     paddingVertical: 32,
     marginBottom: 16,
@@ -249,36 +252,36 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FF6B35',
+    backgroundColor: theme.colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
   profileInitial: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 28,
     fontFamily: 'Inter-Bold',
   },
   profileName: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
-    color: '#111827',
+    color: theme.colors.text,
     marginBottom: 4,
   },
   profileEmail: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.colors.textMuted,
     fontFamily: 'Inter-Regular',
     marginBottom: 2,
   },
   profilePhone: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.colors.textMuted,
     fontFamily: 'Inter-Regular',
   },
   statsSection: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginBottom: 16,
     paddingVertical: 24,
   },
@@ -289,16 +292,16 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
-    color: '#111827',
+    color: theme.colors.text,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.colors.textMuted,
     fontFamily: 'Inter-Regular',
   },
   addressSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginBottom: 16,
     paddingVertical: 20,
     paddingHorizontal: 20,
@@ -316,22 +319,22 @@ const styles = StyleSheet.create({
   addressTitle: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
-    color: '#111827',
+    color: theme.colors.text,
     marginLeft: 8,
   },
   manageText: {
     fontSize: 14,
-    color: '#FF6B35',
+    color: theme.colors.primary[500],
     fontFamily: 'Inter-SemiBold',
   },
   addressCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.colors.border,
   },
   addressInfo: {
     flex: 1,
@@ -339,24 +342,24 @@ const styles = StyleSheet.create({
   addressLabel: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#111827',
+    color: theme.colors.text,
     marginBottom: 4,
   },
   addressText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.colors.textMuted,
     fontFamily: 'Inter-Regular',
     lineHeight: 20,
   },
   defaultBadge: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.status.success,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   defaultText: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontFamily: 'Inter-SemiBold',
   },
   addAddressCard: {
@@ -364,20 +367,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: theme.colors.border,
     borderStyle: 'dashed',
   },
   addAddressText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.colors.textMuted,
     fontFamily: 'Inter-Medium',
     marginLeft: 8,
   },
   optionsSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginBottom: 16,
   },
   optionItem: {
@@ -387,7 +390,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: theme.colors.border,
   },
   optionLeft: {
     flexDirection: 'row',
@@ -397,7 +400,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFF7F5',
+    backgroundColor: theme.colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -405,29 +408,29 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
-    color: '#111827',
+    color: theme.colors.text,
   },
   optionArrow: {
     fontSize: 20,
-    color: '#9CA3AF',
+    color: theme.colors.textSubtle,
     fontFamily: 'Inter-Regular',
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingVertical: 16,
     marginHorizontal: 20,
     marginBottom: 32,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: theme.colors.statusSoft.error,
   },
   logoutText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#EF4444',
+    color: theme.colors.status.error,
     marginLeft: 8,
   },
 });

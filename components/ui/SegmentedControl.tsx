@@ -40,17 +40,19 @@ export default function SegmentedControl<T extends string>({
         borderRadius: radius.pill,
       } as ViewStyle,
       chipActive: {
-        backgroundColor: colors.accent,
+        backgroundColor: colors.primary[100],
+        borderColor: colors.primary[500],
+        borderWidth: 1,
       } as ViewStyle,
       chipText: {
         ...typography.caption,
         color: colors.textMuted,
       } as TextStyle,
       chipTextActive: {
-        color: '#FFFFFF',
+        color: colors.primary[500],
       } as TextStyle,
     }),
-    [colors.accent, colors.borderMuted, colors.surfaceAlt, colors.textMuted, radius.pill, spacing.sm, spacing.xs, typography.caption]
+    [colors.borderMuted, colors.primary, colors.surfaceAlt, colors.textMuted, radius.pill, spacing.sm, spacing.xs, typography.caption]
   );
 
   return (

@@ -172,7 +172,7 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>, horizontal: 
   StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: '#00000055',
+      backgroundColor: theme.colors.overlay,
     },
     content: {
       flexGrow: 1,
@@ -218,15 +218,15 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>, horizontal: 
     detailValue: { ...theme.typography.body, color: theme.colors.text },
     warningBox: {
       marginTop: theme.spacing.md,
-      backgroundColor: '#FFF7E0',
+      backgroundColor: theme.colors.statusSoft.warning,
       borderRadius: theme.radius.md,
       padding: theme.spacing.md,
       borderWidth: 1,
-      borderColor: '#FACC15',
+      borderColor: theme.colors.status.warning,
       gap: theme.spacing.xs,
     },
-    warningTitle: { ...theme.typography.subhead, color: '#B45309' },
-    warningText: { ...theme.typography.caption, color: '#92400E' },
+    warningTitle: { ...theme.typography.subhead, color: theme.colors.status.warning },
+    warningText: { ...theme.typography.caption, color: theme.colors.status.warning },
     reasonList: { marginTop: theme.spacing.md, gap: theme.spacing.xs },
     sectionTitle: { ...theme.typography.subhead, color: theme.colors.text },
     reasonRow: {
@@ -241,11 +241,11 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>, horizontal: 
       backgroundColor: theme.colors.surfaceAlt,
     },
     reasonRowActive: {
-      borderColor: theme.colors.accent,
-      backgroundColor: theme.colors.accentSoft,
+      borderColor: theme.colors.primary[500],
+      backgroundColor: theme.colors.primary[100],
     },
     reasonText: { ...theme.typography.body, color: theme.colors.text },
-    reasonTextActive: { color: theme.colors.accent },
+    reasonTextActive: { color: theme.colors.primary[500] },
     radio: {
       width: 22,
       height: 22,
@@ -253,7 +253,7 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>, horizontal: 
       borderWidth: 2,
       borderColor: theme.colors.border,
     },
-    radioActive: { borderColor: theme.colors.accent, backgroundColor: `${theme.colors.accent}22` },
+    radioActive: { borderColor: theme.colors.primary[500], backgroundColor: `${theme.colors.primary[500]}22` },
     actions: { gap: theme.spacing.sm, marginTop: theme.spacing.md },
     goBack: { backgroundColor: theme.colors.surfaceAlt, borderWidth: 1, borderColor: theme.colors.border },
     close: {

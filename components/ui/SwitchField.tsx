@@ -24,8 +24,8 @@ export default function SwitchField({ label, value, onValueChange, helperText, d
       <Switch
         value={value}
         onValueChange={onValueChange}
-        thumbColor="#FFFFFF"
-        trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }}
+        thumbColor={theme.colors.textInverse}
+        trackColor={{ false: theme.colors.borderMuted, true: theme.colors.primary[500] }}
         disabled={disabled}
       />
     </View>

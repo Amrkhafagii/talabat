@@ -8,7 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { LocationProvider } from '@/contexts/LocationContext';
 import { CartProvider } from '@/contexts/CartContext';
-import { RestaurantThemeProvider, useRestaurantTheme } from '@/styles/restaurantTheme';
+import { AppThemeProvider, useAppTheme } from '@/styles/appTheme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -34,7 +34,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <RestaurantThemeProvider>
+      <AppThemeProvider>
         <AuthProvider>
           <LocationProvider>
             <CartProvider>
@@ -42,13 +42,13 @@ export default function RootLayout() {
             </CartProvider>
           </LocationProvider>
         </AuthProvider>
-      </RestaurantThemeProvider>
+      </AppThemeProvider>
     </SafeAreaProvider>
   );
 }
 
 function ThemedStack() {
-  const theme = useRestaurantTheme();
+  const theme = useAppTheme();
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>

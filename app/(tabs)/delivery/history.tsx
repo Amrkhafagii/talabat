@@ -124,7 +124,7 @@ export default function DeliveryHistory() {
       <SafeAreaView style={styles.container}>
         <Header title="Delivery History" showBackButton />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={styles.loadingText}>Loading delivery history...</Text>
         </View>
       </SafeAreaView>
@@ -155,8 +155,8 @@ export default function DeliveryHistory() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#FF6B35']}
-            tintColor="#FF6B35"
+            colors={[theme.colors.primary[500]]}
+            tintColor={theme.colors.primary[500]}
           />
         }
       >
@@ -245,7 +245,7 @@ export default function DeliveryHistory() {
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <MapPin size={48} color="#9CA3AF" />
+              <MapPin size={48} color={theme.colors.textSubtle} />
               <Text style={styles.emptyTitle}>No deliveries found</Text>
               <Text style={styles.emptyText}>
                 {selectedPeriod === 'today' 
@@ -302,7 +302,7 @@ const createStyles = (
     },
     retryButtonText: {
       ...theme.typography.button,
-      color: '#FFFFFF',
+      color: theme.colors.textInverse,
     },
     segmented: { marginHorizontal: contentPadding.horizontal, marginTop: theme.spacing.md, marginBottom: theme.spacing.md },
     section: {

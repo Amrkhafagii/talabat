@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,6 +8,7 @@ import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
 import { getCategories } from '@/utils/database';
 import { Category } from '@/types/database';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function Filters() {
   const params = useLocalSearchParams();
@@ -18,6 +19,8 @@ export default function Filters() {
   const [maxDeliveryFee, setMaxDeliveryFee] = useState<number>(50);
   const [showPromotedOnly, setShowPromotedOnly] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     loadCategories();
@@ -131,7 +134,7 @@ export default function Filters() {
                   {cuisine}
                 </Text>
                 {selectedCuisines.includes(cuisine) && (
-                  <X size={16} color="#FFFFFF" style={styles.chipIcon} />
+                  <X size={16} color={theme.colors.textInverse} style={styles.chipIcon} />
                 )}
               </TouchableOpacity>
             ))}
@@ -153,8 +156,8 @@ export default function Filters() {
                     <Star
                       key={star}
                       size={20}
-                      color={star <= rating ? "#FFB800" : "#E5E7EB"}
-                      fill={star <= rating ? "#FFB800" : "transparent"}
+                      color={star <= rating ? theme.colors.status.warning : theme.colors.border}
+                      fill={star <= rating ? theme.colors.status.warning : 'transparent'}
                     />
                   ))}
                 </View>
@@ -231,170 +234,171 @@ export default function Filters() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  clearText: {
-    fontSize: 16,
-    color: '#FF6B35',
-    fontFamily: 'Inter-SemiBold',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  cuisineGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  cuisineChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  selectedChip: {
-    backgroundColor: '#FF6B35',
-    borderColor: '#FF6B35',
-  },
-  cuisineChipText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#374151',
-  },
-  selectedChipText: {
-    color: '#FFFFFF',
-  },
-  chipIcon: {
-    marginLeft: 4,
-  },
-  ratingContainer: {
-    gap: 12,
-  },
-  ratingOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  ratingStars: {
-    flexDirection: 'row',
-    marginRight: 12,
-  },
-  ratingText: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#111827',
-  },
-  radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedRadio: {
-    borderColor: '#FF6B35',
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#FF6B35',
-  },
-  deliveryFeeContainer: {
-    gap: 12,
-  },
-  deliveryFeeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  deliveryFeeText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#111827',
-  },
-  promotedToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  promotedTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  promotedSubtitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#E5E7EB',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  toggleActive: {
-    backgroundColor: '#FF6B35',
-  },
-  toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  toggleThumbActive: {
-    transform: [{ translateX: 20 }],
-  },
-  bottomContainer: {
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    clearText: {
+      fontSize: 16,
+      color: theme.colors.primary[500],
+      fontFamily: 'Inter-SemiBold',
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+    },
+    section: {
+      marginBottom: 32,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 16,
+    },
+    cuisineGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    cuisineChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    selectedChip: {
+      backgroundColor: theme.colors.primary[500],
+      borderColor: theme.colors.primary[500],
+    },
+    cuisineChipText: {
+      fontSize: 14,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.text,
+    },
+    selectedChipText: {
+      color: theme.colors.textInverse,
+    },
+    chipIcon: {
+      marginLeft: 4,
+    },
+    ratingContainer: {
+      gap: 12,
+    },
+    ratingOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    ratingStars: {
+      flexDirection: 'row',
+      marginRight: 12,
+    },
+    ratingText: {
+      flex: 1,
+      fontSize: 16,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.text,
+    },
+    radioButton: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: theme.colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    selectedRadio: {
+      borderColor: theme.colors.primary[500],
+    },
+    radioInner: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: theme.colors.primary[500],
+    },
+    deliveryFeeContainer: {
+      gap: 12,
+    },
+    deliveryFeeOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    deliveryFeeText: {
+      fontSize: 16,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.text,
+    },
+    promotedToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    promotedTitle: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 2,
+    },
+    promotedSubtitle: {
+      fontSize: 14,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+    },
+    toggle: {
+      width: 48,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: theme.colors.border,
+      justifyContent: 'center',
+      paddingHorizontal: 2,
+    },
+    toggleActive: {
+      backgroundColor: theme.colors.primary[500],
+    },
+    toggleThumb: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: theme.colors.textInverse,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    toggleThumbActive: {
+      transform: [{ translateX: 20 }],
+    },
+    bottomContainer: {
+      padding: 20,
+      backgroundColor: theme.colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+  });

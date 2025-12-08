@@ -65,7 +65,7 @@ export default function MenuItemManagementCard({
               value={item.isAvailable}
               onValueChange={onToggleAvailability}
               trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }}
-              thumbColor="#FFFFFF"
+              thumbColor={theme.colors.textInverse}
             />
           </View>
           {dragHandle ?? <GripVertical size={18} color={theme.colors.secondaryText} />}
@@ -77,7 +77,11 @@ export default function MenuItemManagementCard({
           <Text style={styles.price}>${item.price.toFixed(2)}</Text>
           <View style={styles.iconRow}>
             <TouchableOpacity onPress={onTogglePopular} style={[styles.iconButton, item.isPopular && styles.iconButtonActive]}>
-              <Star size={14} color={item.isPopular ? '#FFFFFF' : theme.colors.secondaryText} fill={item.isPopular ? '#FFFFFF' : 'none'} />
+              <Star
+                size={14}
+                color={item.isPopular ? theme.colors.textInverse : theme.colors.secondaryText}
+                fill={item.isPopular ? theme.colors.textInverse : 'none'}
+              />
             </TouchableOpacity>
             <TouchableOpacity onPress={onEdit} style={styles.iconButton}>
               <Pencil size={14} color={theme.colors.secondaryText} />

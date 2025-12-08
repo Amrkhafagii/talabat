@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Plus, Minus } from 'lucide-react-native';
 import Badge from '../ui/Badge';
+import { useAppTheme } from '@/styles/appTheme';
 
 interface MenuItemData {
   id: string;
@@ -21,6 +22,9 @@ interface MenuItemProps {
 }
 
 export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = false }: MenuItemProps) {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const handleAdd = () => {
     if (disabled) return;
     onAdd();
@@ -41,7 +45,7 @@ export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = f
         {quantity > 0 ? (
           <View style={styles.quantityControls}>
             <TouchableOpacity style={styles.quantityButton} onPress={onRemove}>
-              <Minus size={16} color="#FF6B35" />
+              <Minus size={16} color={theme.colors.primary[500]} />
             </TouchableOpacity>
             <Text style={styles.quantityText}>{quantity}</Text>
             <TouchableOpacity
@@ -49,7 +53,7 @@ export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = f
               onPress={handleAdd}
               disabled={disabled}
             >
-              <Plus size={16} color={disabled ? '#D1D5DB' : '#FF6B35'} />
+              <Plus size={16} color={disabled ? theme.colors.textSubtle : theme.colors.primary[500]} />
             </TouchableOpacity>
           </View>
         ) : (
@@ -58,7 +62,7 @@ export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = f
             onPress={handleAdd}
             disabled={disabled}
           >
-            <Plus size={20} color={disabled ? '#9CA3AF' : '#FFFFFF'} />
+            <Plus size={20} color={disabled ? theme.colors.textSubtle : theme.colors.textInverse} />
           </TouchableOpacity>
         )}
       </View>
@@ -66,100 +70,94 @@ export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = f
   );
 }
 
-const styles = StyleSheet.create({
-  menuItem: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  itemInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  itemName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    flex: 1,
-    marginRight: 8,
-  },
-  itemDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  itemPrice: {
-    fontSize: 16,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-  },
-  itemImageContainer: {
-    position: 'relative',
-    overflow: 'visible', // Ensure buttons are visible
-  },
-  itemImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  addButton: {
-    position: 'absolute',
-    bottom: 4, // Changed from -8 to 4
-    right: 4,  // Changed from -8 to 4
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FF6B35',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  quantityControls: {
-    position: 'absolute',
-    bottom: 4, // Changed from -8 to 4
-    right: 4,  // Changed from -8 to 4
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#FF6B35',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  quantityButton: {
-    width: 28,
-    height: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quantityText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Bold',
-    color: '#FF6B35',
-    minWidth: 20,
-    textAlign: 'center',
-  },
-  disabledAddButton: {
-    backgroundColor: '#E5E7EB',
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    menuItem: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+    },
+    itemInfo: {
+      flex: 1,
+      marginRight: 16,
+    },
+    itemHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    itemName: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      flex: 1,
+      marginRight: 8,
+    },
+    itemDescription: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginBottom: 8,
+      lineHeight: 20,
+    },
+    itemPrice: {
+      fontSize: 16,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+    },
+    itemImageContainer: {
+      position: 'relative',
+      overflow: 'visible', // Ensure buttons are visible
+    },
+    itemImage: {
+      width: 80,
+      height: 80,
+      borderRadius: 8,
+    },
+    addButton: {
+      position: 'absolute',
+      bottom: 4,
+      right: 4,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.colors.primary[500],
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...theme.shadows.card,
+    },
+    quantityControls: {
+      position: 'absolute',
+      bottom: 4,
+      right: 4,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      borderWidth: 2,
+      borderColor: theme.colors.primary[500],
+      ...theme.shadows.card,
+    },
+    quantityButton: {
+      width: 28,
+      height: 28,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    quantityText: {
+      fontSize: 14,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.primary[500],
+      minWidth: 20,
+      textAlign: 'center',
+    },
+    disabledAddButton: {
+      backgroundColor: theme.colors.borderMuted,
+    },
+    disabledButton: {
+      opacity: 0.5,
+    },
+  });

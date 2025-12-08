@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getDriverByUserId } from '@/utils/database';
 import { DeliveryDriver } from '@/types/database';
 import { useDriverLocationTracking } from '@/hooks/useDriverLocationTracking';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface LocationData {
   latitude: number;
@@ -30,6 +31,8 @@ export default function LocationTracking() {
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState<string | undefined>(undefined);
   const lastCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const { startTracking, stopTracking, isTracking: hookTracking } = useDriverLocationTracking({
     driverId: driver?.id,
@@ -200,13 +203,13 @@ export default function LocationTracking() {
           <View style={styles.statusHeader}>
             <View style={styles.statusIndicator}>
               {effectiveTracking ? (
-                <Wifi size={20} color="#10B981" />
+                <Wifi size={20} color={theme.colors.status.success} />
               ) : (
-                <WifiOff size={20} color="#EF4444" />
+                <WifiOff size={20} color={theme.colors.status.error} />
               )}
               <Text style={[
                 styles.statusText,
-                { color: effectiveTracking ? '#10B981' : '#EF4444' }
+                { color: effectiveTracking ? theme.colors.status.success : theme.colors.status.error }
               ]}>
                 {effectiveTracking ? 'Tracking Active' : 'Tracking Inactive'}
               </Text>
@@ -216,13 +219,13 @@ export default function LocationTracking() {
               onPress={refreshLocation}
               disabled={!effectiveTracking}
             >
-              <RefreshCw size={20} color={effectiveTracking ? '#6B7280' : '#9CA3AF'} />
+              <RefreshCw size={20} color={effectiveTracking ? theme.colors.textMuted : theme.colors.textSubtle} />
             </TouchableOpacity>
           </View>
 
           {lastUpdate && (
             <View style={styles.lastUpdateContainer}>
-              <Clock size={16} color="#6B7280" />
+              <Clock size={16} color={theme.colors.textMuted} />
               <Text style={styles.lastUpdateText}>
                 Last updated: {formatLastUpdate(lastUpdate)}
               </Text>
@@ -237,7 +240,7 @@ export default function LocationTracking() {
             
             <View style={styles.locationInfo}>
               <View style={styles.locationRow}>
-                <MapPin size={16} color="#FF6B35" />
+                <MapPin size={16} color={theme.colors.primary[500]} />
                 <Text style={styles.locationLabel}>Coordinates</Text>
                 <Text style={styles.locationValue}>
                   {formatCoordinates(location.latitude, location.longitude)}
@@ -302,149 +305,151 @@ export default function LocationTracking() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  statusCard: {
-    marginBottom: 16,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statusIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    marginLeft: 8,
-  },
-  refreshButton: {
-    padding: 8,
-  },
-  lastUpdateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  lastUpdateText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginLeft: 6,
-  },
-  locationCard: {
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  locationInfo: {
-    marginBottom: 16,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  locationLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginLeft: 8,
-    flex: 1,
-  },
-  locationValue: {
-    fontSize: 14,
-    color: '#111827',
-    fontFamily: 'Inter-Medium',
-  },
-  accuracyDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#10B981',
-  },
-  addressContainer: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  addressLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#111827',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-  },
-  mapsButton: {
-    marginTop: 8,
-  },
-  privacyCard: {
-    marginBottom: 16,
-  },
-  privacyText: {
-    fontSize: 14,
-    color: '#374151',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  privacyNote: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 16,
-    fontStyle: 'italic',
-  },
-  errorCard: {
-    marginBottom: 16,
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FECACA',
-  },
-  errorTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#DC2626',
-    marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-  },
-  controlContainer: {
-    marginTop: 'auto',
-    paddingBottom: 20,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    statusCard: {
+      marginBottom: 16,
+    },
+    statusHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    statusIndicator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    statusText: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      marginLeft: 8,
+    },
+    refreshButton: {
+      padding: 8,
+    },
+    lastUpdateContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    lastUpdateText: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginLeft: 6,
+    },
+    locationCard: {
+      marginBottom: 16,
+    },
+    cardTitle: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 16,
+    },
+    locationInfo: {
+      marginBottom: 16,
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    locationLabel: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginLeft: 8,
+      flex: 1,
+    },
+    locationValue: {
+      fontSize: 14,
+      color: theme.colors.text,
+      fontFamily: 'Inter-Medium',
+    },
+    accuracyDot: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: theme.colors.status.success,
+    },
+    addressContainer: {
+      marginTop: 8,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+    addressLabel: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginBottom: 4,
+    },
+    addressText: {
+      fontSize: 14,
+      color: theme.colors.text,
+      fontFamily: 'Inter-Regular',
+      lineHeight: 20,
+    },
+    mapsButton: {
+      marginTop: 8,
+    },
+    privacyCard: {
+      marginBottom: 16,
+    },
+    privacyText: {
+      fontSize: 14,
+      color: theme.colors.text,
+      fontFamily: 'Inter-Regular',
+      lineHeight: 20,
+      marginBottom: 12,
+    },
+    privacyNote: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      lineHeight: 16,
+      fontStyle: 'italic',
+    },
+    errorCard: {
+      marginBottom: 16,
+      backgroundColor: theme.colors.statusSoft.error,
+      borderColor: theme.colors.status.error,
+      borderWidth: 1,
+    },
+    errorTitle: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.status.error,
+      marginBottom: 8,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Regular',
+      lineHeight: 20,
+    },
+    controlContainer: {
+      marginTop: 'auto',
+      paddingBottom: 20,
+    },
+  });

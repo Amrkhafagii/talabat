@@ -210,17 +210,17 @@ export default function DeliveryEarnings() {
             <Card style={styles.tile}>
               <Text style={styles.tileLabel}>Per Hour</Text>
               <Text style={styles.tileValue}>{formatCurrency(getHourlyRate())}</Text>
-              <Text style={[styles.tileDelta, { color: '#22C55E' }]}>+10%</Text>
+              <Text style={[styles.tileDelta, { color: theme.colors.status.success }]}>+10%</Text>
             </Card>
             <Card style={styles.tile}>
               <Text style={styles.tileLabel}>Total Deliveries</Text>
               <Text style={styles.tileValue}>{stats.totalDeliveries}</Text>
-              <Text style={[styles.tileDelta, { color: '#EF4444' }]}>-2</Text>
+              <Text style={[styles.tileDelta, { color: theme.colors.status.error }]}>-2</Text>
             </Card>
             <Card style={styles.tile}>
               <Text style={styles.tileLabel}>Rating</Text>
               <Text style={styles.tileValue}>{stats.avgRating.toFixed(1)} ⭐</Text>
-              <Text style={[styles.tileDelta, { color: '#22C55E' }]}>+0.1</Text>
+              <Text style={[styles.tileDelta, { color: theme.colors.status.success }]}>+0.1</Text>
             </Card>
           </View>
         </View>
@@ -241,7 +241,7 @@ export default function DeliveryEarnings() {
         {/* Pro Tip */}
         <Card style={styles.tipCard}>
           <View style={styles.tipHeader}>
-            <Info size={18} color="#22C55E" />
+            <Info size={18} color={theme.colors.status.success} />
             <Text style={styles.tipTitle}>Pro Tip</Text>
           </View>
           <Text style={styles.tipBody}>
@@ -306,7 +306,7 @@ const createStyles = (
     },
     retryButtonText: {
       ...theme.typography.button,
-      color: '#FFFFFF',
+      color: theme.colors.textInverse,
     },
     segmented: {
       marginHorizontal: contentPadding.horizontal,
@@ -351,5 +351,5 @@ const createStyles = (
     progressLabel: { ...theme.typography.caption, color: theme.colors.textMuted },
     progressValue: { ...theme.typography.caption, color: theme.colors.text },
     progressBar: { height: 10, borderRadius: 5, backgroundColor: theme.colors.surfaceAlt },
-    progressFill: { height: 10, borderRadius: 5, backgroundColor: '#22C55E' },
+    progressFill: { height: 10, borderRadius: 5, backgroundColor: theme.colors.status.success },
   });

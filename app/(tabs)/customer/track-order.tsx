@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
@@ -15,6 +15,7 @@ import { getOrderItems } from '@/utils/orderHelpers';
 import { supabase } from '@/utils/supabase';
 import { getDriverById, grantDelayCreditIdempotent } from '@/utils/database';
 import { createDeliveryEvent, logAudit, computeEtaBand, getBackupCandidates, logRerouteDecision, getDeliveryEventsByOrder } from '@/utils/db/trustedArrival';
+import { useAppTheme } from '@/styles/appTheme';
 
 const orderSteps = [
   { key: 'pending', label: 'Order Placed', icon: Store },
@@ -62,6 +63,8 @@ export default function TrackOrder() {
   const [etaAlert, setEtaAlert] = useState<string | null>(null);
   const [refundRequested, setRefundRequested] = useState(false);
   const [refundStatus, setRefundStatus] = useState<string | null>(null);
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     const loadBackups = async () => {
@@ -274,7 +277,7 @@ export default function TrackOrder() {
       <SafeAreaView style={styles.container}>
         <Header title="Track Order" showBackButton />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={styles.loadingText}>Loading order details...</Text>
         </View>
       </SafeAreaView>
@@ -373,7 +376,7 @@ export default function TrackOrder() {
           <Text style={styles.orderTime}>Ordered {formatOrderTime(order.created_at)}</Text>
           {etaWindow && showTrustedEta && (
             <View style={styles.trustedEta}>
-              <ShieldCheck size={16} color="#065F46" />
+              <ShieldCheck size={16} color={theme.colors.status.success} />
               <Text style={styles.trustedEtaText}>Trusted arrival {etaWindow}</Text>
             </View>
           )}
@@ -452,7 +455,7 @@ export default function TrackOrder() {
                     ]}>
                       <StepIcon 
                         size={16} 
-                        color={isCompleted ? '#FFFFFF' : '#9CA3AF'} 
+                        color={isCompleted ? theme.colors.textInverse : theme.colors.textSubtle} 
                       />
                     </View>
                     {index < orderSteps.length - 1 && (
@@ -485,7 +488,7 @@ export default function TrackOrder() {
             <Text style={styles.sectionTitle}>Your Driver</Text>
             <View style={styles.driverInfo}>
               <View style={styles.driverAvatar}>
-                <User size={24} color="#FF6B35" />
+                <User size={24} color={theme.colors.primary[500]} />
               </View>
               <View style={styles.driverDetails}>
                 <Text style={styles.driverName}>
@@ -571,7 +574,7 @@ export default function TrackOrder() {
         <Card style={styles.addressCard}>
           <Text style={styles.sectionTitle}>Delivery Address</Text>
           <View style={styles.addressInfo}>
-            <MapPin size={20} color="#FF6B35" />
+            <MapPin size={20} color={theme.colors.primary[500]} />
             <Text style={styles.addressText}>{order.delivery_address}</Text>
           </View>
           {order.delivery_instructions && (
@@ -606,388 +609,389 @@ export default function TrackOrder() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginTop: 12,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  statusCard: {
-    marginBottom: 16,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  orderNumber: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  restaurantName: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#374151',
-    marginBottom: 4,
-  },
-  orderTime: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
-  trustedEta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 6,
-    padding: 10,
-    backgroundColor: '#ECFDF3',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#D1FAE5',
-  },
-  trustedEtaText: {
-    fontSize: 14,
-    color: '#065F46',
-    fontFamily: 'Inter-SemiBold',
-  },
-  safetyLine: {
-    fontSize: 12,
-    color: '#047857',
-    fontFamily: 'Inter-Medium',
-    marginTop: 4,
-  },
-  estimatedTime: {
-    fontSize: 14,
-    color: '#FF6B35',
-    fontFamily: 'Inter-SemiBold',
-    marginTop: 4,
-  },
-  delayCard: {
-    marginBottom: 16,
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
-    borderWidth: 1,
-  },
-  delayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  delayTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#92400E',
-  },
-  delayBadge: {
-    fontSize: 12,
-    color: '#92400E',
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    fontFamily: 'Inter-Medium',
-  },
-  delayText: {
-    fontSize: 14,
-    color: '#92400E',
-    fontFamily: 'Inter-Regular',
-    marginBottom: 12,
-  },
-  delayButton: {
-    marginBottom: 8,
-  },
-  delayError: {
-    fontSize: 12,
-    color: '#B91C1C',
-    fontFamily: 'Inter-Regular',
-  },
-  planB: {
-    marginTop: 12,
-    backgroundColor: '#F3F4F6',
-    padding: 12,
-    borderRadius: 10,
-    gap: 6,
-  },
-  planBTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: '#111827',
-  },
-  planBSubtitle: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 13,
-    color: '#374151',
-  },
-  planBActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  progressCard: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  progressContainer: {
-    paddingLeft: 8,
-  },
-  progressStep: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  stepIconContainer: {
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  stepIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepIconCompleted: {
-    backgroundColor: '#10B981',
-  },
-  stepIconCurrent: {
-    backgroundColor: '#FF6B35',
-  },
-  stepLine: {
-    width: 2,
-    height: 24,
-    backgroundColor: '#E5E7EB',
-    marginTop: 4,
-  },
-  stepLineCompleted: {
-    backgroundColor: '#10B981',
-  },
-  stepContent: {
-    flex: 1,
-    paddingTop: 4,
-  },
-  stepLabel: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  stepLabelCompleted: {
-    color: '#111827',
-  },
-  stepStatus: {
-    fontSize: 12,
-    color: '#FF6B35',
-    fontFamily: 'Inter-Regular',
-    marginTop: 2,
-  },
-  driverCard: {
-    marginBottom: 16,
-  },
-  driverInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  driverAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFF7F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  driverDetails: {
-    flex: 1,
-  },
-  liveLocation: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  liveLocationText: {
-    flex: 1,
-  },
-  liveLocationLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Medium',
-  },
-  liveLocationValue: {
-    fontSize: 14,
-    color: '#111827',
-    fontFamily: 'Inter-SemiBold',
-  },
-  liveLocationMeta: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginTop: 2,
-  },
-  driverName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  driverRating: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginBottom: 2,
-  },
-  driverVehicle: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontFamily: 'Inter-Regular',
-  },
-  itemsCard: {
-    marginBottom: 16,
-  },
-  itemsList: {
-    marginBottom: 16,
-  },
-  orderItem: {
-    fontSize: 14,
-    color: '#374151',
-    fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  chargeBreakdown: {
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingTop: 12,
-    gap: 6,
-  },
-  chargeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  chargeLabel: {
-    fontSize: 13,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  chargeValue: {
-    fontSize: 13,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  chargeDivider: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: 4,
-  },
-  chargeTotalLabel: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  chargeTotalValue: {
-    fontSize: 14,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-  },
-  addressCard: {
-    marginBottom: 16,
-  },
-  addressInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#374151',
-    fontFamily: 'Inter-Regular',
-    marginLeft: 8,
-    flex: 1,
-    lineHeight: 20,
-  },
-  deliveryInstructions: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    fontStyle: 'italic',
-    marginTop: 8,
-    paddingLeft: 28,
-  },
-  contactCard: {
-    marginBottom: 32,
-  },
-  contactActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  contactButton: {
-    flex: 1,
-  },
-  warningText: {
-    color: '#92400E',
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  refundBox: {
-    backgroundColor: '#FFF7ED',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-  },
-  refundText: {
-    color: '#7C2D12',
-    marginBottom: 8,
-    fontFamily: 'Inter-Regular',
-  },
-  refundButton: {
-    marginTop: 4,
-  },
-  refundStatus: {
-    color: '#4B5563',
-    marginTop: 6,
-    fontFamily: 'Inter-Regular',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginTop: 12,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    errorText: {
+      fontSize: 16,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Regular',
+      textAlign: 'center',
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    statusCard: {
+      marginBottom: 16,
+    },
+    statusHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    orderNumber: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+    },
+    restaurantName: {
+      fontSize: 16,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.text,
+      marginBottom: 4,
+    },
+    orderTime: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+    },
+    trustedEta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 6,
+      padding: 10,
+      backgroundColor: theme.colors.statusSoft.success,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.status.success,
+    },
+    trustedEtaText: {
+      fontSize: 14,
+      color: theme.colors.status.success,
+      fontFamily: 'Inter-SemiBold',
+    },
+    safetyLine: {
+      fontSize: 12,
+      color: theme.colors.status.success,
+      fontFamily: 'Inter-Medium',
+      marginTop: 4,
+    },
+    estimatedTime: {
+      fontSize: 14,
+      color: theme.colors.primary[500],
+      fontFamily: 'Inter-SemiBold',
+      marginTop: 4,
+    },
+    delayCard: {
+      marginBottom: 16,
+      backgroundColor: theme.colors.statusSoft.warning,
+      borderColor: theme.colors.status.warning,
+      borderWidth: 1,
+    },
+    delayHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    delayTitle: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.status.warning,
+    },
+    delayBadge: {
+      fontSize: 12,
+      color: theme.colors.status.warning,
+      backgroundColor: theme.colors.statusSoft.warning,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      fontFamily: 'Inter-Medium',
+    },
+    delayText: {
+      fontSize: 14,
+      color: theme.colors.status.warning,
+      fontFamily: 'Inter-Regular',
+      marginBottom: 12,
+    },
+    delayButton: {
+      marginBottom: 8,
+    },
+    delayError: {
+      fontSize: 12,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Regular',
+    },
+    planB: {
+      marginTop: 12,
+      backgroundColor: theme.colors.surfaceAlt,
+      padding: 12,
+      borderRadius: 10,
+      gap: 6,
+    },
+    planBTitle: {
+      fontFamily: 'Inter-SemiBold',
+      fontSize: 14,
+      color: theme.colors.text,
+    },
+    planBSubtitle: {
+      fontFamily: 'Inter-Regular',
+      fontSize: 13,
+      color: theme.colors.textMuted,
+    },
+    planBActions: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 4,
+    },
+    progressCard: {
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 16,
+    },
+    progressContainer: {
+      paddingLeft: 8,
+    },
+    progressStep: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+    },
+    stepIconContainer: {
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    stepIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.colors.surfaceAlt,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    stepIconCompleted: {
+      backgroundColor: theme.colors.status.success,
+    },
+    stepIconCurrent: {
+      backgroundColor: theme.colors.primary[500],
+    },
+    stepLine: {
+      width: 2,
+      height: 24,
+      backgroundColor: theme.colors.border,
+      marginTop: 4,
+    },
+    stepLineCompleted: {
+      backgroundColor: theme.colors.status.success,
+    },
+    stepContent: {
+      flex: 1,
+      paddingTop: 4,
+    },
+    stepLabel: {
+      fontSize: 16,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.textMuted,
+    },
+    stepLabelCompleted: {
+      color: theme.colors.text,
+    },
+    stepStatus: {
+      fontSize: 12,
+      color: theme.colors.primary[500],
+      fontFamily: 'Inter-Regular',
+      marginTop: 2,
+    },
+    driverCard: {
+      marginBottom: 16,
+    },
+    driverInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    driverAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.colors.primary[100],
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    driverDetails: {
+      flex: 1,
+    },
+    liveLocation: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    liveLocationText: {
+      flex: 1,
+    },
+    liveLocationLabel: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Medium',
+    },
+    liveLocationValue: {
+      fontSize: 14,
+      color: theme.colors.text,
+      fontFamily: 'Inter-SemiBold',
+    },
+    liveLocationMeta: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginTop: 2,
+    },
+    driverName: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 2,
+    },
+    driverRating: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginBottom: 2,
+    },
+    driverVehicle: {
+      fontSize: 12,
+      color: theme.colors.textSubtle,
+      fontFamily: 'Inter-Regular',
+    },
+    itemsCard: {
+      marginBottom: 16,
+    },
+    itemsList: {
+      marginBottom: 16,
+    },
+    orderItem: {
+      fontSize: 14,
+      color: theme.colors.text,
+      fontFamily: 'Inter-Regular',
+      lineHeight: 20,
+      marginBottom: 4,
+    },
+    chargeBreakdown: {
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      paddingTop: 12,
+      gap: 6,
+    },
+    chargeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    chargeLabel: {
+      fontSize: 13,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+    },
+    chargeValue: {
+      fontSize: 13,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+    },
+    chargeDivider: {
+      height: 1,
+      backgroundColor: theme.colors.border,
+      marginVertical: 4,
+    },
+    chargeTotalLabel: {
+      fontSize: 14,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+    },
+    chargeTotalValue: {
+      fontSize: 14,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+    },
+    addressCard: {
+      marginBottom: 16,
+    },
+    addressInfo: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    addressText: {
+      fontSize: 14,
+      color: theme.colors.text,
+      fontFamily: 'Inter-Regular',
+      marginLeft: 8,
+      flex: 1,
+      lineHeight: 20,
+    },
+    deliveryInstructions: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      fontStyle: 'italic',
+      marginTop: 8,
+      paddingLeft: 28,
+    },
+    contactCard: {
+      marginBottom: 32,
+    },
+    contactActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    contactButton: {
+      flex: 1,
+    },
+    warningText: {
+      color: theme.colors.status.warning,
+      fontWeight: '600',
+      marginBottom: 6,
+    },
+    refundBox: {
+      backgroundColor: theme.colors.statusSoft.warning,
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: 10,
+    },
+    refundText: {
+      color: theme.colors.status.warning,
+      marginBottom: 8,
+      fontFamily: 'Inter-Regular',
+    },
+    refundButton: {
+      marginTop: 4,
+    },
+    refundStatus: {
+      color: theme.colors.textMuted,
+      marginTop: 6,
+      fontFamily: 'Inter-Regular',
+    },
+  });

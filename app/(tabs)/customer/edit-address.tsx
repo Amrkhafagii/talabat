@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Chrome as Home, Briefcase, Heart } from 'lucide-react-native';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
@@ -32,6 +33,8 @@ export default function EditAddress() {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     if (user && addressId) {
@@ -135,7 +138,7 @@ export default function EditAddress() {
       <SafeAreaView style={styles.container}>
         <Header title="Edit Address" showBackButton />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={styles.loadingText}>Loading address...</Text>
         </View>
       </SafeAreaView>
@@ -175,7 +178,7 @@ export default function EditAddress() {
                 >
                   <IconComponent 
                     size={24} 
-                    color={selectedType === type.id ? '#FF6B35' : '#6B7280'} 
+                    color={selectedType === type.id ? theme.colors.primary[500] : theme.colors.textMuted} 
                   />
                   <Text style={[
                     styles.typeText,
@@ -301,10 +304,10 @@ export default function EditAddress() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -314,7 +317,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.colors.textMuted,
     fontFamily: 'Inter-Regular',
     marginTop: 12,
   },
@@ -326,7 +329,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#EF4444',
+    color: theme.colors.status.error,
     fontFamily: 'Inter-Regular',
   },
   content: {
@@ -340,7 +343,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
-    color: '#111827',
+    color: theme.colors.text,
     marginBottom: 16,
   },
   typeContainer: {
@@ -352,23 +355,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: theme.colors.border,
   },
   selectedType: {
-    borderColor: '#FF6B35',
-    backgroundColor: '#FFF7F5',
+    borderColor: theme.colors.primary[500],
+    backgroundColor: theme.colors.primary[50],
   },
   typeText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#6B7280',
+    color: theme.colors.textMuted,
     marginTop: 8,
   },
   selectedTypeText: {
-    color: '#FF6B35',
+    color: theme.colors.primary[500],
   },
   customLabelContainer: {
     marginTop: 12,
@@ -379,19 +382,19 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
-    color: '#111827',
+    color: theme.colors.text,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#111827',
+    color: theme.colors.text,
   },
   textArea: {
     height: 80,
@@ -407,21 +410,21 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   defaultInfo: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.statusSoft.success,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
   },
   defaultInfoText: {
     fontSize: 14,
-    color: '#065F46',
+    color: theme.colors.status.success,
     fontFamily: 'Inter-Medium',
     textAlign: 'center',
   },
   bottomContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: theme.colors.border,
   },
 });

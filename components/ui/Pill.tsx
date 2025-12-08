@@ -19,17 +19,17 @@ export default function Pill({ label, active = false, onPress, style, textStyle 
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.sm,
         borderRadius: radius.pill,
-        backgroundColor: active ? colors.accent : colors.surfaceAlt,
+        backgroundColor: active ? colors.primary[100] : colors.pill,
         borderWidth: 1,
-        borderColor: active ? colors.accent : colors.borderMuted,
+        borderColor: active ? colors.primary[500] : colors.borderMuted,
       } as ViewStyle,
       label: {
         ...typography.caption,
-        color: active ? '#FFFFFF' : colors.textMuted,
+        color: active ? colors.primary[500] : colors.textMuted,
         fontFamily: 'Inter-SemiBold',
       } as TextStyle,
     }),
-    [active, colors.accent, colors.borderMuted, colors.surfaceAlt, colors.textMuted, radius.pill, spacing.lg, spacing.sm, typography.caption]
+    [active, colors.borderMuted, colors.pill, colors.primary, colors.textMuted, radius.pill, spacing.lg, spacing.sm, typography.caption]
   );
 
   const content = <Text style={[styles.label, textStyle]}>{label}</Text>;

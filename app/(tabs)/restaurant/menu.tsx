@@ -376,7 +376,7 @@ export default function MenuManagement() {
             value={onlyAvailable}
             onValueChange={setOnlyAvailable}
             trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }}
-            thumbColor="#FFFFFF"
+            thumbColor={theme.colors.textInverse}
           />
         </View>
         <View style={styles.toggleCard}>
@@ -388,7 +388,7 @@ export default function MenuManagement() {
             value={onlyPopular}
             onValueChange={setOnlyPopular}
             trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }}
-            thumbColor="#FFFFFF"
+            thumbColor={theme.colors.textInverse}
           />
         </View>
 
@@ -454,7 +454,7 @@ export default function MenuManagement() {
         )}
       </ScrollView>
       <FAB
-        icon={<Plus size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color="#FFFFFF" />}
+        icon={<Plus size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.textInverse} />}
         onPress={addNewItem}
         style={styles.fab}
       />
@@ -475,7 +475,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: theme.spacing.lg },
     errorText: { ...theme.typography.body, color: theme.colors.status.error, textAlign: 'center', marginBottom: theme.spacing.md },
     retryButton: { backgroundColor: theme.colors.accent, paddingHorizontal: theme.spacing.xl, paddingVertical: theme.spacing.md, borderRadius: theme.radius.md },
-    retryButtonText: { ...theme.typography.button, color: '#FFFFFF' },
+    retryButtonText: { ...theme.typography.button, color: theme.colors.textInverse },
     searchSection: { paddingHorizontal: horizontal, paddingTop: theme.spacing.md },
     searchBar: { margin: 0 },
     chipsRow: { paddingHorizontal: horizontal, paddingVertical: theme.spacing.sm, columnGap: theme.spacing.sm },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -13,6 +13,7 @@ import FormField from '@/components/ui/FormField';
 import FormToggle from '@/components/ui/FormToggle';
 import { loginSchema, LoginFormData } from '@/utils/validation/schemas';
 import { supabase } from '@/utils/supabase';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -96,6 +97,9 @@ export default function Login() {
     }
   };
 
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <SafeAreaView style={styles.container}>
       <Header title="Welcome Back" showBackButton />
@@ -151,9 +155,9 @@ export default function Login() {
                 rightElement={
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                     {showPassword ? (
-                      <EyeOff size={20} color="#6B7280" />
+                      <EyeOff size={20} color={theme.colors.textMuted} />
                     ) : (
-                      <Eye size={20} color="#6B7280" />
+                      <Eye size={20} color={theme.colors.textMuted} />
                     )}
                   </TouchableOpacity>
                 }
@@ -203,114 +207,115 @@ export default function Login() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 40,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    minHeight: '100%',
-  },
-  welcomeSection: {
-    marginBottom: 40,
-    alignItems: 'center',
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    lineHeight: 24,
-    textAlign: 'center',
-    paddingHorizontal: 16,
-  },
-  formSection: {
-    marginBottom: 40,
-  },
-  errorContainer: {
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontFamily: 'Inter-Medium',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  rememberMeContainer: {
-    marginBottom: 16,
-    marginTop: -4,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-    marginTop: -8,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#FF6B35',
-  },
-  signInButton: {
-    marginBottom: 24,
-  },
-  signUpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  signUpText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  signUpLink: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FF6B35',
-  },
-  sessionInfo: {
-    backgroundColor: '#F0F9FF',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 'auto',
-    marginBottom: 20,
-  },
-  sessionInfoText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#0369A1',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    keyboardAvoidingView: {
+      flex: 1,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingBottom: Platform.OS === 'ios' ? 20 : 40,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 24,
+      paddingTop: 32,
+      minHeight: '100%',
+    },
+    welcomeSection: {
+      marginBottom: 40,
+      alignItems: 'center',
+    },
+    welcomeTitle: {
+      fontSize: 28,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    welcomeSubtitle: {
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+      lineHeight: 24,
+      textAlign: 'center',
+      paddingHorizontal: 16,
+    },
+    formSection: {
+      marginBottom: 40,
+    },
+    errorContainer: {
+      backgroundColor: theme.colors.statusSoft.error,
+      borderWidth: 1,
+      borderColor: theme.colors.status.error,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 20,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Medium',
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    inputContainer: {
+      marginBottom: 16,
+    },
+    rememberMeContainer: {
+      marginBottom: 16,
+      marginTop: -4,
+    },
+    forgotPassword: {
+      alignSelf: 'flex-end',
+      marginBottom: 24,
+      marginTop: -8,
+    },
+    forgotPasswordText: {
+      fontSize: 14,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.primary[500],
+    },
+    signInButton: {
+      marginBottom: 24,
+    },
+    signUpContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    signUpText: {
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+    },
+    signUpLink: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.primary[500],
+    },
+    sessionInfo: {
+      backgroundColor: theme.colors.statusSoft.info,
+      borderWidth: 1,
+      borderColor: theme.colors.status.info,
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 'auto',
+      marginBottom: 20,
+    },
+    sessionInfoText: {
+      fontSize: 12,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.status.info,
+      textAlign: 'center',
+      lineHeight: 16,
+    },
+  });

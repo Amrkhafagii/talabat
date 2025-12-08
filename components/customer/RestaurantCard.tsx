@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Star, Clock, Heart, ShieldCheck } from 'lucide-react-native';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface Restaurant {
   id: string;
@@ -33,6 +34,9 @@ export default function RestaurantCard({
   etaLabel,
   trusted = false,
 }: RestaurantCardProps) {
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   if (variant === 'promoted') {
     return (
       <TouchableOpacity style={styles.promotedCard} onPress={onPress}>
@@ -45,30 +49,30 @@ export default function RestaurantCard({
         <TouchableOpacity style={styles.favoriteButton} onPress={onFavoritePress}>
           <Heart
             size={20}
-            color={isFavorite ? "#FF6B35" : "#FFF"}
-            fill={isFavorite ? "#FF6B35" : "transparent"}
+            color={isFavorite ? theme.colors.primary[500] : theme.colors.textInverse}
+            fill={isFavorite ? theme.colors.primary[500] : 'transparent'}
           />
         </TouchableOpacity>
-        <View style={styles.promotedInfo}>
-          <Text style={styles.restaurantName}>{restaurant.name}</Text>
-          <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
-          <View style={styles.restaurantMeta}>
-            <View style={styles.rating}>
-              <Star size={14} color="#FFB800" fill="#FFB800" />
-              <Text style={styles.ratingText}>{restaurant.rating}</Text>
-            </View>
-            <View style={styles.delivery}>
-              <Clock size={14} color="#6B7280" />
-              <Text style={styles.deliveryText}>{restaurant.deliveryTime} min</Text>
-            </View>
-            {etaLabel && (
-              <View style={[styles.trustedBadge, trusted ? styles.trusted : styles.untrusted]}>
-                <ShieldCheck size={12} color={trusted ? '#065F46' : '#92400E'} />
-                <Text style={[styles.trustedText, trusted ? styles.trustedTextStrong : styles.untrustedText]}>
-                  {etaLabel}
-                </Text>
+          <View style={styles.promotedInfo}>
+            <Text style={styles.restaurantName}>{restaurant.name}</Text>
+            <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
+            <View style={styles.restaurantMeta}>
+              <View style={styles.rating}>
+                <Star size={14} color={theme.colors.status.warning} fill={theme.colors.status.warning} />
+                <Text style={styles.ratingText}>{restaurant.rating}</Text>
               </View>
-            )}
+              <View style={styles.delivery}>
+                <Clock size={14} color={theme.colors.textMuted} />
+                <Text style={styles.deliveryText}>{restaurant.deliveryTime} min</Text>
+              </View>
+              {etaLabel && (
+                <View style={[styles.trustedBadge, trusted ? styles.trusted : styles.untrusted]}>
+                  <ShieldCheck size={12} color={trusted ? theme.colors.status.success : theme.colors.status.warning} />
+                  <Text style={[styles.trustedText, trusted ? styles.trustedTextStrong : styles.untrustedText]}>
+                    {etaLabel}
+                  </Text>
+                </View>
+              )}
           </View>
         </View>
       </TouchableOpacity>
@@ -81,22 +85,22 @@ export default function RestaurantCard({
       <View style={styles.restaurantDetails}>
         <View style={styles.restaurantHeader}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
-          <TouchableOpacity onPress={onFavoritePress}>
-            <Heart
-              size={20}
-              color={isFavorite ? "#FF6B35" : "#6B7280"}
-              fill={isFavorite ? "#FF6B35" : "transparent"}
-            />
-          </TouchableOpacity>
+        <TouchableOpacity onPress={onFavoritePress}>
+          <Heart
+            size={20}
+            color={isFavorite ? theme.colors.primary[500] : theme.colors.textMuted}
+            fill={isFavorite ? theme.colors.primary[500] : 'transparent'}
+          />
+        </TouchableOpacity>
         </View>
         <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
           <View style={styles.restaurantMeta}>
             <View style={styles.rating}>
-              <Star size={14} color="#FFB800" fill="#FFB800" />
+              <Star size={14} color={theme.colors.status.warning} fill={theme.colors.status.warning} />
               <Text style={styles.ratingText}>{restaurant.rating}</Text>
             </View>
             <View style={styles.delivery}>
-              <Clock size={14} color="#6B7280" />
+              <Clock size={14} color={theme.colors.textMuted} />
               <Text style={styles.deliveryText}>{restaurant.deliveryTime} min</Text>
             </View>
             <Text style={styles.deliveryFee}>${restaurant.deliveryFee} delivery</Text>
@@ -105,7 +109,10 @@ export default function RestaurantCard({
             )}
             {etaLabel && (
               <View style={[styles.trustedBadge, trusted ? styles.trusted : styles.untrusted]}>
-                <ShieldCheck size={12} color={trusted ? '#065F46' : '#92400E'} />
+                <ShieldCheck
+                  size={12}
+                  color={trusted ? theme.colors.status.success : theme.colors.status.warning}
+                />
                 <Text style={[styles.trustedText, trusted ? styles.trustedTextStrong : styles.untrustedText]}>
                   {etaLabel}
                 </Text>
@@ -117,37 +124,34 @@ export default function RestaurantCard({
     );
   }
 
-const styles = StyleSheet.create({
-  promotedCard: {
-    width: 280,
-    marginRight: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    overflow: 'hidden',
-  },
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+  StyleSheet.create({
+    promotedCard: {
+      width: 280,
+      marginRight: 16,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      ...theme.shadows.card,
+      overflow: 'hidden',
+    },
   promotedImage: {
     width: '100%',
     height: 160,
   },
-  promotedBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  promotedText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontFamily: 'Inter-Bold',
-  },
+    promotedBadge: {
+      position: 'absolute',
+      top: 12,
+      left: 12,
+      backgroundColor: theme.colors.primary[500],
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    promotedText: {
+      color: theme.colors.textInverse,
+      fontSize: 10,
+      fontFamily: 'Inter-Bold',
+    },
   favoriteButton: {
     position: 'absolute',
     top: 12,
@@ -155,51 +159,47 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: theme.colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   promotedInfo: {
     padding: 16,
   },
-  restaurantCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    marginBottom: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    overflow: 'hidden',
-  },
+    restaurantCard: {
+      flexDirection: 'row',
+      backgroundColor: theme.colors.surface,
+      marginBottom: 12,
+      borderRadius: 12,
+      ...theme.shadows.card,
+      overflow: 'hidden',
+    },
   restaurantImage: {
     width: 100,
     height: 100,
   },
-  restaurantDetails: {
-    flex: 1,
-    padding: 16,
-  },
+    restaurantDetails: {
+      flex: 1,
+      padding: 16,
+    },
   restaurantHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 4,
   },
-  restaurantName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    flex: 1,
-  },
-  restaurantCuisine: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginBottom: 8,
-  },
+    restaurantName: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      flex: 1,
+    },
+    restaurantCuisine: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginBottom: 8,
+    },
   restaurantMeta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,34 +210,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  ratingText: {
-    fontSize: 12,
-    color: '#374151',
-    marginLeft: 4,
-    fontFamily: 'Inter-Medium',
-  },
-  delivery: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  deliveryText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginLeft: 4,
-    fontFamily: 'Inter-Regular',
-  },
-  deliveryFee: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginRight: 12,
-  },
-  distanceText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-  },
+    ratingText: {
+      fontSize: 12,
+      color: theme.colors.text,
+      marginLeft: 4,
+      fontFamily: 'Inter-Medium',
+    },
+    delivery: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    deliveryText: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      marginLeft: 4,
+      fontFamily: 'Inter-Regular',
+    },
+    deliveryFee: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginRight: 12,
+    },
+    distanceText: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+    },
   trustedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -247,24 +247,24 @@ const styles = StyleSheet.create({
     marginTop: 6,
     gap: 4,
   },
-  trusted: {
-    backgroundColor: '#ECFDF3',
-    borderColor: '#D1FAE5',
-    borderWidth: 1,
-  },
-  untrusted: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
-    borderWidth: 1,
-  },
-  trustedText: {
-    fontSize: 11,
-    fontFamily: 'Inter-Medium',
-  },
-  trustedTextStrong: {
-    color: '#065F46',
-  },
-  untrustedText: {
-    color: '#92400E',
-  },
-});
+    trusted: {
+      backgroundColor: theme.colors.statusSoft.success,
+      borderColor: theme.colors.status.success,
+      borderWidth: 1,
+    },
+    untrusted: {
+      backgroundColor: theme.colors.statusSoft.warning,
+      borderColor: theme.colors.status.warning,
+      borderWidth: 1,
+    },
+    trustedText: {
+      fontSize: 11,
+      fontFamily: 'Inter-Medium',
+    },
+    trustedTextStrong: {
+      color: theme.colors.status.success,
+    },
+    untrustedText: {
+      color: theme.colors.status.warning,
+    },
+  });

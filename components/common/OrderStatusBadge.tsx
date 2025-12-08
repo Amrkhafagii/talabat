@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Clock, CircleCheck as CheckCircle, Truck, Package, Circle as XCircle } from 'lucide-react-native';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { getOrderStatusToken } from '@/styles/statusTokens';
 
 interface OrderStatusBadgeProps {
   status: string;
@@ -8,55 +10,15 @@ interface OrderStatusBadgeProps {
   showIcon?: boolean;
 }
 
-const statusConfig = {
-  pending: {
-    label: 'Pending',
-    color: '#F59E0B',
-    backgroundColor: '#FEF3C7',
-    icon: Clock,
-  },
-  confirmed: {
-    label: 'Confirmed',
-    color: '#3B82F6',
-    backgroundColor: '#DBEAFE',
-    icon: CheckCircle,
-  },
-  preparing: {
-    label: 'Preparing',
-    color: '#F59E0B',
-    backgroundColor: '#FEF3C7',
-    icon: Package,
-  },
-  ready: {
-    label: 'Ready',
-    color: '#10B981',
-    backgroundColor: '#D1FAE5',
-    icon: CheckCircle,
-  },
-  picked_up: {
-    label: 'Picked Up',
-    color: '#3B82F6',
-    backgroundColor: '#DBEAFE',
-    icon: Truck,
-  },
-  on_the_way: {
-    label: 'On the Way',
-    color: '#3B82F6',
-    backgroundColor: '#DBEAFE',
-    icon: Truck,
-  },
-  delivered: {
-    label: 'Delivered',
-    color: '#10B981',
-    backgroundColor: '#D1FAE5',
-    icon: CheckCircle,
-  },
-  cancelled: {
-    label: 'Cancelled',
-    color: '#EF4444',
-    backgroundColor: '#FEE2E2',
-    icon: XCircle,
-  },
+const statusIcons: Record<string, typeof Clock> = {
+  pending: Clock,
+  confirmed: CheckCircle,
+  preparing: Package,
+  ready: CheckCircle,
+  picked_up: Truck,
+  on_the_way: Truck,
+  delivered: CheckCircle,
+  cancelled: XCircle,
 };
 
 export default function OrderStatusBadge({ 
@@ -64,8 +26,9 @@ export default function OrderStatusBadge({
   size = 'medium', 
   showIcon = true 
 }: OrderStatusBadgeProps) {
-  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-  const IconComponent = config.icon;
+  const theme = useRestaurantTheme();
+  const token = useMemo(() => getOrderStatusToken(status, theme), [status, theme]);
+  const IconComponent = statusIcons[status] || Clock;
 
   const sizeStyles = {
     small: {
@@ -92,28 +55,28 @@ export default function OrderStatusBadge({
 
   return (
     <View style={[
-      styles.badge,
-      {
-        backgroundColor: config.backgroundColor,
-        paddingHorizontal: currentSize.paddingHorizontal,
-        paddingVertical: currentSize.paddingVertical,
-      }
-    ]}>
+        styles.badge,
+        {
+          backgroundColor: token.background,
+          paddingHorizontal: currentSize.paddingHorizontal,
+          paddingVertical: currentSize.paddingVertical,
+        }
+      ]}>
       {showIcon && (
         <IconComponent 
           size={currentSize.iconSize} 
-          color={config.color} 
+          color={token.color} 
           style={styles.icon}
         />
       )}
       <Text style={[
         styles.text,
         {
-          color: config.color,
+          color: token.color,
           fontSize: currentSize.fontSize,
         }
       ]}>
-        {config.label}
+        {token.label}
       </Text>
     </View>
   );

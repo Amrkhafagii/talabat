@@ -446,7 +446,7 @@ export default function DeliveryNavigation() {
       <SafeAreaView style={styles.container}>
         <Header title="Navigation" showBackButton />
         <View style={styles.emptyState}>
-          <Navigation size={64} color="#9CA3AF" />
+          <Navigation size={64} color={theme.colors.textSubtle} />
           <Text style={styles.emptyTitle}>No Active Delivery</Text>
           <Text style={styles.emptyText}>
             Accept a delivery to start navigation
@@ -496,7 +496,7 @@ export default function DeliveryNavigation() {
                 currentDestination.longitude
               )}
             >
-              <Navigation size={20} color="#FFFFFF" />
+              <Navigation size={20} color={theme.colors.textInverse} />
               <Text style={styles.navButtonText}>Google Maps</Text>
             </TouchableOpacity>
 
@@ -505,7 +505,7 @@ export default function DeliveryNavigation() {
                 style={[styles.navButton, styles.appleMapsButton]}
                 onPress={() => openInAppleMaps(currentDestination.address)}
               >
-                <MapPin size={20} color="#FFFFFF" />
+                <MapPin size={20} color={theme.colors.textInverse} />
                 <Text style={styles.navButtonText}>Apple Maps</Text>
               </TouchableOpacity>
             )}
@@ -514,7 +514,7 @@ export default function DeliveryNavigation() {
               style={[styles.navButton, styles.wazeButton]}
               onPress={() => openInWaze(currentDestination.address)}
             >
-              <Navigation size={20} color="#FFFFFF" />
+              <Navigation size={20} color={theme.colors.textInverse} />
               <Text style={styles.navButtonText}>Waze</Text>
             </TouchableOpacity>
           </View>
@@ -694,17 +694,17 @@ const createStyles = (
       gap: theme.spacing.xs,
     },
     googleMapsButton: {
-      backgroundColor: '#4285F4',
+      backgroundColor: theme.colors.primary[500],
     },
     appleMapsButton: {
-      backgroundColor: '#007AFF',
+      backgroundColor: theme.colors.accentStrong,
     },
     wazeButton: {
-      backgroundColor: '#33CCFF',
+      backgroundColor: theme.colors.status.info,
     },
     navButtonText: {
       ...theme.typography.buttonSmall,
-      color: '#FFFFFF',
+      color: theme.colors.textInverse,
     },
     orderCard: {
       marginBottom: theme.spacing.md,

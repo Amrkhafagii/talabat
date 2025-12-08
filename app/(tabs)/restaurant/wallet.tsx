@@ -345,8 +345,8 @@ export default function RestaurantWallet() {
               );
               const isDebit = tx.direction ? tx.direction === 'debit' : tx.amount < 0;
               const sign = isDebit ? '-' : '+';
-              const iconBg = isDebit ? '#FFEDE2' : '#E9F7EE';
-              const iconColor = isDebit ? theme.colors.accent : theme.colors.status.success;
+              const iconBg = isDebit ? theme.colors.statusSoft.error : theme.colors.statusSoft.success;
+              const iconColor = isDebit ? theme.colors.status.error : theme.colors.status.success;
               const txTitle = tx.order_short_code ? `Order #${tx.order_short_code}` : tx.reference || tx.type;
               const txSubtitle = tx.order_short_code ? tx.type : tx.reference || tx.type;
 
@@ -430,11 +430,16 @@ export default function RestaurantWallet() {
                   />
                   <View style={styles.defaultRow}>
                     <Text style={styles.defaultLabel}>Set as default</Text>
-                    <Switch value={methodForm.isDefault} onValueChange={(v) => setMethodForm((p) => ({ ...p, isDefault: v }))} />
+                    <Switch
+                      value={methodForm.isDefault}
+                      onValueChange={(v) => setMethodForm((p) => ({ ...p, isDefault: v }))}
+                      trackColor={{ false: theme.colors.borderMuted, true: theme.colors.accent }}
+                      thumbColor={theme.colors.textInverse}
+                    />
                   </View>
                 </View>
                 <TouchableOpacity style={styles.addMethodButton} onPress={handleAddMethod} disabled={savingMethod}>
-                  <Plus size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color="#FFFFFF" />
+                  <Plus size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.textInverse} />
                   <Text style={styles.addMethodText}>{savingMethod ? 'Saving...' : 'Add'}</Text>
                 </TouchableOpacity>
               </View>
@@ -470,7 +475,7 @@ export default function RestaurantWallet() {
               {kycForm.docUri ? <Text style={styles.docMeta}>Selected: {kycForm.docUri.split('/').pop()}</Text> : <Text style={styles.docMeta}>Upload ID front/back</Text>}
             </View>
             <TouchableOpacity style={styles.docButton} onPress={pickKycDoc}>
-              <FileText size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color="#FFFFFF" />
+              <FileText size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.textInverse} />
               <Text style={styles.docButtonText}>Upload</Text>
             </TouchableOpacity>
           </View>
@@ -532,7 +537,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       width: 40,
       height: 40,
       borderRadius: theme.radius.pill,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: theme.colors.surface,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -614,7 +619,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       paddingHorizontal: theme.spacing.md,
       paddingVertical: theme.spacing.xs,
     },
-    addMethodText: { ...theme.typography.buttonSmall, color: '#FFFFFF' },
+    addMethodText: { ...theme.typography.buttonSmall, color: theme.colors.textInverse },
     input: {
       borderWidth: 1,
       borderColor: theme.colors.border,
@@ -670,7 +675,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       paddingVertical: theme.spacing.xs,
       borderRadius: theme.radius.md,
     },
-    docButtonText: { ...theme.typography.buttonSmall, color: '#FFFFFF' },
+    docButtonText: { ...theme.typography.buttonSmall, color: theme.colors.textInverse },
     toast: { position: 'absolute', bottom: theme.insets.bottom + theme.spacing.md, left: theme.spacing.lg, right: theme.spacing.lg },
   });
 }

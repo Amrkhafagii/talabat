@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -14,6 +14,7 @@ import FormField from '@/components/ui/FormField';
 import UserTypeSelector from '@/components/ui/UserTypeSelector';
 import { signupSchema, SignupFormData } from '@/utils/validation/schemas';
 import { supabase } from '@/utils/supabase';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
@@ -42,6 +43,8 @@ export default function SignUp() {
 
   const selectedUserType = watch('userType');
   const password = watch('password');
+  const theme = useRestaurantTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const onSubmit = async (data: SignupFormData) => {
     setFormError('');
@@ -180,7 +183,7 @@ export default function SignUp() {
       score: strength,
       checks,
       label: strength < 2 ? 'Weak' : strength < 4 ? 'Medium' : 'Strong',
-      color: strength < 2 ? '#EF4444' : strength < 4 ? '#F59E0B' : '#10B981',
+      color: strength < 2 ? theme.colors.status.error : strength < 4 ? theme.colors.status.warning : theme.colors.status.success,
     };
   };
 
@@ -251,9 +254,9 @@ export default function SignUp() {
                 rightElement={
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                     {showPassword ? (
-                      <EyeOff size={20} color="#6B7280" />
+                      <EyeOff size={20} color={theme.colors.textMuted} />
                     ) : (
-                      <Eye size={20} color="#6B7280" />
+                      <Eye size={20} color={theme.colors.textMuted} />
                     )}
                   </TouchableOpacity>
                 }
@@ -278,7 +281,7 @@ export default function SignUp() {
                           {
                             backgroundColor: level <= passwordStrength.score 
                               ? passwordStrength.color 
-                              : '#E5E7EB'
+                              : theme.colors.border
                           }
                         ]}
                       />
@@ -316,9 +319,9 @@ export default function SignUp() {
                 rightElement={
                   <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                     {showConfirmPassword ? (
-                      <EyeOff size={20} color="#6B7280" />
+                      <EyeOff size={20} color={theme.colors.textMuted} />
                     ) : (
-                      <Eye size={20} color="#6B7280" />
+                      <Eye size={20} color={theme.colors.textMuted} />
                     )}
                   </TouchableOpacity>
                 }
@@ -345,132 +348,134 @@ export default function SignUp() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 40,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    minHeight: '100%',
-  },
-  welcomeSection: {
-    marginBottom: 32,
-    alignItems: 'center',
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    lineHeight: 24,
-    textAlign: 'center',
-    paddingHorizontal: 16,
-  },
-  errorContainer: {
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontFamily: 'Inter-Medium',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  passwordStrengthContainer: {
-    marginTop: -12,
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  strengthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  strengthLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  strengthValue: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
-  },
-  strengthBar: {
-    flexDirection: 'row',
-    gap: 2,
-    marginBottom: 12,
-  },
-  strengthSegment: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-  },
-  strengthChecks: {
-    gap: 2,
-  },
-  checkItem: {
-    fontSize: 11,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-  },
-  checkPassed: {
-    color: '#10B981',
-  },
-  signUpButton: {
-    marginBottom: 24,
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  loginText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  loginLink: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FF6B35',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    keyboardAvoidingView: {
+      flex: 1,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingBottom: Platform.OS === 'ios' ? 20 : 40,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      minHeight: '100%',
+    },
+    welcomeSection: {
+      marginBottom: 32,
+      alignItems: 'center',
+    },
+    welcomeTitle: {
+      fontSize: 28,
+      fontFamily: 'Inter-Bold',
+      color: theme.colors.text,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    welcomeSubtitle: {
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+      lineHeight: 24,
+      textAlign: 'center',
+      paddingHorizontal: 16,
+    },
+    errorContainer: {
+      backgroundColor: theme.colors.statusSoft.error,
+      borderWidth: 1,
+      borderColor: theme.colors.status.error,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 20,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Medium',
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 16,
+    },
+    passwordStrengthContainer: {
+      marginTop: -12,
+      marginBottom: 16,
+      padding: 12,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    strengthHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    strengthLabel: {
+      fontSize: 12,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.textMuted,
+    },
+    strengthValue: {
+      fontSize: 12,
+      fontFamily: 'Inter-SemiBold',
+    },
+    strengthBar: {
+      flexDirection: 'row',
+      gap: 2,
+      marginBottom: 12,
+    },
+    strengthSegment: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: theme.colors.borderMuted,
+    },
+    strengthChecks: {
+      gap: 2,
+    },
+    checkItem: {
+      fontSize: 11,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textSubtle,
+    },
+    checkPassed: {
+      color: theme.colors.status.success,
+    },
+    signUpButton: {
+      marginBottom: 24,
+    },
+    loginContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 32,
+    },
+    loginText: {
+      fontSize: 16,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+    },
+    loginLink: {
+      fontSize: 16,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.primary[500],
+    },
+  });

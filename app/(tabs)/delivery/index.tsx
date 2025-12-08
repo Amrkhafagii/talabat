@@ -320,7 +320,7 @@ export default function DeliveryDashboard() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={styles.loadingText}>Loading delivery dashboard...</Text>
         </View>
       </SafeAreaView>
@@ -570,7 +570,7 @@ const createStyles = (
     },
     retryButtonText: {
       ...theme.typography.button,
-      color: '#FFFFFF',
+      color: theme.colors.textInverse,
     },
     header: {
       flexDirection: 'row',
@@ -759,7 +759,7 @@ const createStyles = (
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.35)',
+      backgroundColor: theme.colors.overlay,
       justifyContent: 'center',
       alignItems: 'center',
       padding: theme.spacing.lg,

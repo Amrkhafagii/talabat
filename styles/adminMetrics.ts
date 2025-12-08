@@ -237,9 +237,9 @@ export const styles = StyleSheet.create({
     padding: iosSpacing.md,
     gap: iosSpacing.xs,
   },
-  statLabel: { color: '#9CA3AF', ...iosTypography.caption },
+  statLabel: { color: iosColors.tertiaryText, ...iosTypography.caption },
   statValue: { color: '#FFFFFF', ...iosTypography.title2, marginTop: iosSpacing.xs },
-  heroHelper: { color: '#E5E7EB', ...iosTypography.caption, marginTop: iosSpacing.sm },
+  heroHelper: { color: iosColors.separator, ...iosTypography.caption, marginTop: iosSpacing.sm },
   skeleton: { backgroundColor: iosColors.surfaceAlt, borderRadius: iosRadius.sm },
   skeletonLine: { height: 10, backgroundColor: iosColors.separator, borderRadius: iosRadius.sm },
   stickyBar: {

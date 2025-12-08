@@ -47,11 +47,11 @@ export default function Button({
 
     const textBase = size === 'small' ? typography.buttonSmall : typography.button;
     const variants: Record<ButtonVariant, { backgroundColor: string; borderColor?: string; textColor: string; shadow?: ViewStyle }> = {
-      primary: { backgroundColor: colors.accent, textColor: '#FFFFFF', shadow: shadows.card },
+      primary: { backgroundColor: colors.primary[500], textColor: colors.textInverse, shadow: shadows.card },
       secondary: { backgroundColor: colors.surfaceAlt, borderColor: colors.border, textColor: colors.text, shadow: undefined },
       ghost: { backgroundColor: 'transparent', borderColor: colors.border, textColor: colors.text, shadow: undefined },
-      outline: { backgroundColor: 'transparent', borderColor: colors.accent, textColor: colors.accent, shadow: undefined },
-      danger: { backgroundColor: colors.accentSoft, borderColor: colors.status.warning, textColor: colors.status.warning, shadow: undefined },
+      outline: { backgroundColor: 'transparent', borderColor: colors.primary[500], textColor: colors.primary[500], shadow: undefined },
+      danger: { backgroundColor: colors.statusSoft.error, borderColor: colors.status.error, textColor: colors.status.error, shadow: undefined },
     };
     const variantStyles = variants[variant];
 

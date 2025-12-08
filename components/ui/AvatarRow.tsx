@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, Image, ViewStyle, StyleSheet } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
+import { Icon } from './Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 type AvatarRowProps = {
@@ -40,7 +40,7 @@ export default function AvatarRow({ name, subtitle, avatarUrl, onPress, rightCon
       </View>
       <View style={styles.right}>
         {rightContent}
-        {onPress ? <ChevronRight size={16} color={theme.colors.secondaryText} /> : null}
+        {onPress ? <Icon name="ChevronRight" size={16} color={theme.colors.secondaryText} /> : null}
       </View>
     </TouchableOpacity>
   );

@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput, Alert, Switch, I18nManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Shield, Plus, ArrowRightCircle, CreditCard, Trash2, Star, FileText } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 
@@ -11,8 +10,10 @@ import PillTabs from '@/components/ui/PillTabs';
 import Button from '@/components/ui/Button';
 import LabeledInput from '@/components/ui/LabeledInput';
 import Snackbar from '@/components/ui/Snackbar';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { wp, hp } from '@/styles/responsive';
 import {
   ensureRestaurantForUser,
   getWalletsByUser,
@@ -299,7 +300,7 @@ export default function RestaurantWallet() {
         {kycStatusLabel !== 'approved' && (
           <View style={styles.kycBanner}>
             <View style={styles.bannerIcon}>
-              <Shield size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.accent} />
+              <Icon name="Shield" size={theme.iconSizes.sm} color={theme.colors.accent} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.kycTitle}>Complete your KYC</Text>
@@ -354,7 +355,7 @@ export default function RestaurantWallet() {
                 <View key={tx.id} style={styles.txRow}>
                   <View style={styles.txLeft}>
                     <View style={[styles.txDot, { backgroundColor: iconBg, borderColor: iconBg }]}>
-                      <ArrowRightCircle size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={iconColor} />
+                      <Icon name="ArrowRightCircle" size={theme.iconSizes.sm} color={iconColor} />
                     </View>
                     <View>
                       <Text style={styles.txType}>{txTitle}</Text>
@@ -395,16 +396,16 @@ export default function RestaurantWallet() {
                     style={[styles.methodRow, m.id === selectedMethodId && styles.methodRowActive]}
                     onPress={() => setSelectedMethodId(m.id)}
                   >
-                    <CreditCard size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
+                    <Icon name="CreditCard" size={theme.iconSizes.md} color={theme.colors.text} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.methodTitle}>{m.bank_name || m.type}</Text>
                       <Text style={styles.methodMeta}>•••• {m.last4}</Text>
                     </View>
                     <TouchableOpacity onPress={() => handleSetDefault(m.id)} disabled={m.is_default}>
-                      {m.is_default ? <Star size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.status.success} /> : null}
+                      {m.is_default ? <Icon name="Star" size={theme.iconSizes.sm} color={theme.colors.status.success} /> : null}
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleDeleteMethod(m.id)}>
-                      <Trash2 size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.status.error} />
+                      <Icon name="Trash2" size={theme.iconSizes.sm} color={theme.colors.status.error} />
                     </TouchableOpacity>
                   </TouchableOpacity>
                 ))
@@ -439,7 +440,7 @@ export default function RestaurantWallet() {
                   </View>
                 </View>
                 <TouchableOpacity style={styles.addMethodButton} onPress={handleAddMethod} disabled={savingMethod}>
-                  <Plus size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.textInverse} />
+                  <Icon name="Plus" size={theme.iconSizes.sm} color={theme.colors.textInverse} />
                   <Text style={styles.addMethodText}>{savingMethod ? 'Saving...' : 'Add'}</Text>
                 </TouchableOpacity>
               </View>
@@ -475,7 +476,7 @@ export default function RestaurantWallet() {
               {kycForm.docUri ? <Text style={styles.docMeta}>Selected: {kycForm.docUri.split('/').pop()}</Text> : <Text style={styles.docMeta}>Upload ID front/back</Text>}
             </View>
             <TouchableOpacity style={styles.docButton} onPress={pickKycDoc}>
-              <FileText size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.textInverse} />
+              <Icon name="FileText" size={theme.iconSizes.sm} color={theme.colors.textInverse} />
               <Text style={styles.docButtonText}>Upload</Text>
             </TouchableOpacity>
           </View>
@@ -501,8 +502,8 @@ function getFilteredTransactions(transactions: WalletTransaction[], tab: 'all' |
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const isCompact = theme.device.isSmallScreen;
-  const horizontal = isCompact ? theme.spacing.md : theme.spacing.lg;
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
+  const vertical = Math.max(theme.spacing.md, hp('2.5%'));
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background, writingDirection: I18nManager.isRTL ? 'rtl' : 'ltr' },
     loader: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.sm },
@@ -510,7 +511,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     balanceCard: {
       backgroundColor: theme.colors.surface,
       marginHorizontal: horizontal,
-      marginTop: theme.spacing.lg,
+      marginTop: vertical,
       borderRadius: theme.radius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border,
@@ -526,7 +527,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       alignItems: 'center',
       gap: theme.spacing.sm,
       marginHorizontal: horizontal,
-      marginTop: theme.spacing.md,
+      marginTop: vertical,
       padding: theme.spacing.md,
       borderRadius: theme.radius.lg,
       backgroundColor: theme.colors.accentSoft,
@@ -543,7 +544,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     },
     kycTitle: { ...theme.typography.subhead },
     kycText: { ...theme.typography.caption, color: theme.colors.secondaryText },
-    primaryCta: { marginHorizontal: horizontal, marginTop: theme.spacing.md, marginBottom: theme.spacing.sm },
+    primaryCta: { marginHorizontal: horizontal, marginTop: vertical, marginBottom: theme.spacing.sm },
     sectionHeaderRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -676,6 +677,6 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       borderRadius: theme.radius.md,
     },
     docButtonText: { ...theme.typography.buttonSmall, color: theme.colors.textInverse },
-    toast: { position: 'absolute', bottom: theme.insets.bottom + theme.spacing.md, left: theme.spacing.lg, right: theme.spacing.lg },
+    toast: { position: 'absolute', bottom: theme.insets.bottom + theme.spacing.md, left: horizontal, right: horizontal },
   });
 }

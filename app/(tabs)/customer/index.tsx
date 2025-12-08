@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, Filter } from 'lucide-react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import SearchBar from '@/components/ui/SearchBar';
 import CategoryCard from '@/components/customer/CategoryCard';
 import RestaurantCard from '@/components/customer/RestaurantCard';
+import { Icon } from '@/components/ui/Icon';
 import { useFavorites } from '@/hooks/useFavorites';
 import { getCategories, getRestaurants } from '@/utils/database';
 import { Category, Restaurant, RestaurantFilters } from '@/types/database';
@@ -163,7 +163,7 @@ export default function CustomerHome() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.locationContainer}>
-            <MapPin size={20} color={theme.colors.primary[500]} />
+            <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
             <View style={styles.locationText}>
               <Text style={styles.deliverTo}>Deliver to</Text>
               <Text style={styles.address}>
@@ -177,7 +177,7 @@ export default function CustomerHome() {
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.filterButton} onPress={openFilters}>
-              <Filter size={20} color={theme.colors.textMuted} />
+              <Icon name="Filter" size="md" color={theme.colors.textMuted} />
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.profileButton}

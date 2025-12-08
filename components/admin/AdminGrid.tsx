@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, useWindowDimensions, StyleProp, ViewStyle } from 'react-native';
+import { View, StyleProp, ViewStyle } from 'react-native';
 import { iosSpacing } from '@/styles/iosTheme';
+import { wp } from '@/styles/responsive';
 
 type AdminGridProps = {
   minColumnWidth?: number;
@@ -9,16 +10,11 @@ type AdminGridProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-// Simple responsive grid: chooses column count based on available width.
+// Responsive grid: percent-based columns with flexible growth.
 export function AdminGrid({ minColumnWidth = 320, gap = iosSpacing.sm, children, style }: AdminGridProps) {
-  const { width } = useWindowDimensions();
-  const horizontalPadding = width < 400 ? iosSpacing.sm : width < 720 ? iosSpacing.md : iosSpacing.lg;
-  const availableWidth = Math.max(0, width - horizontalPadding * 2);
-  const effectiveMin = Math.min(minColumnWidth, Math.max(260, availableWidth));
-  const columns = Math.max(1, Math.floor((availableWidth + gap) / (effectiveMin + gap)));
-  const columnWidth = columns === 1
-    ? availableWidth
-    : Math.max(effectiveMin, (availableWidth - gap * (columns - 1)) / columns);
+  const horizontalPadding = Math.max(iosSpacing.md, wp('5%'));
+  const effectiveMin = Math.max(minColumnWidth, wp('44%'));
+  const maxWidth = wp('92%');
   const childArray = React.Children.toArray(children);
 
   return (
@@ -27,9 +23,10 @@ export function AdminGrid({ minColumnWidth = 320, gap = iosSpacing.sm, children,
         <View
           key={idx}
           style={{
-            flexBasis: columnWidth,
+            flexBasis: wp('48%'),
             flexGrow: 1,
-            minWidth: Math.min(effectiveMin, columnWidth),
+            minWidth: effectiveMin,
+            maxWidth,
             gap,
           }}
         >

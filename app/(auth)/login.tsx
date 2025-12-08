@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Eye, EyeOff } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -11,6 +10,7 @@ import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import FormToggle from '@/components/ui/FormToggle';
+import { Icon } from '@/components/ui/Icon';
 import { loginSchema, LoginFormData } from '@/utils/validation/schemas';
 import { supabase } from '@/utils/supabase';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
@@ -153,12 +153,12 @@ export default function Login() {
                 autoComplete="password"
                 style={styles.inputContainer}
                 rightElement={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    {showPassword ? (
-                      <EyeOff size={20} color={theme.colors.textMuted} />
-                    ) : (
-                      <Eye size={20} color={theme.colors.textMuted} />
-                    )}
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={theme.tap.hitSlop}>
+                    <Icon
+                      name={showPassword ? 'EyeOff' : 'Eye'}
+                      size="md"
+                      color={theme.colors.textMuted}
+                    />
                   </TouchableOpacity>
                 }
               />

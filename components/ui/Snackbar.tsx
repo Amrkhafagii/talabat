@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, Animated, ViewStyle } from 'react-native';
-import { X } from 'lucide-react-native';
+import { Icon } from './Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 type SnackbarProps = {
@@ -29,7 +29,7 @@ export default function Snackbar({ visible, message, type = 'info', onClose, sty
       <Text style={[styles.message, { color: theme.colors.text }]}>{message}</Text>
       {onClose ? (
         <TouchableOpacity onPress={onClose} hitSlop={theme.tap.hitSlop}>
-          <X size={18} color={theme.colors.secondaryText} />
+          <Icon name="X" size="sm" color={theme.colors.secondaryText} />
         </TouchableOpacity>
       ) : null}
     </Animated.View>

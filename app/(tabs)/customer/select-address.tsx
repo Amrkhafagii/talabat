@@ -2,9 +2,9 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { MapPin, Plus, Star } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserAddresses } from '@/utils/database';
 import { UserAddress } from '@/types/database';
@@ -70,7 +70,7 @@ export default function SelectAddress() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Add New Address */}
         <TouchableOpacity style={styles.addButton} onPress={addNewAddress}>
-          <Plus size={24} color={theme.colors.primary[500]} />
+          <Icon name="Plus" size="lg" color={theme.colors.primary[500]} />
           <Text style={styles.addButtonText}>Add New Address</Text>
         </TouchableOpacity>
 
@@ -85,11 +85,11 @@ export default function SelectAddress() {
               >
                 <View style={styles.addressHeader}>
                   <View style={styles.addressLabelContainer}>
-                    <MapPin size={20} color={theme.colors.primary[500]} />
+                    <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
                     <Text style={styles.addressLabel}>{address.label}</Text>
                     {address.is_default && (
                       <View style={styles.defaultBadge}>
-                        <Star size={12} color={theme.colors.textInverse} fill={theme.colors.textInverse} />
+                        <Icon name="Star" size="sm" color={theme.colors.textInverse} />
                         <Text style={styles.defaultText}>Default</Text>
                       </View>
                     )}
@@ -115,7 +115,7 @@ export default function SelectAddress() {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <MapPin size={64} color={theme.colors.textSubtle} />
+            <Icon name="MapPin" size={64} color={theme.colors.textSubtle} />
             <Text style={styles.emptyTitle}>No addresses yet</Text>
             <Text style={styles.emptyText}>
               Add your first delivery address to continue

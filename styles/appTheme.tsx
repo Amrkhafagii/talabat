@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
-import { Platform, TextStyle, useWindowDimensions, ViewStyle } from 'react-native';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { Dimensions, Platform, TextStyle, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { hp, rf, sp } from './responsive';
 
 type Density = 'compact' | 'regular' | 'spacious';
 export type ThemeMode = 'light' | 'dark';
@@ -104,7 +105,7 @@ const primaryRampDark: PrimaryRamp = { 50: '#1F3B73', 100: '#1F3B73', 500: '#1E3
 
 const baseSpacing: Spacing = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 20, xl: 24, xl2: 32 };
 const baseRadius: Radius = { sm: 12, md: 14, lg: 18, xl: 22, pill: 999, card: 18, cta: 20 };
-const iconSizes: IconSizes = { sm: 18, md: 20, lg: 22, xl: 24 };
+const baseIconSizes: IconSizes = { sm: 18, md: 20, lg: 22, xl: 24 };
 
 const lightPalette: Palette = {
   background: '#F8F6F3',
@@ -198,51 +199,44 @@ const buildShadows = (cardElevation: number, raisedElevation: number): ShadowSet
 });
 
 const buildTypography = (textColor: string): Typography => ({
-  title1: { fontSize: 24, lineHeight: 30, fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  title2: { fontSize: 20, lineHeight: 26, fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  titleXl: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  titleL: { fontSize: 24, lineHeight: 30, fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  titleM: { fontSize: 20, lineHeight: 26, fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  body: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', fontWeight: '400', color: textColor },
-  subhead: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-SemiBold', fontWeight: '600', color: textColor },
-  caption: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Medium', fontWeight: '500', color: textColor },
-  button: { fontSize: 16, lineHeight: 20, fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  buttonSmall: { fontSize: 14, lineHeight: 18, fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  title1: { fontSize: rf(24), lineHeight: rf(30), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  title2: { fontSize: rf(20), lineHeight: rf(26), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  titleXl: { fontSize: rf(28), lineHeight: rf(34), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  titleL: { fontSize: rf(24), lineHeight: rf(30), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  titleM: { fontSize: rf(20), lineHeight: rf(26), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  body: { fontSize: rf(16), lineHeight: rf(22), fontFamily: 'Inter-Regular', fontWeight: '400', color: textColor },
+  subhead: { fontSize: rf(16), lineHeight: rf(22), fontFamily: 'Inter-SemiBold', fontWeight: '600', color: textColor },
+  caption: { fontSize: rf(14), lineHeight: rf(20), fontFamily: 'Inter-Medium', fontWeight: '500', color: textColor },
+  button: { fontSize: rf(16), lineHeight: rf(20), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  buttonSmall: { fontSize: rf(14), lineHeight: rf(18), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
 });
 
-function scaleSpacing(spacing: Spacing, factor: number) {
-  return Object.entries(spacing).reduce((acc, [key, value]) => {
-    (acc as any)[key] = Math.round((value as number) * factor);
-    return acc;
-  }, {} as Spacing);
-}
+const buildSpacing = (): Spacing => ({
+  xxs: sp(baseSpacing.xxs),
+  xs: sp(baseSpacing.xs),
+  sm: sp(baseSpacing.sm),
+  md: sp(baseSpacing.md),
+  lg: sp(baseSpacing.lg),
+  xl: sp(baseSpacing.xl),
+  xl2: sp(baseSpacing.xl2),
+});
 
-function scaleRadius(radius: Radius, factor: number) {
-  return Object.entries(radius).reduce((acc, [key, value]) => {
-    (acc as any)[key] = Math.round((value as number) * factor);
-    return acc;
-  }, {} as Radius);
-}
+const buildRadius = (): Radius => ({
+  sm: sp(baseRadius.sm),
+  md: sp(baseRadius.md),
+  lg: sp(baseRadius.lg),
+  xl: sp(baseRadius.xl),
+  pill: baseRadius.pill,
+  card: sp(baseRadius.card),
+  cta: sp(baseRadius.cta),
+});
 
-function scaleTypography(typography: Typography, factor: number) {
-  return Object.entries(typography).reduce((acc, [key, style]) => {
-    const fontSize = (style as any).fontSize;
-    const lineHeight = (style as any).lineHeight;
-    (acc as any)[key] = {
-      ...style,
-      ...(fontSize ? { fontSize: Math.round(fontSize * factor * 100) / 100 } : {}),
-      ...(lineHeight ? { lineHeight: Math.round(lineHeight * factor * 100) / 100 } : {}),
-    };
-    return acc;
-  }, {} as Typography);
-}
-
-function scaleIconSizes(sizes: IconSizes, factor: number): IconSizes {
-  return Object.entries(sizes).reduce((acc, [key, value]) => {
-    (acc as any)[key] = Math.round((value as number) * factor);
-    return acc;
-  }, {} as IconSizes);
-}
+const buildIconSizes = (): IconSizes => ({
+  sm: Math.round(rf(baseIconSizes.sm)),
+  md: Math.round(rf(baseIconSizes.md)),
+  lg: Math.round(rf(baseIconSizes.lg)),
+  xl: Math.round(rf(baseIconSizes.xl)),
+});
 
 function buildShadow(elevation: number, opacity = 0.14): ViewStyle {
   return Platform.select<ViewStyle>({
@@ -285,28 +279,36 @@ export const appThemeDark = {
 
 export function AppThemeProvider({ children, initialMode = 'light' }: { children: React.ReactNode; initialMode?: ThemeMode }) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const isSmallScreen = width <= 380;
-  const density: Density = isSmallScreen ? 'compact' : width > 768 ? 'spacious' : 'regular';
-  const scale = density === 'compact' ? 0.94 : density === 'spacious' ? 1.06 : 1;
-  const typeScale = density === 'compact' ? 0.96 : density === 'spacious' ? 1.04 : 1;
-  const iconScale = density === 'compact' ? 0.96 : density === 'spacious' ? 1.04 : 1;
   const [mode, setMode] = useState<ThemeMode>(initialMode);
+  const [windowSize, setWindowSize] = useState(() => Dimensions.get('window'));
+
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => setWindowSize(window));
+    return () => sub?.remove?.();
+  }, []);
+
+  const width = windowSize.width;
+  const height = windowSize.height;
+  const isSmallScreen = width <= 380;
+  const density: Density = isSmallScreen ? 'compact' : width >= 900 ? 'spacious' : 'regular';
 
   const palette = mode === 'dark' ? darkPalette : lightPalette;
   const primary = mode === 'dark' ? primaryRampDark : primaryRampLight;
   const statusSoft = mode === 'dark' ? statusSoftDark : statusSoftLight;
 
-  const spacing = useMemo(() => scaleSpacing(baseSpacing, scale), [scale]);
-  const radius = useMemo(() => scaleRadius(baseRadius, scale), [scale]);
-  const typography = useMemo(() => scaleTypography(buildTypography(palette.text), typeScale), [palette.text, typeScale]);
-  const scaledIcons = useMemo(() => scaleIconSizes(iconSizes, iconScale), [iconScale]);
+  const spacing = useMemo(buildSpacing, [width]);
+  const radius = useMemo(buildRadius, [width]);
+  const typography = useMemo(() => buildTypography(palette.text), [palette.text, width]);
+  const scaledIcons = useMemo(buildIconSizes, [width]);
   const shadows = useMemo(() => {
     return {
       card: { ...baseShadows.card, ...buildShadow(baseShadows.card.elevation ?? 6, 0.08) },
       raised: { ...baseShadows.raised, ...buildShadow(baseShadows.raised.elevation ?? 10, 0.14) },
     };
   }, []);
+
+  const tapMinHeight = Math.max(44, hp('5%'));
+  const tapHitSlop = sp(12);
 
   const theme = useMemo<AppTheme>(
     () => ({
@@ -329,14 +331,14 @@ export function AppThemeProvider({ children, initialMode = 'light' }: { children
       shadows,
       iconSizes: scaledIcons,
       icons: { strokeWidth: 1.6 },
-      tap: { minHeight: 44, hitSlop: { top: 12, bottom: 12, left: 12, right: 12 } },
+      tap: { minHeight: tapMinHeight, hitSlop: { top: tapHitSlop, bottom: tapHitSlop, left: tapHitSlop, right: tapHitSlop } },
       insets,
       device: { width, density, isSmallScreen, isTablet: width >= 768 },
       statusBarStyle: mode === 'dark' ? 'light' : 'dark',
       statusBarBackground: palette.background,
       setMode,
     }),
-    [density, insets, isSmallScreen, mode, palette, radius, scaledIcons, shadows, spacing, typography, width, primary, statusSoft]
+    [density, height, insets, isSmallScreen, mode, palette, radius, scaledIcons, shadows, spacing, tapHitSlop, tapMinHeight, typography, width, primary, statusSoft]
   );
 
   return <AppThemeContext.Provider value={theme}>{children}</AppThemeContext.Provider>;

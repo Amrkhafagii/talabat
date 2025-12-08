@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { hp, rf, wp } from './responsive';
 import { useRestaurantTheme } from './restaurantTheme';
 
 /**
@@ -8,21 +9,21 @@ export function useDeliveryLayout() {
   const theme = useRestaurantTheme();
 
   const layout = useMemo(() => {
-    const horizontal = theme.device.isSmallScreen ? theme.spacing.md : theme.spacing.lg;
-    const vertical = theme.spacing.lg;
+    const horizontal = Math.max(theme.spacing.md, wp('5%'));
+    const vertical = Math.max(theme.spacing.lg, hp('2.5%'));
     const contentPadding = {
       horizontal,
       top: vertical,
       bottom: vertical + theme.insets.bottom,
     };
 
-    const sectionGap = theme.device.isSmallScreen ? theme.spacing.md : theme.spacing.xl;
-    const cardGap = theme.device.isSmallScreen ? theme.spacing.md : theme.spacing.lg;
+    const sectionGap = Math.max(theme.spacing.lg, wp('4%'));
+    const cardGap = Math.max(theme.spacing.md, wp('3%'));
 
-    const responsiveSize = (size: number) => (theme.device.isSmallScreen ? Math.round(size * 0.94) : size);
+    const responsiveSize = (size: number) => rf(size);
 
     return { contentPadding, sectionGap, cardGap, responsiveSize };
-  }, [theme.device.isSmallScreen, theme.insets.bottom, theme.spacing.lg, theme.spacing.md, theme.spacing.xl]);
+  }, [theme.insets.bottom, theme.spacing.lg, theme.spacing.md]);
 
   return { theme, ...layout };
 }

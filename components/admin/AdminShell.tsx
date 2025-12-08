@@ -1,19 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePathname, useLocalSearchParams, router } from 'expo-router';
 import { SectionNav } from './SectionNav';
 import { iosColors, iosSpacing, iosRadius, iosTypography } from '@/styles/iosTheme';
 import { IOSHeaderBar } from '@/components/ios/IOSHeaderBar';
 import { IOSBottomTabBar } from '@/components/ios/IOSBottomTabBar';
-import {
-  LayoutDashboard,
-  BarChart3,
-  ClipboardList,
-  Truck,
-  CreditCard,
-  Settings as SettingsIcon,
-} from 'lucide-react-native';
+import { wp, hp } from '@/styles/responsive';
+import { Icon } from '@/components/ui/Icon';
 
 type AdminShellProps = {
   title: string;
@@ -33,12 +27,12 @@ type HeaderAction = { label: string; onPress: () => void };
 type BottomTab = { key: string; label: string; href?: string; icon?: React.ReactNode | ((active: boolean) => React.ReactNode); onPress?: () => void };
 
 const defaultBottomTabs: BottomTab[] = [
-  { key: 'metrics', label: 'Overview', href: '/admin/metrics', icon: (active: boolean) => <LayoutDashboard size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'analytics', label: 'Metrics', href: '/admin/analytics', icon: (active: boolean) => <BarChart3 size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: (active: boolean) => <ClipboardList size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'orders', label: 'Orders', href: '/admin/orders', icon: (active: boolean) => <Truck size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'payouts', label: 'Payouts', href: '/admin/payouts', icon: (active: boolean) => <CreditCard size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'settings', label: 'Settings', href: '/admin/settings', icon: (active: boolean) => <SettingsIcon size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
+  { key: 'metrics', label: 'Overview', href: '/admin/metrics', icon: (active: boolean) => <Icon name="LayoutDashboard" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
+  { key: 'analytics', label: 'Metrics', href: '/admin/analytics', icon: (active: boolean) => <Icon name="BarChart3" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
+  { key: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: (active: boolean) => <Icon name="ClipboardList" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
+  { key: 'orders', label: 'Orders', href: '/admin/orders', icon: (active: boolean) => <Icon name="Truck" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
+  { key: 'payouts', label: 'Payouts', href: '/admin/payouts', icon: (active: boolean) => <Icon name="CreditCard" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
+  { key: 'settings', label: 'Settings', href: '/admin/settings', icon: (active: boolean) => <Icon name="Settings" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
 ];
 
 const defaultNavItems: NavItem[] = [
@@ -75,8 +69,7 @@ export function AdminShell({
 }: AdminShellProps) {
   const pathname = usePathname();
   const params = useLocalSearchParams<{ tab?: string; section?: string }>();
-  const { width } = useWindowDimensions();
-  const isNarrow = width < 720;
+  const isNarrow = false;
   const activeItem = navItems.find(item => isActive(pathname, item));
   const childItems = activeItem?.children;
   const activeChildSection = typeof params.tab === 'string'
@@ -140,7 +133,7 @@ export function AdminShell({
           contentContainerStyle={[
             styles.content,
             headerVariant === 'ios' ? styles.iosContent : null,
-            resolvedBottomTabs ? { paddingBottom: iosSpacing.xl * 2 } : null,
+            resolvedBottomTabs ? { paddingBottom: hp('8%') } : null,
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -166,8 +159,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: iosColors.background },
   iosContainer: { backgroundColor: iosColors.background },
   header: {
-    padding: iosSpacing.lg,
-    paddingTop: iosSpacing.xl,
+    padding: Math.max(iosSpacing.lg, hp('2.5%')),
+    paddingTop: Math.max(iosSpacing.xl, hp('3%')),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -180,10 +173,10 @@ const styles = StyleSheet.create({
     backgroundColor: iosColors.primary,
   },
   signOutText: { color: '#fff', fontWeight: '600' },
-  content: { padding: iosSpacing.lg, paddingBottom: iosSpacing.xl },
+  content: { padding: Math.max(iosSpacing.lg, wp('5%')), paddingBottom: Math.max(iosSpacing.xl, hp('3%')) },
   iosContent: {
-    paddingHorizontal: iosSpacing.lg,
-    paddingTop: iosSpacing.lg,
-    paddingBottom: iosSpacing.xl,
+    paddingHorizontal: Math.max(iosSpacing.lg, wp('5%')),
+    paddingTop: Math.max(iosSpacing.lg, hp('2.5%')),
+    paddingBottom: Math.max(iosSpacing.xl, hp('3%')),
   },
 });

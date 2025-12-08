@@ -4,18 +4,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { ChevronDown, ChevronUp, MapPin } from 'lucide-react-native';
 
 import ScreenHeader from '@/components/ui/ScreenHeader';
 import LabeledInput from '@/components/ui/LabeledInput';
 import Button from '@/components/ui/Button';
 import Snackbar from '@/components/ui/Snackbar';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { ensureRestaurantForUser, toggleRestaurantOpen, upsertRestaurantHours, updateRestaurant } from '@/utils/database';
 import type { Restaurant } from '@/types/database';
 import type { RestaurantHourInput } from '@/utils/db/restaurants';
 import { logMutationError } from '@/utils/telemetry';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { wp, hp } from '@/styles/responsive';
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -247,7 +248,7 @@ export default function OperationalSettings() {
           <LabeledInput label="Public Email" value={form.email} onChangeText={(v) => setForm((p) => ({ ...p, email: v }))} autoCapitalize="none" keyboardType="email-address" />
           <LabeledInput label="Street Address" value={form.address} onChangeText={(v) => setForm((p) => ({ ...p, address: v }))} />
           <TouchableOpacity style={styles.locationButton} onPress={handleUseLocation} disabled={locationLoading}>
-            <MapPin size={18} color={theme.colors.accent} />
+            <Icon name="MapPin" size="sm" color={theme.colors.accent} />
             <Text style={styles.locationText}>{locationLoading ? 'Fetching location...' : 'Use my current location'}</Text>
           </TouchableOpacity>
         </View>
@@ -347,7 +348,7 @@ function Accordion({ title, subtitle, open, onToggle, children }: { title: strin
           <Text style={accordionStyles(theme).title}>{title}</Text>
           {subtitle ? <Text style={accordionStyles(theme).subtitle}>{subtitle}</Text> : null}
         </View>
-        {open ? <ChevronUp size={18} color={theme.colors.text} /> : <ChevronDown size={18} color={theme.colors.text} />}
+        {open ? <Icon name="ChevronUp" size="sm" color={theme.colors.text} /> : <Icon name="ChevronDown" size="sm" color={theme.colors.text} />}
       </TouchableOpacity>
       {open ? <View style={accordionStyles(theme).content}>{children}</View> : null}
     </View>
@@ -355,9 +356,10 @@ function Accordion({ title, subtitle, open, onToggle, children }: { title: strin
 }
 
 function accordionStyles(theme: ReturnType<typeof useRestaurantTheme>) {
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
   return StyleSheet.create({
     wrapper: {
-      marginHorizontal: theme.device.isSmallScreen ? theme.spacing.md : theme.spacing.lg,
+      marginHorizontal: horizontal,
       marginBottom: theme.spacing.md,
       backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.lg,
@@ -383,14 +385,15 @@ function accordionStyles(theme: ReturnType<typeof useRestaurantTheme>) {
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const isCompact = theme.device.isSmallScreen;
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
+  const vertical = Math.max(theme.spacing.md, hp('2%'));
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background },
     loader: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.sm },
     loaderText: { ...theme.typography.body, color: theme.colors.secondaryText },
     headerCard: {
       backgroundColor: theme.colors.surface,
-      padding: isCompact ? theme.spacing.md : theme.spacing.lg,
+      padding: Math.max(theme.spacing.lg, hp('2.5%')),
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
       ...theme.shadows.card,
@@ -413,7 +416,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: theme.spacing.md,
+      marginTop: vertical,
       padding: theme.spacing.md,
       borderRadius: theme.radius.card,
       backgroundColor: theme.colors.surfaceAlt,
@@ -423,8 +426,8 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     switchLabel: { ...theme.typography.body, color: theme.colors.formText },
     card: {
       backgroundColor: theme.colors.surface,
-      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      marginTop: theme.spacing.md,
+      marginHorizontal: horizontal,
+      marginTop: vertical,
       borderRadius: theme.radius.lg,
       borderWidth: 1,
       borderColor: theme.colors.border,
@@ -443,13 +446,13 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     hourRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      flexWrap: isCompact ? 'wrap' : 'nowrap',
+      flexWrap: 'wrap',
       paddingVertical: theme.spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
     },
     dayLabel: { ...theme.typography.body, color: theme.colors.formText },
-    hourInputs: { flexDirection: 'row', alignItems: 'center', flex: 1, marginLeft: isCompact ? theme.spacing.sm : theme.spacing.md, gap: theme.spacing.xs },
+    hourInputs: { flexDirection: 'row', alignItems: 'center', flex: 1, marginLeft: theme.spacing.md, gap: theme.spacing.xs, flexWrap: 'wrap' },
     hourInput: {
       flex: 1,
       borderWidth: 1,
@@ -461,13 +464,13 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       color: theme.colors.formText,
     },
     hourSeparator: { ...theme.typography.caption, color: theme.colors.secondaryText },
-    closedRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, marginLeft: isCompact ? 0 : theme.spacing.md, marginTop: isCompact ? theme.spacing.xs : 0 },
+    closedRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, marginLeft: theme.spacing.md, marginTop: theme.spacing.xs },
     closedLabel: { ...theme.typography.caption, color: theme.colors.secondaryText },
     inputDisabled: { backgroundColor: theme.colors.formSurfaceAlt, color: theme.colors.formPlaceholder },
-    saveButton: { marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg, marginTop: theme.spacing.sm },
+    saveButton: { marginHorizontal: horizontal, marginTop: theme.spacing.sm },
     logoutButton: {
-      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      marginTop: theme.spacing.md,
+      marginHorizontal: horizontal,
+      marginTop: vertical,
       marginBottom: theme.insets.bottom + theme.spacing.lg,
     },
   });

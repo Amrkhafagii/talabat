@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { View, Text, ViewStyle, TextStyle } from 'react-native';
 import { router } from 'expo-router';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { Icon } from './Icon';
+import { IconButton } from './IconButton';
 
 interface HeaderProps {
   title: string;
@@ -19,7 +20,7 @@ export default function Header({
   onBackPress,
   subdued = false,
 }: HeaderProps) {
-  const { colors, spacing, radius, typography, tap, iconSizes, insets, icons } = useRestaurantTheme();
+  const { colors, spacing, radius, typography, tap, iconSizes, insets } = useRestaurantTheme();
 
   const styles = useMemo(
     () => ({
@@ -56,9 +57,14 @@ export default function Header({
   return (
     <View style={styles.header}>
       {showBackButton ? (
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton} hitSlop={tap.hitSlop}>
-          <ArrowLeft size={iconSizes.lg} strokeWidth={icons.strokeWidth} color={colors.text} />
-        </TouchableOpacity>
+        <IconButton
+          name="ArrowLeft"
+          onPress={handleBackPress}
+          hitSlop={tap.hitSlop}
+          size="lg"
+          color={colors.text}
+          style={styles.backButton}
+        />
       ) : (
         <View style={styles.placeholder} />
       )}

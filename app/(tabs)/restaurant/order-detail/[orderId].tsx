@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ArrowLeft } from 'lucide-react-native';
 
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { getOrderById } from '@/utils/database';
@@ -12,6 +11,8 @@ import { Order } from '@/types/database';
 import TimelineItem from '@/components/ui/TimelineItem';
 import { getOrderStatusToken, getPaymentStatusToken } from '@/styles/statusTokens';
 import { formatOrderTime } from '@/utils/formatters';
+import { wp, hp } from '@/styles/responsive';
+import { Icon } from '@/components/ui/Icon';
 
 export default function OrderDetailScreen() {
   const theme = useRestaurantTheme();
@@ -51,7 +52,7 @@ export default function OrderDetailScreen() {
       <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop} style={styles.backButton}>
-          <ArrowLeft size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
+          <Icon name="ArrowLeft" size={theme.iconSizes.md} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order Detail</Text>
         <View style={styles.placeholder} />
@@ -81,7 +82,7 @@ export default function OrderDetailScreen() {
       <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop} style={styles.backButton}>
-          <ArrowLeft size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
+          <Icon name="ArrowLeft" size={theme.iconSizes.md} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>Order #{order.id.slice(-6).toUpperCase()}</Text>
         <View style={styles.placeholder} />
@@ -171,13 +172,14 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const isCompact = theme.device.isSmallScreen;
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
+  const vertical = Math.max(theme.spacing.md, hp('2.5%'));
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      paddingTop: theme.spacing.lg,
+      paddingHorizontal: horizontal,
+      paddingTop: vertical,
     },
     header: {
       flexDirection: 'row',
@@ -264,8 +266,8 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       borderRadius: theme.radius.cta,
       alignItems: 'center',
       justifyContent: 'center',
-      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      marginBottom: theme.insets.bottom + theme.spacing.md,
+      marginHorizontal: horizontal,
+      marginBottom: theme.insets.bottom + vertical,
       ...theme.shadows.card,
     },
     bottomCtaText: { ...theme.typography.button, color: theme.colors.textInverse },

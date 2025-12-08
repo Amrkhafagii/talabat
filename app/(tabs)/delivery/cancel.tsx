@@ -2,11 +2,11 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { AlertTriangle, X } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { useDeliveryLayout } from '@/styles/layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,7 +88,7 @@ export default function CancelDeliveryScreen() {
         <Card style={styles.card}>
           <View style={styles.indicator} />
           <View style={styles.iconWrap}>
-            <AlertTriangle size={32} color={theme.colors.status.error} />
+            <Icon name="AlertTriangle" size={32} color={theme.colors.status.error} />
           </View>
           <Text style={styles.title}>Cancel Order?</Text>
           <Text style={styles.subtitle}>
@@ -162,7 +162,7 @@ export default function CancelDeliveryScreen() {
         </Card>
       </ScrollView>
       <TouchableOpacity style={styles.close} onPress={() => router.back()}>
-        <X size={20} color={theme.colors.text} />
+        <Icon name="X" size="md" color={theme.colors.text} />
       </TouchableOpacity>
     </SafeAreaView>
   );

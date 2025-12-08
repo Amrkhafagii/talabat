@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Clock, Truck, MapPin } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 import Card from '../ui/Card';
 import OrderStatusBadge from '../common/OrderStatusBadge';
 import Button from '../ui/Button';
@@ -53,18 +53,18 @@ export default function OrderCard({ order, onTrack, onReorder }: OrderCardProps)
       {isActive && order.address && (
         <View style={styles(theme).deliveryInfo}>
           <View style={styles(theme).deliveryRow}>
-            <MapPin size={16} color={theme.colors.textMuted} />
+            <Icon name="MapPin" size="sm" color={theme.colors.textMuted} />
             <Text style={styles(theme).deliveryText}>{order.address}</Text>
           </View>
           {order.deliveryTime && (
             <View style={styles(theme).deliveryRow}>
-              <Clock size={16} color={theme.colors.textMuted} />
+              <Icon name="Clock" size="sm" color={theme.colors.textMuted} />
               <Text style={styles(theme).deliveryText}>Estimated: {order.deliveryTime}</Text>
             </View>
           )}
           {order.estimatedDelivery && (
             <View style={styles(theme).deliveryRow}>
-              <Truck size={16} color={theme.colors.primary[500]} />
+              <Icon name="Truck" size="sm" color={theme.colors.primary[500]} />
               <Text style={styles(theme).deliveryTextHighlight}>
                 Expected: {order.estimatedDelivery}
               </Text>

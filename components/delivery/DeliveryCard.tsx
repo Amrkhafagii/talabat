@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { MapPin, Navigation, Phone, CircleCheck as CheckCircle, Package } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
@@ -68,14 +68,14 @@ export default function DeliveryCard({
 
       <View style={styles.addressInfo}>
         <View style={styles.addressContainer}>
-          <MapPin size={16} color={theme.colors.textMuted} />
+          <Icon name="MapPin" size="sm" color={theme.colors.textMuted} />
           <View style={styles.addressDetails}>
             {isActive && <Text style={styles.addressLabel}>Pickup</Text>}
             <Text style={styles.addressText}>{order.pickupAddress}</Text>
           </View>
         </View>
         <View style={styles.addressContainer}>
-          <MapPin size={16} color={theme.colors.primary[500]} />
+          <Icon name="MapPin" size="sm" color={theme.colors.primary[500]} />
           <View style={styles.addressDetails}>
             {isActive && <Text style={styles.addressLabel}>Delivery</Text>}
             <Text style={styles.addressText}>{order.deliveryAddress}</Text>
@@ -92,25 +92,25 @@ export default function DeliveryCard({
         <View style={styles.activeActions}>
           {onCall && (
             <TouchableOpacity style={[styles.actionButton, styles.callButton]} onPress={onCall}>
-              <Phone size={18} color={theme.colors.textInverse} />
+              <Icon name="Phone" size="md" color={theme.colors.textInverse} />
               <Text style={styles.callButtonText}>Call</Text>
             </TouchableOpacity>
           )}
           {onNavigate && (
             <TouchableOpacity style={[styles.actionButton, styles.navigateButton]} onPress={onNavigate}>
-              <Navigation size={18} color={theme.colors.textInverse} />
+              <Icon name="Navigation" size="md" color={theme.colors.textInverse} />
               <Text style={styles.navigateButtonText}>Navigate</Text>
             </TouchableOpacity>
           )}
           {onPickup && (
             <TouchableOpacity style={[styles.actionButton, styles.pickupButton]} onPress={onPickup}>
-              <Package size={18} color={theme.colors.textInverse} />
+              <Icon name="Package" size="md" color={theme.colors.textInverse} />
               <Text style={styles.pickupButtonText}>Picked Up</Text>
             </TouchableOpacity>
           )}
           {onComplete && (
             <TouchableOpacity style={[styles.actionButton, styles.completeButton]} onPress={onComplete}>
-              <CheckCircle size={18} color={theme.colors.textInverse} />
+              <Icon name="CheckCircle" size="md" color={theme.colors.textInverse} />
               <Text style={styles.completeButtonText}>Delivered to Customer</Text>
             </TouchableOpacity>
           )}

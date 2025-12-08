@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { CheckSquare, Square } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { useDeliveryLayout } from '@/styles/layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -152,7 +152,11 @@ export default function CashReconciliationScreen() {
               <TouchableOpacity key={tx.id} style={styles.txRow} onPress={() => toggleSelect(tx.id)}>
                 <View style={styles.txLeft}>
                   {activeTab === 'reconcile' ? (
-                    selected ? <CheckSquare size={20} color={theme.colors.accent} /> : <Square size={20} color={theme.colors.textMuted} />
+                    selected ? (
+                      <Icon name="CheckSquare" size="md" color={theme.colors.accent} />
+                    ) : (
+                      <Icon name="Square" size="md" color={theme.colors.textMuted} />
+                    )
                   ) : null}
                   <View style={styles.txMeta}>
                     <Text style={styles.txTitle}>Order ID: {tx.reference || tx.id.slice(-6)}</Text>

@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, CreditCard, MapPin, ChevronDown, ShieldCheck } from 'lucide-react-native';
 import { router, useFocusEffect } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Linking from 'expo-linking';
@@ -15,6 +14,7 @@ import { computeEtaBand } from '@/utils/db/trustedArrival';
 import { estimateTravelMinutes } from '@/utils/etaService';
 import { supabase } from '@/utils/supabase';
 import { useAppTheme } from '@/styles/appTheme';
+import { Icon } from '@/components/ui/Icon';
 
 export default function Cart() {
   const { cart, updateQuantity, clearCart, getTotalItems } = useCart();
@@ -465,7 +465,7 @@ export default function Cart() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color={theme.colors.text} />
+            <Icon name="ArrowLeft" size="xl" color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Cart</Text>
           <View style={styles.placeholder} />
@@ -483,7 +483,7 @@ export default function Cart() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color={theme.colors.text} />
+            <Icon name="ArrowLeft" size="xl" color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Cart</Text>
           <View style={styles.placeholder} />
@@ -507,7 +507,7 @@ export default function Cart() {
       {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color={theme.colors.text} />
+            <Icon name="ArrowLeft" size="xl" color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Cart</Text>
           <View style={styles.placeholder} />
@@ -519,7 +519,7 @@ export default function Cart() {
           <Text style={styles.sectionTitle}>Delivery Address</Text>
           {selectedAddress ? (
             <TouchableOpacity style={styles.addressCard} onPress={handleSelectAddress}>
-              <MapPin size={20} color={theme.colors.primary[500]} />
+              <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
               <View style={styles.addressInfo}>
                 <Text style={styles.addressType}>{selectedAddress.label}</Text>
                 <Text style={styles.addressText}>
@@ -530,11 +530,11 @@ export default function Cart() {
                   {selectedAddress.city}, {selectedAddress.state} {selectedAddress.postal_code}
                 </Text>
               </View>
-              <ChevronDown size={20} color={theme.colors.textMuted} />
+              <Icon name="ChevronDown" size="md" color={theme.colors.textMuted} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.addAddressCard} onPress={handleSelectAddress}>
-              <MapPin size={20} color={theme.colors.textMuted} />
+              <Icon name="MapPin" size="md" color={theme.colors.textMuted} />
               <Text style={styles.addAddressText}>Add delivery address</Text>
             </TouchableOpacity>
           )}
@@ -605,7 +605,7 @@ export default function Cart() {
                 await Linking.openURL('https://ipn.eg/S/amrkhafagi/instapay/4VH6jb');
               }}
             >
-              <CreditCard size={20} color={theme.colors.primary[500]} />
+              <Icon name="CreditCard" size="md" color={theme.colors.primary[500]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.paymentText}>Instapay</Text>
               </View>
@@ -643,7 +643,8 @@ export default function Cart() {
             </View>
             {etaLabel && (
               <View style={[styles.etaBadge, etaTrusted ? styles.etaTrusted : styles.etaCaution]}>
-                <ShieldCheck
+                <Icon
+                  name="ShieldCheck"
                   size={14}
                   color={etaTrusted ? theme.colors.status.success : theme.colors.status.warning}
                 />

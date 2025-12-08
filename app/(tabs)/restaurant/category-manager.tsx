@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { ArrowDown, ArrowUp, GripVertical, Pencil, Trash2, X, Check } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +10,8 @@ import { ensureRestaurantForUser, getCategories, createCategory, updateCategory,
 import { Category, Restaurant } from '@/types/database';
 import { reorderCategoryList } from '@/utils/menuOrdering';
 import { logMutationError } from '@/utils/telemetry';
+import { wp, hp } from '@/styles/responsive';
+import { Icon } from '@/components/ui/Icon';
 
 export default function CategoryManagerScreen() {
   const { user } = useAuth();
@@ -132,7 +133,7 @@ export default function CategoryManagerScreen() {
     const isEditing = editingId === item.id;
     return (
       <View style={styles.row}>
-        <GripVertical size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.secondaryText} />
+        <Icon name="GripVertical" size={theme.iconSizes.md} color={theme.colors.secondaryText} />
         {isEditing ? (
           <TextInput
             style={styles.nameInput}
@@ -147,22 +148,22 @@ export default function CategoryManagerScreen() {
         )}
         <View style={styles.rowActions}>
           <TouchableOpacity onPress={() => handleMove(index, 'up')} disabled={index === 0} hitSlop={theme.tap.hitSlop}>
-            <ArrowUp size={18} color={index === 0 ? theme.colors.border : theme.colors.secondaryText} />
+            <Icon name="ArrowUp" size={18} color={index === 0 ? theme.colors.border : theme.colors.secondaryText} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleMove(index, 'down')} disabled={index === categories.length - 1} hitSlop={theme.tap.hitSlop}>
-            <ArrowDown size={18} color={index === categories.length - 1 ? theme.colors.border : theme.colors.secondaryText} />
+            <Icon name="ArrowDown" size={18} color={index === categories.length - 1 ? theme.colors.border : theme.colors.secondaryText} />
           </TouchableOpacity>
           {isEditing ? (
             <TouchableOpacity onPress={() => handleRename(item.id)} hitSlop={theme.tap.hitSlop}>
-              <Check size={18} color={theme.colors.accent} />
+              <Icon name="Check" size={18} color={theme.colors.accent} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={() => { setEditingId(item.id); setRenameDrafts((prev) => ({ ...prev, [item.id]: item.name })); }} hitSlop={theme.tap.hitSlop}>
-              <Pencil size={18} color={theme.colors.secondaryText} />
+              <Icon name="Pencil" size={18} color={theme.colors.secondaryText} />
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={theme.tap.hitSlop}>
-            <Trash2 size={18} color={theme.colors.status.error} />
+            <Icon name="Trash2" size={18} color={theme.colors.status.error} />
           </TouchableOpacity>
         </View>
       </View>
@@ -174,7 +175,7 @@ export default function CategoryManagerScreen() {
       <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop} style={styles.headerIcon}>
-          <X size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
+          <Icon name="X" size={theme.iconSizes.md} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>Category Management</Text>
         <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop}>
@@ -218,19 +219,20 @@ export default function CategoryManagerScreen() {
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const isCompact = theme.device.isSmallScreen;
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
+  const vertical = Math.max(theme.spacing.md, hp('2.5%'));
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      paddingTop: theme.spacing.lg,
+      paddingHorizontal: horizontal,
+      paddingTop: vertical,
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: theme.spacing.lg,
+      marginBottom: vertical,
     },
     headerIcon: {
       width: 36,
@@ -289,7 +291,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     addButton: {
       backgroundColor: theme.colors.accent,
       borderRadius: theme.radius.cta,
-      paddingVertical: theme.spacing.md,
+      paddingVertical: Math.max(theme.spacing.md, hp('2%')),
       alignItems: 'center',
       justifyContent: 'center',
       ...theme.shadows.card,

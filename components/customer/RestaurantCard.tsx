@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Star, Clock, Heart, ShieldCheck } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface Restaurant {
@@ -47,10 +47,10 @@ export default function RestaurantCard({
           </View>
         )}
         <TouchableOpacity style={styles.favoriteButton} onPress={onFavoritePress}>
-          <Heart
-            size={20}
+          <Icon
+            name="Heart"
+            size="md"
             color={isFavorite ? theme.colors.primary[500] : theme.colors.textInverse}
-            fill={isFavorite ? theme.colors.primary[500] : 'transparent'}
           />
         </TouchableOpacity>
           <View style={styles.promotedInfo}>
@@ -58,16 +58,16 @@ export default function RestaurantCard({
             <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
             <View style={styles.restaurantMeta}>
               <View style={styles.rating}>
-                <Star size={14} color={theme.colors.status.warning} fill={theme.colors.status.warning} />
+                <Icon name="Star" size={14} color={theme.colors.status.warning} />
                 <Text style={styles.ratingText}>{restaurant.rating}</Text>
               </View>
               <View style={styles.delivery}>
-                <Clock size={14} color={theme.colors.textMuted} />
+                <Icon name="Clock" size={14} color={theme.colors.textMuted} />
                 <Text style={styles.deliveryText}>{restaurant.deliveryTime} min</Text>
               </View>
               {etaLabel && (
                 <View style={[styles.trustedBadge, trusted ? styles.trusted : styles.untrusted]}>
-                  <ShieldCheck size={12} color={trusted ? theme.colors.status.success : theme.colors.status.warning} />
+                  <Icon name="ShieldCheck" size={12} color={trusted ? theme.colors.status.success : theme.colors.status.warning} />
                   <Text style={[styles.trustedText, trusted ? styles.trustedTextStrong : styles.untrustedText]}>
                     {etaLabel}
                   </Text>
@@ -86,21 +86,21 @@ export default function RestaurantCard({
         <View style={styles.restaurantHeader}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
         <TouchableOpacity onPress={onFavoritePress}>
-          <Heart
-            size={20}
+          <Icon
+            name="Heart"
+            size="md"
             color={isFavorite ? theme.colors.primary[500] : theme.colors.textMuted}
-            fill={isFavorite ? theme.colors.primary[500] : 'transparent'}
           />
         </TouchableOpacity>
         </View>
         <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
           <View style={styles.restaurantMeta}>
             <View style={styles.rating}>
-              <Star size={14} color={theme.colors.status.warning} fill={theme.colors.status.warning} />
+              <Icon name="Star" size={14} color={theme.colors.status.warning} />
               <Text style={styles.ratingText}>{restaurant.rating}</Text>
             </View>
             <View style={styles.delivery}>
-              <Clock size={14} color={theme.colors.textMuted} />
+              <Icon name="Clock" size={14} color={theme.colors.textMuted} />
               <Text style={styles.deliveryText}>{restaurant.deliveryTime} min</Text>
             </View>
             <Text style={styles.deliveryFee}>${restaurant.deliveryFee} delivery</Text>
@@ -109,7 +109,8 @@ export default function RestaurantCard({
             )}
             {etaLabel && (
               <View style={[styles.trustedBadge, trusted ? styles.trusted : styles.untrusted]}>
-                <ShieldCheck
+                <Icon
+                  name="ShieldCheck"
                   size={12}
                   color={trusted ? theme.colors.status.success : theme.colors.status.warning}
                 />

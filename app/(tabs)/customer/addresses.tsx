@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { MapPin, Plus, CreditCard as Edit, Trash2, Star } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserAddresses, deleteUserAddress, updateUserAddress } from '@/utils/database';
 import { UserAddress } from '@/types/database';
@@ -133,7 +133,7 @@ export default function Addresses() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Add New Address Button */}
         <TouchableOpacity style={styles.addButton} onPress={addNewAddress}>
-          <Plus size={24} color={theme.colors.primary[500]} />
+          <Icon name="Plus" size="lg" color={theme.colors.primary[500]} />
           <Text style={styles.addButtonText}>Add New Address</Text>
         </TouchableOpacity>
 
@@ -144,11 +144,11 @@ export default function Addresses() {
               <View key={address.id} style={styles.addressCard}>
                 <View style={styles.addressHeader}>
                   <View style={styles.addressLabelContainer}>
-                    <MapPin size={20} color={theme.colors.primary[500]} />
+                    <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
                     <Text style={styles.addressLabel}>{address.label}</Text>
                     {address.is_default && (
                       <View style={styles.defaultBadge}>
-                        <Star size={12} color={theme.colors.textInverse} fill={theme.colors.textInverse} />
+                        <Icon name="Star" size="sm" color={theme.colors.textInverse} />
                         <Text style={styles.defaultText}>Default</Text>
                       </View>
                     )}
@@ -158,13 +158,13 @@ export default function Addresses() {
                       style={styles.actionButton}
                       onPress={() => editAddress(address)}
                     >
-                      <Edit size={16} color={theme.colors.textMuted} />
+                      <Icon name="Edit" size="sm" color={theme.colors.textMuted} />
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={styles.actionButton}
                       onPress={() => handleDeleteAddress(address)}
                     >
-                      <Trash2 size={16} color={theme.colors.status.error} />
+                      <Icon name="Trash2" size="sm" color={theme.colors.status.error} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -197,7 +197,7 @@ export default function Addresses() {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <MapPin size={64} color={theme.colors.textSubtle} />
+            <Icon name="MapPin" size={64} color={theme.colors.textSubtle} />
             <Text style={styles.emptyTitle}>No addresses yet</Text>
             <Text style={styles.emptyText}>
               Add your first delivery address to start ordering

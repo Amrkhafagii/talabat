@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Plus, Minus } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 import { useAppTheme } from '@/styles/appTheme';
 
 interface CartItem {
@@ -30,14 +30,14 @@ export default function CartItemCard({ item, onUpdateQuantity }: CartItemCardPro
           style={styles.quantityButton}
           onPress={() => onUpdateQuantity(item.id, -1)}
         >
-          <Minus size={16} color={theme.colors.primary[500]} />
+          <Icon name="Minus" size="sm" color={theme.colors.primary[500]} />
         </TouchableOpacity>
         <Text style={styles.quantityText}>{item.quantity}</Text>
         <TouchableOpacity 
           style={styles.quantityButton}
           onPress={() => onUpdateQuantity(item.id, 1)}
         >
-          <Plus size={16} color={theme.colors.primary[500]} />
+          <Icon name="Plus" size="sm" color={theme.colors.primary[500]} />
         </TouchableOpacity>
       </View>
     </View>

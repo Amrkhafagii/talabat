@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
-import { LayoutDashboard, BookOpen, Receipt, Settings, Wallet } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert } from 'react-native';
 import { fetchInstapayStatus } from '@/utils/instapayCheck';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { Icon } from '@/components/ui/Icon';
 
 export default function RestaurantLayout() {
   const { user, userType, loading } = useAuth();
@@ -83,7 +83,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ size, color }) => (
-            <LayoutDashboard size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
+            <Icon name="LayoutDashboard" size={size} color={color} />
           ),
         }}
       />
@@ -92,7 +92,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Orders',
           tabBarIcon: ({ size, color }) => (
-            <Receipt size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
+            <Icon name="Receipt" size={size} color={color} />
           ),
         }}
       />
@@ -101,7 +101,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Menu',
           tabBarIcon: ({ size, color }) => (
-            <BookOpen size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
+            <Icon name="BookOpen" size={size} color={color} />
           ),
         }}
       />
@@ -110,7 +110,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Wallet',
           tabBarIcon: ({ size, color }) => (
-            <Wallet size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
+            <Icon name="Wallet" size={size} color={color} />
           ),
         }}
       />
@@ -119,7 +119,7 @@ export default function RestaurantLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ size, color }) => (
-            <Settings size={size} color={color} strokeWidth={theme.icons.strokeWidth} />
+            <Icon name="Settings" size={size} color={color} />
           ),
         }}
       />

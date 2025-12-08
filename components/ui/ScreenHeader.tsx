@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, ViewStyle } from 'react-native';
-import { ArrowLeft, CalendarDays } from 'lucide-react-native';
+import { Icon } from './Icon';
+import { IconButton } from './IconButton';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 type ScreenHeaderProps = {
@@ -31,16 +32,21 @@ export default function ScreenHeader({
     <View style={[styles.container, style]}>
       <View style={styles.left}>
         {onBack ? (
-          <TouchableOpacity onPress={onBack} style={styles.iconButton} hitSlop={theme.tap.hitSlop}>
-            <ArrowLeft size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
-          </TouchableOpacity>
+          <IconButton
+            name="ArrowLeft"
+            size="md"
+            color={theme.colors.text}
+            onPress={onBack}
+            hitSlop={theme.tap.hitSlop}
+            style={styles.iconButton}
+          />
         ) : null}
         <View>
           <Text style={styles.title}>{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           {dateLabel && onDatePress ? (
             <TouchableOpacity onPress={onDatePress} style={styles.dateRow} hitSlop={theme.tap.hitSlop}>
-              <CalendarDays size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.secondaryText} />
+              <Icon name="CalendarDays" size="sm" color={theme.colors.secondaryText} />
               <Text style={styles.dateLabel}>{dateLabel}</Text>
             </TouchableOpacity>
           ) : null}

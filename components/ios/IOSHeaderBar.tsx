@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle, TextStyle, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { iosColors, iosRadius, iosShadow, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { wp } from '@/styles/responsive';
 
 type HeaderAction = { label: string; onPress: () => void };
 
@@ -14,13 +15,11 @@ type IOSHeaderBarProps = {
 };
 
 export function IOSHeaderBar({ title, leadingAction, trailingAction, doneAction, style, showShadow = true }: IOSHeaderBarProps) {
-  const { width } = useWindowDimensions();
-  const isNarrow = width < 400;
-  const paddingHorizontal = isNarrow ? iosSpacing.sm : iosSpacing.md;
+  const paddingHorizontal = Math.max(iosSpacing.md, wp('5%'));
   const buttonPadX = iosSpacing.sm;
-  const buttonPadY = isNarrow ? Math.max(0, iosSpacing.xs - 2) : iosSpacing.xs;
-  const sideWidth = isNarrow ? 88 : 100;
-  const textStyle = isNarrow ? iosTypography.subhead : iosTypography.button;
+  const buttonPadY = iosSpacing.xs;
+  const sideWidth = Math.max(88, wp('24%'));
+  const textStyle = iosTypography.button;
 
   return (
     <View style={[styles.container, { paddingHorizontal }, showShadow && iosShadow.header, style]}>

@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
-import { LayoutDashboard, History, DollarSign, User, Wallet } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert } from 'react-native';
 import { fetchInstapayStatus } from '@/utils/instapayCheck';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { Icon } from '@/components/ui/Icon';
 
 export default function DeliveryLayout() {
   const { user, userType, loading } = useAuth();
@@ -83,7 +83,7 @@ export default function DeliveryLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ size, color }) => (
-            <LayoutDashboard size={size} color={color} />
+            <Icon name="LayoutDashboard" size={size} color={color} />
           ),
         }}
       />
@@ -92,7 +92,7 @@ export default function DeliveryLayout() {
         options={{
           title: 'History',
           tabBarIcon: ({ size, color }) => (
-            <History size={size} color={color} />
+            <Icon name="History" size={size} color={color} />
           ),
         }}
       />
@@ -101,7 +101,7 @@ export default function DeliveryLayout() {
         options={{
           title: 'Earnings',
           tabBarIcon: ({ size, color }) => (
-            <DollarSign size={size} color={color} />
+            <Icon name="DollarSign" size={size} color={color} />
           ),
         }}
       />
@@ -110,7 +110,7 @@ export default function DeliveryLayout() {
         options={{
           title: 'Wallet',
           tabBarIcon: ({ size, color }) => (
-            <Wallet size={size} color={color} />
+            <Icon name="Wallet" size={size} color={color} />
           ),
         }}
       />
@@ -119,7 +119,7 @@ export default function DeliveryLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ size, color }) => (
-            <User size={size} color={color} />
+            <Icon name="User" size={size} color={color} />
           ),
         }}
       />

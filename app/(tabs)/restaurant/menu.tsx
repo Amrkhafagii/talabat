@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
-import { Plus } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import SearchBar from '@/components/ui/SearchBar';
@@ -27,6 +26,8 @@ import { Restaurant, MenuItem, Category } from '@/types/database';
 import { ensureOwnership, shouldRefetchOnFocus } from '@/utils/menuOrdering';
 import { logMutationError } from '@/utils/telemetry';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { wp, hp } from '@/styles/responsive';
+import { Icon } from '@/components/ui/Icon';
 
 const baseCategoryFilters = ['All', 'Popular'];
 
@@ -454,7 +455,7 @@ export default function MenuManagement() {
         )}
       </ScrollView>
       <FAB
-        icon={<Plus size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.textInverse} />}
+        icon={<Icon name="Plus" size={theme.iconSizes.md} color={theme.colors.textInverse} />}
         onPress={addNewItem}
         style={styles.fab}
       />
@@ -466,8 +467,8 @@ export default function MenuManagement() {
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const isCompact = theme.device.isSmallScreen;
-  const horizontal = isCompact ? theme.spacing.md : theme.spacing.lg;
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
+  const vertical = Math.max(theme.spacing.md, hp('2.5%'));
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background, writingDirection: I18nManager.isRTL ? 'rtl' : 'ltr' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: theme.spacing.lg },
@@ -476,7 +477,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     errorText: { ...theme.typography.body, color: theme.colors.status.error, textAlign: 'center', marginBottom: theme.spacing.md },
     retryButton: { backgroundColor: theme.colors.accent, paddingHorizontal: theme.spacing.xl, paddingVertical: theme.spacing.md, borderRadius: theme.radius.md },
     retryButtonText: { ...theme.typography.button, color: theme.colors.textInverse },
-    searchSection: { paddingHorizontal: horizontal, paddingTop: theme.spacing.md },
+    searchSection: { paddingHorizontal: horizontal, paddingTop: vertical },
     searchBar: { margin: 0 },
     chipsRow: { paddingHorizontal: horizontal, paddingVertical: theme.spacing.sm, columnGap: theme.spacing.sm },
     manageCategoriesLink: { paddingHorizontal: horizontal, paddingBottom: theme.spacing.sm },
@@ -497,12 +498,12 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     toggleTitle: { ...theme.typography.subhead },
     toggleSubtitle: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: 2 },
     scrollContent: { paddingBottom: theme.insets.bottom + theme.spacing.xl },
-    itemsList: { paddingHorizontal: horizontal, paddingTop: theme.spacing.md, rowGap: theme.spacing.sm, paddingBottom: theme.spacing.xl },
+    itemsList: { paddingHorizontal: horizontal, paddingTop: vertical, rowGap: theme.spacing.sm, paddingBottom: theme.spacing.xl },
     emptyState: { alignItems: 'center', paddingVertical: theme.spacing.xl2, paddingHorizontal: theme.spacing.xl },
     emptyTitle: { ...theme.typography.title2, marginBottom: theme.spacing.xs, textAlign: 'center' },
     emptyText: { ...theme.typography.body, color: theme.colors.secondaryText, textAlign: 'center', lineHeight: 24, marginBottom: theme.spacing.lg },
     emptyButton: { marginTop: theme.spacing.sm },
-    fab: { position: 'absolute', right: theme.spacing.lg, bottom: theme.insets.bottom + theme.spacing.lg },
-    toast: { position: 'absolute', bottom: theme.insets.bottom + theme.spacing.md, left: theme.spacing.lg, right: theme.spacing.lg },
+    fab: { position: 'absolute', right: horizontal, bottom: theme.insets.bottom + theme.spacing.lg },
+    toast: { position: 'absolute', bottom: theme.insets.bottom + theme.spacing.md, left: horizontal, right: horizontal },
   });
 }

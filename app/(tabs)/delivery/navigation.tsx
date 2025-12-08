@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Navigation, MapPin, Phone, Package } from 'lucide-react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeDeliveries } from '@/hooks/useRealtimeDeliveries';
 import { useDriverLocationTracking } from '@/hooks/useDriverLocationTracking';
@@ -446,7 +446,7 @@ export default function DeliveryNavigation() {
       <SafeAreaView style={styles.container}>
         <Header title="Navigation" showBackButton />
         <View style={styles.emptyState}>
-          <Navigation size={64} color={theme.colors.textSubtle} />
+          <Icon name="Navigation" size={64} color={theme.colors.textSubtle} />
           <Text style={styles.emptyTitle}>No Active Delivery</Text>
           <Text style={styles.emptyText}>
             Accept a delivery to start navigation
@@ -476,9 +476,9 @@ export default function DeliveryNavigation() {
           <View style={styles.destinationHeader}>
             <View style={styles.destinationIcon}>
               {currentDestination.type === 'pickup' ? (
-                <Package size={24} color={theme.colors.accent} />
+                <Icon name="Package" size="xl" color={theme.colors.accent} />
               ) : (
-                <MapPin size={24} color={theme.colors.success} />
+                <Icon name="MapPin" size="xl" color={theme.colors.success} />
               )}
             </View>
             <View style={styles.destinationInfo}>
@@ -496,7 +496,7 @@ export default function DeliveryNavigation() {
                 currentDestination.longitude
               )}
             >
-              <Navigation size={20} color={theme.colors.textInverse} />
+              <Icon name="Navigation" size="md" color={theme.colors.textInverse} />
               <Text style={styles.navButtonText}>Google Maps</Text>
             </TouchableOpacity>
 
@@ -505,7 +505,7 @@ export default function DeliveryNavigation() {
                 style={[styles.navButton, styles.appleMapsButton]}
                 onPress={() => openInAppleMaps(currentDestination.address)}
               >
-                <MapPin size={20} color={theme.colors.textInverse} />
+                <Icon name="MapPin" size="md" color={theme.colors.textInverse} />
                 <Text style={styles.navButtonText}>Apple Maps</Text>
               </TouchableOpacity>
             )}
@@ -514,7 +514,7 @@ export default function DeliveryNavigation() {
               style={[styles.navButton, styles.wazeButton]}
               onPress={() => openInWaze(currentDestination.address)}
             >
-              <Navigation size={20} color={theme.colors.textInverse} />
+              <Icon name="Navigation" size="md" color={theme.colors.textInverse} />
               <Text style={styles.navButtonText}>Waze</Text>
             </TouchableOpacity>
           </View>
@@ -578,7 +578,7 @@ export default function DeliveryNavigation() {
 
           {currentDestination.type === 'delivery' && (
             <TouchableOpacity style={styles.callButton} onPress={callCustomer}>
-              <Phone size={20} color={theme.colors.accent} />
+              <Icon name="Phone" size="md" color={theme.colors.accent} />
               <Text style={styles.callButtonText}>Call Customer</Text>
             </TouchableOpacity>
           )}

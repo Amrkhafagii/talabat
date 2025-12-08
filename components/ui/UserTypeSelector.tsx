@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
-import { User, Store, Truck } from 'lucide-react-native';
+import { Icon, type IconName } from './Icon';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,7 +15,7 @@ interface UserTypeOption {
   id: 'customer' | 'restaurant' | 'delivery';
   title: string;
   description: string;
-  icon: typeof User;
+  icon: IconName;
   color: string;
 }
 
@@ -85,7 +85,6 @@ function UserTypeCard({
   }));
 
   const IconComponent = option.icon;
-
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} hitSlop={hitSlop} accessibilityRole="button" accessibilityState={{ selected: isSelected }}>
       <Animated.View
@@ -112,7 +111,11 @@ function UserTypeCard({
               { backgroundColor: isSelected ? option.color : styles.iconContainer.backgroundColor },
             ]}
           >
-            <IconComponent size={iconSize} color={isSelected ? styles.textInverse : styles.iconColor} />
+            <Icon
+              name={option.icon}
+              size={iconSize}
+              color={isSelected ? styles.textInverse : styles.iconColor}
+            />
           </Animated.View>
 
           <View style={styles.textContainer}>
@@ -241,21 +244,21 @@ export default function UserTypeSelector({ selectedType, onSelect }: UserTypeSel
         id: 'customer',
         title: 'Customer',
         description: 'Order delicious food from your favorite restaurants',
-        icon: User,
+        icon: 'User',
         color: theme.colors.status.info,
       },
       {
         id: 'restaurant',
         title: 'Restaurant',
         description: 'Manage your restaurant, menu, and incoming orders',
-        icon: Store,
+        icon: 'Store',
         color: theme.colors.accent,
       },
       {
         id: 'delivery',
         title: 'Delivery Driver',
         description: 'Deliver food to customers and earn money on your schedule',
-        icon: Truck,
+        icon: 'Truck',
         color: theme.colors.status.warning,
       },
     ],

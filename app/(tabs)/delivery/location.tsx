@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDriverByUserId } from '@/utils/database';
 import { DeliveryDriver } from '@/types/database';
@@ -203,9 +203,9 @@ export default function LocationTracking() {
           <View style={styles.statusHeader}>
             <View style={styles.statusIndicator}>
               {effectiveTracking ? (
-                <Wifi size={20} color={theme.colors.status.success} />
+                <Icon name="Wifi" size="md" color={theme.colors.status.success} />
               ) : (
-                <WifiOff size={20} color={theme.colors.status.error} />
+                <Icon name="WifiOff" size="md" color={theme.colors.status.error} />
               )}
               <Text style={[
                 styles.statusText,
@@ -219,13 +219,13 @@ export default function LocationTracking() {
               onPress={refreshLocation}
               disabled={!effectiveTracking}
             >
-              <RefreshCw size={20} color={effectiveTracking ? theme.colors.textMuted : theme.colors.textSubtle} />
+              <Icon name="RefreshCw" size="md" color={effectiveTracking ? theme.colors.textMuted : theme.colors.textSubtle} />
             </TouchableOpacity>
           </View>
 
           {lastUpdate && (
             <View style={styles.lastUpdateContainer}>
-              <Clock size={16} color={theme.colors.textMuted} />
+              <Icon name="Clock" size={16} color={theme.colors.textMuted} />
               <Text style={styles.lastUpdateText}>
                 Last updated: {formatLastUpdate(lastUpdate)}
               </Text>
@@ -240,7 +240,7 @@ export default function LocationTracking() {
             
             <View style={styles.locationInfo}>
               <View style={styles.locationRow}>
-                <MapPin size={16} color={theme.colors.primary[500]} />
+                <Icon name="MapPin" size={16} color={theme.colors.primary[500]} />
                 <Text style={styles.locationLabel}>Coordinates</Text>
                 <Text style={styles.locationValue}>
                   {formatCoordinates(location.latitude, location.longitude)}

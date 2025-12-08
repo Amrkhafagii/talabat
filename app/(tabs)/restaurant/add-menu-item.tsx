@@ -3,12 +3,12 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, Plus, X } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 import ScreenHeader from '@/components/ui/ScreenHeader';
 import Button from '@/components/ui/Button';
 import LabeledInput from '@/components/ui/LabeledInput';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { ensureRestaurantForUser, createMenuItem, getCategories, createCategory } from '@/utils/database';
@@ -197,7 +197,7 @@ export default function AddMenuItem() {
               <Image source={{ uri: imageUri }} style={styles.photo} />
             ) : (
               <>
-                <Camera size={28} color={theme.colors.formPlaceholder} />
+                <Icon name="Camera" size={28} color={theme.colors.formPlaceholder} />
                 <Text style={styles.photoText}>Upload Photo</Text>
               </>
             )}

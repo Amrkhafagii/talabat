@@ -8,7 +8,7 @@ import { IOSCard } from '@/components/ios/IOSCard';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import { IOSToggleRow } from '@/components/ios/IOSToggleRow';
 import { IOSListRow } from '@/components/ios/IOSListRow';
-import { User, KeyRound, LogOut, Shield, Info, HelpCircle, FileText } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/utils/supabase';
 import { getAdminSettings, setAdminSettings, AdminSettingsPrefs } from '@/utils/db/adminOps';
 
@@ -105,9 +105,9 @@ export default function AdminSettings() {
     >
       <View style={styles.stack}>
         <Section title="Account">
-          <IOSListRow label="Profile" onPress={() => {}} icon={<User size={18} color={iosColors.primary} />} />
-          <IOSListRow label="Change Password" onPress={() => {}} icon={<KeyRound size={18} color={iosColors.primary} />} />
-          <IOSListRow label="Log Out" destructive onPress={signOut} icon={<LogOut size={18} color={iosColors.destructive} />} />
+          <IOSListRow label="Profile" onPress={() => {}} icon={<Icon name="User" size="sm" color={iosColors.primary} />} />
+          <IOSListRow label="Change Password" onPress={() => {}} icon={<Icon name="KeyRound" size="sm" color={iosColors.primary} />} />
+          <IOSListRow label="Log Out" destructive onPress={signOut} icon={<Icon name="LogOut" size="sm" color={iosColors.destructive} />} />
         </Section>
 
         <Section title="Notifications">
@@ -117,13 +117,13 @@ export default function AdminSettings() {
 
         <Section title="Privacy & Security">
           <IOSToggleRow label="Data Sharing" value={dataSharing} onValueChange={(v) => handleChange({ dataSharing: v })} />
-          <IOSListRow label="Privacy Policy" onPress={() => {}} icon={<Shield size={18} color={iosColors.primary} />} />
+          <IOSListRow label="Privacy Policy" onPress={() => {}} icon={<Icon name="Shield" size="sm" color={iosColors.primary} />} />
         </Section>
 
         <Section title="App Information">
-          <IOSListRow label="Version" value="1.2.0 (Build 128)" icon={<Info size={18} color={iosColors.primary} />} />
-          <IOSListRow label="Help & Support" onPress={() => {}} icon={<HelpCircle size={18} color={iosColors.primary} />} />
-          <IOSListRow label="Terms of Service" onPress={() => {}} icon={<FileText size={18} color={iosColors.primary} />} />
+          <IOSListRow label="Version" value="1.2.0 (Build 128)" icon={<Icon name="Info" size="sm" color={iosColors.primary} />} />
+          <IOSListRow label="Help & Support" onPress={() => {}} icon={<Icon name="HelpCircle" size="sm" color={iosColors.primary} />} />
+          <IOSListRow label="Terms of Service" onPress={() => {}} icon={<Icon name="FileText" size="sm" color={iosColors.primary} />} />
         </Section>
 
         <Text style={styles.footer}>© 2023 Admin Console, Inc.</Text>

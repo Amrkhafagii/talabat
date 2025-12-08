@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Star, Clock, ShoppingCart } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import Header from '@/components/ui/Header';
 import SearchBar from '@/components/ui/SearchBar';
 import MenuItem from '@/components/customer/MenuItem';
+import { Icon } from '@/components/ui/Icon';
 import { useCart } from '@/hooks/useCart';
 import { getRestaurantById, getMenuItemsByRestaurant } from '@/utils/database';
 import { Restaurant, MenuItem as MenuItemType } from '@/types/database';
@@ -123,11 +123,11 @@ export default function RestaurantDetail() {
             <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
             <View style={styles.restaurantMeta}>
               <View style={styles.rating}>
-                <Star size={16} color={theme.colors.status.warning} fill={theme.colors.status.warning} />
+                <Icon name="Star" size="sm" color={theme.colors.status.warning} />
                 <Text style={styles.ratingText}>{restaurant.rating}</Text>
               </View>
               <View style={styles.delivery}>
-                <Clock size={16} color={theme.colors.textMuted} />
+                <Icon name="Clock" size="sm" color={theme.colors.textMuted} />
                 <Text style={styles.deliveryText}>{restaurant.delivery_time} min</Text>
               </View>
             </View>
@@ -219,7 +219,7 @@ export default function RestaurantDetail() {
             disabled={!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)}
           >
             <View style={styles.cartInfo}>
-              <ShoppingCart size={20} color={theme.colors.textInverse} />
+              <Icon name="ShoppingCart" size="md" color={theme.colors.textInverse} />
               <Text style={styles.cartCount}>{getTotalItems()}</Text>
             </View>
             <Text style={styles.cartText}>

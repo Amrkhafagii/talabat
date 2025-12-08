@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import PaymentReviewList from '@/components/admin/PaymentReviewList';
 import LicenseReviewList from '@/components/admin/LicenseReviewList';
@@ -16,6 +16,7 @@ import { iosSpacing, iosTypography, iosColors, iosRadius } from '@/styles/iosThe
 import { IOSBadge } from '@/components/ios/IOSBadge';
 import { IOSInput } from '@/components/ios/IOSInput';
 import { IOSPillButton } from '@/components/ios/IOSPillButton';
+import { wp } from '@/styles/responsive';
 
 type SectionProps = ReturnType<typeof useAdminMetricsCoordinator> & { initialQuery?: string };
 
@@ -26,8 +27,6 @@ export default function AdminReviews() {
   const sharedQuery = typeof params.q === 'string' ? params.q : '';
   const tab = typeof params.tab === 'string' ? params.tab : 'payments';
   const [activeTab, setActiveTab] = useState<'payments' | 'licenses' | 'photos'>(tab as any);
-  const { width } = useWindowDimensions();
-  const isNarrow = width < 400;
 
   useEffect(() => {
     if (tab === 'licenses' || tab === 'photos' || tab === 'payments') setActiveTab(tab);
@@ -84,8 +83,7 @@ function TabStrip({
   counts: Record<'payments' | 'licenses' | 'photos', number>;
   risks: Record<'payments' | 'licenses' | 'photos', boolean>;
 }) {
-  const { width } = useWindowDimensions();
-  const isNarrow = width < 400;
+  const pillPad = Math.max(iosSpacing.sm, wp('4%'));
   const items: Array<{ key: 'payments' | 'licenses' | 'photos'; label: string }> = [
     { key: 'payments', label: 'Payments' },
     { key: 'licenses', label: 'Driver docs' },
@@ -103,12 +101,12 @@ function TabStrip({
         return (
           <TouchableOpacity
             key={item.key}
-            style={[tabStyles.pill, isNarrow && tabStyles.pillPhone, selected && tabStyles.pillActive]}
+            style={[tabStyles.pill, { paddingHorizontal: pillPad }, selected && tabStyles.pillActive]}
             onPress={() => onChange(item.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
           >
-            <Text style={[tabStyles.pillText, isNarrow && tabStyles.pillTextPhone, selected && tabStyles.pillTextActive]} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={[tabStyles.pillText, selected && tabStyles.pillTextActive]} numberOfLines={1} adjustsFontSizeToFit>
               {item.label} ({counts[item.key]})
             </Text>
             {risk && <IOSBadge label="Risk" tone="error" style={{ marginLeft: iosSpacing.xs }} />}
@@ -523,16 +521,11 @@ const tabStyles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#E5E5EA',
   },
-  pillPhone: {
-    paddingHorizontal: iosSpacing.sm,
-    paddingVertical: iosSpacing.xs,
-  },
   pillActive: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#0A84FF',
   },
   pillText: { ...iosTypography.subhead, color: iosColors.secondaryText },
-  pillTextPhone: { fontSize: 14 },
   pillTextActive: { color: '#0A84FF', fontWeight: '600' },
 });

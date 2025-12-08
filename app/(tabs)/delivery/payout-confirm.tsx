@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { CheckCircle2, Copy } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { useDeliveryLayout } from '@/styles/layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,7 +65,7 @@ export default function PayoutConfirmScreen() {
       <Header title="Payout Confirmed" showBackButton />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.iconWrap}>
-          <CheckCircle2 size={48} color={theme.colors.status.success} />
+          <Icon name="CheckCircle2" size={48} color={theme.colors.status.success} />
         </View>
         <Text style={styles.title}>Payout Confirmed</Text>
         <Text style={styles.amount}>{formatCurrency(Number(payout?.request?.amount ?? 0))}</Text>
@@ -102,7 +102,7 @@ export default function PayoutConfirmScreen() {
             </View>
             {payout?.request?.confirmation_number ? (
               <TouchableOpacity onPress={handleCopy} style={styles.copyButton}>
-                <Copy size={18} color={theme.colors.accent} />
+                <Icon name="Copy" size="sm" color={theme.colors.accent} />
               </TouchableOpacity>
             ) : null}
           </View>

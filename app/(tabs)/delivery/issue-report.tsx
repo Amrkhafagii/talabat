@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { X } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { useDeliveryLayout } from '@/styles/layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,7 +88,7 @@ export default function IssueReport() {
           <View style={styles.headerRow}>
             <Text style={styles.orderLabel}>Order #{activeDelivery?.order_id?.slice(-6) || activeDelivery?.id?.slice(-6)}</Text>
             <TouchableOpacity onPress={() => router.back()}>
-              <X size={20} color={theme.colors.text} />
+              <Icon name="X" size="md" color={theme.colors.text} />
             </TouchableOpacity>
           </View>
           <Text style={styles.subText}>For: {activeDelivery?.order?.user_id || 'Customer'}</Text>

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, RefreshControl, FlatList, I18nManager, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Bell } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
@@ -19,6 +18,8 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import SegmentedControl from '@/components/ui/SegmentedControl';
 import { getOrderStatusToken, getPaymentStatusToken } from '@/styles/statusTokens';
+import { wp, hp } from '@/styles/responsive';
+import { Icon } from '@/components/ui/Icon';
 
 export default function RestaurantOrders() {
   const { user } = useAuth();
@@ -152,7 +153,7 @@ export default function RestaurantOrders() {
         <View style={styles.headerActions}>
           <RealtimeIndicator />
           <TouchableOpacity style={styles.notificationButton} hitSlop={theme.tap.hitSlop}>
-            <Bell size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
+            <Icon name="Bell" size={theme.iconSizes.md} color={theme.colors.text} />
             {newOrdersCount > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationCount}>{newOrdersCount}</Text>
@@ -213,7 +214,8 @@ export default function RestaurantOrders() {
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const horizontal = theme.device.isSmallScreen ? theme.spacing.md : theme.spacing.lg;
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
+  const vertical = Math.max(theme.spacing.md, hp('2%'));
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background, writingDirection: I18nManager.isRTL ? 'rtl' : 'ltr' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: theme.spacing.lg },
@@ -223,7 +225,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: horizontal,
-      paddingVertical: theme.spacing.md,
+      paddingVertical: vertical,
       backgroundColor: theme.colors.background,
     },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
@@ -242,13 +244,13 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       alignItems: 'center',
     },
     notificationCount: { fontSize: 10, fontFamily: 'Inter-Bold', color: theme.colors.textInverse },
-    tabsWrapper: { paddingHorizontal: horizontal, paddingBottom: theme.spacing.md },
+    tabsWrapper: { paddingHorizontal: horizontal, paddingBottom: vertical },
     filterButton: { padding: theme.spacing.xs },
     ordersLoading: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: theme.spacing.xl,
+      paddingVertical: Math.max(theme.spacing.xl, hp('3%')),
     },
     ordersLoadingText: {
       ...theme.typography.caption,
@@ -270,7 +272,11 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       textAlign: 'center',
       lineHeight: 24,
     },
-    listContent: { paddingHorizontal: horizontal, paddingBottom: theme.insets.bottom + theme.spacing.xl, paddingTop: theme.spacing.sm },
+    listContent: {
+      paddingHorizontal: horizontal,
+      paddingBottom: theme.insets.bottom + Math.max(theme.spacing.xl, hp('3%')),
+      paddingTop: theme.spacing.sm,
+    },
   });
 }
 

@@ -1,6 +1,6 @@
 ## Restaurant Design System (Delivery Console)
 
-Tokens live in `styles/appTheme.tsx` (re-exported via `styles/restaurantTheme.tsx`) and scale with `useWindowDimensions` (compact ≤380px, tablet ≥768px) and safe-area insets.
+Tokens live in `styles/appTheme.tsx` (re-exported via `styles/restaurantTheme.tsx`) and now scale via `styles/responsive.ts` helpers (`wp/hp/rf/sp`) plus safe-area insets. Use percent-based gutters and flex layouts instead of manual breakpoints.
 
 ### Color Palette
 - Accent / Primary: `colors.primary[500]` (CTA), `colors.primary[600]` (pressed), `colors.primary[100]` (soft/pills); background/surface/surfaceAlt, border/borderMuted from `colors`.
@@ -8,13 +8,13 @@ Tokens live in `styles/appTheme.tsx` (re-exported via `styles/restaurantTheme.ts
 - Status: `colors.status.success|warning|error|info|hold`; soft fills via `colors.statusSoft.*`; neutral pill `colors.pill`.
 
 ### Spacing & Radius
-- Spacing scale: `xxs 4`, `xs 8`, `sm 12`, `md 16`, `lg 20`, `xl 24`, `xl2 32` (scaled per density).
-- Radii: `sm 12`, `md 14`, `lg 18`, `xl 22`, `pill 999`, `card 18`, `cta 20` (scaled per density).
+- Spacing scale: `xxs 4`, `xs 8`, `sm 12`, `md 16`, `lg 20`, `xl 24`, `xl2 32` (scaled via `sp()` against screen width).
+- Radii: `sm 12`, `md 14`, `lg 18`, `xl 22`, `pill 999`, `card 18`, `cta 20` (scaled via `sp()`; pills stay 999).
 
 ### Typography (Inter)
-- Titles: `titleXl 28/34`, `titleL 24/30`, `titleM 20/26`.
-- Body/Subhead: `body 16/22`, `subhead 16/22` (semibold), `caption 14/20`.
-- Buttons: `button 16/20 bold`, `buttonSmall 14/18 bold`.
+- Titles: `titleXl 28/34`, `titleL 24/30`, `titleM 20/26` (scaled via `rf()`).
+- Body/Subhead: `body 16/22`, `subhead 16/22` (semibold), `caption 14/20` (all `rf()` scaled).
+- Buttons: `button 16/20 bold`, `buttonSmall 14/18 bold` (`rf()` scaled).
 
 ### Shadows
 - `shadows.card`: mid elevation for cards/lists; `shadows.raised`: higher elevation for CTAs/FABs. Both re-derived per platform for iOS/Android parity.

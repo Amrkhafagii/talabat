@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ViewStyle, Modal, ScrollView, TextStyle } from 'react-native';
 import { Control, Controller, FieldPath, FieldValues } from 'react-hook-form';
-import { ChevronDown, Check } from 'lucide-react-native';
+import { Icon } from './Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface SelectOption {
@@ -150,7 +150,7 @@ export default function FormSelect<T extends FieldValues>({
               >
                 {selectedOption ? selectedOption.label : placeholder}
               </Text>
-              <ChevronDown size={styles.iconSize} color={colors.mutedText} />
+              <Icon name="ChevronDown" size={styles.iconSize} color={colors.mutedText} />
             </TouchableOpacity>
 
             {error && <Text style={styles.errorText}>{error.message}</Text>}
@@ -195,7 +195,7 @@ export default function FormSelect<T extends FieldValues>({
                           {option.label}
                         </Text>
                         {value === option.value && (
-                          <Check size={styles.iconSize} color={colors.accent} />
+                          <Icon name="Check" size={styles.iconSize} color={colors.accent} />
                         )}
                       </TouchableOpacity>
                     ))}

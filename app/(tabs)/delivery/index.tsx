@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Truck, DollarSign, Clock, CircleCheck as CheckCircle, RefreshCw, Navigation, MapPin, History, ChartBar as BarChart3, Wallet } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 
@@ -9,6 +8,7 @@ import StatCard from '@/components/common/StatCard';
 import DeliveryCard from '@/components/delivery/DeliveryCard';
 import Button from '@/components/ui/Button';
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeDeliveries } from '@/hooks/useRealtimeDeliveries';
 import { 
@@ -22,7 +22,6 @@ import { useDriverLocationTracking } from '@/hooks/useDriverLocationTracking';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { useDeliveryLayout } from '@/styles/layout';
 import ProgressSteps from '@/components/ui/ProgressSteps';
-import SegmentedControl from '@/components/ui/SegmentedControl';
 
 export default function DeliveryDashboard() {
   const { user } = useAuth();
@@ -360,8 +359,9 @@ export default function DeliveryDashboard() {
             onPress={handleRefresh}
             disabled={refreshing}
           >
-            <RefreshCw 
-              size={20} 
+            <Icon
+              name="RefreshCw"
+              size="md"
               color={theme.colors.textMuted}
               style={refreshing ? styles.spinning : undefined}
             />
@@ -383,10 +383,10 @@ export default function DeliveryDashboard() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today</Text>
           <View style={styles.statsGrid}>
-            <StatCard icon={DollarSign} value={`$${stats.todayEarnings.toFixed(2)}`} label="Earnings" />
-            <StatCard icon={CheckCircle} value={stats.completedDeliveries} label="Deliveries" />
-            <StatCard icon={Clock} value={`${stats.avgDeliveryTime}m`} label="Avg Time" />
-            <StatCard icon={Truck} value={stats.rating.toFixed(1)} label="Rating" />
+            <StatCard icon="DollarSign" value={`$${stats.todayEarnings.toFixed(2)}`} label="Earnings" />
+            <StatCard icon="CheckCircle" value={stats.completedDeliveries} label="Deliveries" />
+            <StatCard icon="Clock" value={`${stats.avgDeliveryTime}m`} label="Avg Time" />
+            <StatCard icon="Truck" value={stats.rating.toFixed(1)} label="Rating" />
           </View>
         </View>
 
@@ -394,27 +394,27 @@ export default function DeliveryDashboard() {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActions}>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/delivery/navigation')}>
-              <Navigation size={20} color={theme.colors.accent} />
+              <Icon name="Navigation" size="md" color={theme.colors.accent} />
               <Text style={styles.actionText}>Navigate</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/delivery/history')}>
-              <History size={20} color={theme.colors.accent} />
+              <Icon name="History" size="md" color={theme.colors.accent} />
               <Text style={styles.actionText}>History</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/delivery/earnings')}>
-              <BarChart3 size={20} color={theme.colors.accent} />
+              <Icon name="BarChart3" size="md" color={theme.colors.accent} />
               <Text style={styles.actionText}>Earnings</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/delivery/cash-reconciliation')}>
-              <Wallet size={20} color={theme.colors.accent} />
+              <Icon name="Wallet" size="md" color={theme.colors.accent} />
               <Text style={styles.actionText}>Cash Recon</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/delivery/feedback')}>
-              <MapPin size={20} color={theme.colors.accent} />
+              <Icon name="MapPin" size="md" color={theme.colors.accent} />
               <Text style={styles.actionText}>Feedback</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/delivery/profile')}>
-              <MapPin size={20} color={theme.colors.accent} />
+              <Icon name="MapPin" size="md" color={theme.colors.accent} />
               <Text style={styles.actionText}>Profile</Text>
             </TouchableOpacity>
           </View>
@@ -506,7 +506,7 @@ export default function DeliveryDashboard() {
 
         {!driver.is_online && (
           <View style={styles.offlineState}>
-            <Truck size={48} color={theme.colors.textMuted} />
+            <Icon name="Truck" size={48} color={theme.colors.textMuted} />
             <Text style={styles.offlineTitle}>You&apos;re offline</Text>
             <Text style={styles.offlineText}>Go online to start receiving delivery requests</Text>
           </View>
@@ -517,7 +517,7 @@ export default function DeliveryDashboard() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalIconCircle}>
-              <Clock size={28} color={theme.colors.accent} />
+              <Icon name="Clock" size={28} color={theme.colors.accent} />
             </View>
             <Text style={styles.modalTitle}>Offer No Longer Available</Text>
             <Text style={styles.modalText}>This offer was accepted by another driver just a moment ago.</Text>

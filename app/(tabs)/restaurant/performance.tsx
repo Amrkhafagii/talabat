@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { ensureRestaurantForUser, getRestaurantDashboard, getTrustedArrivals } from '@/utils/database';
 import { Restaurant, RestaurantDashboard as RestaurantDashboardData, TrustedArrival } from '@/types/database';
+import { wp, hp } from '@/styles/responsive';
 
 type RangeKey = 'today' | '7d' | '30d';
 
@@ -190,8 +191,10 @@ function formatLastVisit(value: string) {
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const isCompact = theme.device.isSmallScreen;
-  const horizontal = isCompact ? theme.spacing.md : theme.spacing.lg;
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
+  const vertical = Math.max(theme.spacing.md, hp('2.5%'));
+  const cardMin = wp('44%');
+  const cardMax = wp('92%');
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background, writingDirection: I18nManager.isRTL ? 'rtl' : 'ltr' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: horizontal },
@@ -201,13 +204,16 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       flexWrap: 'wrap',
       gap: theme.spacing.sm,
       paddingHorizontal: horizontal,
-      paddingTop: theme.spacing.md,
+      paddingTop: vertical,
     },
     metricCard: {
-      flexBasis: isCompact ? '100%' : '48%',
+      flexBasis: wp('48%'),
+      minWidth: cardMin,
+      maxWidth: cardMax,
+      flexGrow: 1,
       backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.xl,
-      padding: theme.spacing.md,
+      padding: theme.spacing.lg,
       borderWidth: 1,
       borderColor: theme.colors.border,
       ...theme.shadows.card,
@@ -217,18 +223,18 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     chartCard: {
       backgroundColor: theme.colors.surface,
       marginHorizontal: horizontal,
-      marginTop: theme.spacing.md,
+      marginTop: vertical,
       borderRadius: theme.radius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      padding: theme.spacing.md,
+      padding: theme.spacing.lg,
       ...theme.shadows.card,
     },
     chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm },
     chartTitle: { ...theme.typography.subhead },
     chartSubtitle: { ...theme.typography.caption, color: theme.colors.secondaryText },
-    sectionTitle: { ...theme.typography.subhead, marginHorizontal: horizontal, marginTop: theme.spacing.lg, marginBottom: theme.spacing.sm },
-    emptyState: { alignItems: 'center', paddingVertical: theme.spacing.lg, paddingHorizontal: horizontal },
+    sectionTitle: { ...theme.typography.subhead, marginHorizontal: horizontal, marginTop: vertical, marginBottom: theme.spacing.sm },
+    emptyState: { alignItems: 'center', paddingVertical: vertical, paddingHorizontal: horizontal },
     emptyTitle: { ...theme.typography.subhead },
     emptyText: { ...theme.typography.caption, color: theme.colors.secondaryText, textAlign: 'center', marginTop: theme.spacing.xs },
     arrivalMeta: { ...theme.typography.caption, color: theme.colors.secondaryText },

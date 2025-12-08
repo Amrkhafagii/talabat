@@ -5,13 +5,13 @@ import { router } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Location from 'expo-location';
-import { MapPin, Navigation } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import FormSelect from '@/components/ui/FormSelect';
 import FormToggle from '@/components/ui/FormToggle';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { createUserAddress, getUserAddresses } from '@/utils/database';
 import { addressSchema, AddressFormData } from '@/utils/validation/schemas';
@@ -230,7 +230,7 @@ export default function AddAddress() {
           <Text style={styles.sectionTitle}>Quick Fill</Text>
           <View style={styles.gpsContainer}>
             <View style={styles.gpsInfo}>
-                <MapPin size={20} color={theme.colors.primary[500]} />
+                <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
               <View style={styles.gpsTextContainer}>
                 <Text style={styles.gpsTitle}>Use Current Location</Text>
                 <Text style={styles.gpsSubtitle}>
@@ -358,7 +358,7 @@ export default function AddAddress() {
         {watch('latitude') && watch('longitude') && (
           <View style={styles.section}>
             <View style={styles.locationInfo}>
-              <Navigation size={16} color={theme.colors.status.success} />
+              <Icon name="Navigation" size="sm" color={theme.colors.status.success} />
               <Text style={styles.locationInfoText}>
                 GPS coordinates saved for accurate delivery
               </Text>

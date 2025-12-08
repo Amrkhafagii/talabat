@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
-import { Star } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { useDeliveryLayout } from '@/styles/layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,10 +89,11 @@ export default function FeedbackScreen() {
           <View style={styles.stars}>
             {[1, 2, 3, 4, 5].map((value) => (
               <TouchableOpacity key={value} onPress={() => setRating(value)}>
-                <Star
+                <Icon
+                  family="MaterialCommunityIcons"
+                  name={value <= rating ? 'star' : 'star-outline'}
                   size={28}
                   color={value <= rating ? theme.colors.accent : theme.colors.textMuted}
-                  fill={value <= rating ? theme.colors.accent : 'transparent'}
                 />
               </TouchableOpacity>
             ))}
@@ -134,11 +135,12 @@ export default function FeedbackScreen() {
               <View key={item.id} style={styles.feedbackRow}>
                 <View style={styles.starsRow}>
                   {[1, 2, 3, 4, 5].map((value) => (
-                    <Star
+                    <Icon
+                      family="MaterialCommunityIcons"
+                      name={value <= (item.rating || 0) ? 'star' : 'star-outline'}
                       key={value}
                       size={16}
                       color={value <= (item.rating || 0) ? theme.colors.accent : theme.colors.textMuted}
-                      fill={value <= (item.rating || 0) ? theme.colors.accent : 'transparent'}
                     />
                   ))}
                 </View>

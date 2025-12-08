@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { IOSInput } from '@/components/ios/IOSInput';
 import { IOSFilterSheet } from '@/components/ios/IOSFilterSheet';
 import { iosColors, iosSpacing, iosTypography } from '@/styles/iosTheme';
-import { Calendar, Search } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 
 type Props = {
   start: string;
@@ -39,7 +39,7 @@ export function AnalyticsFilters({
             onChangeText={onChangeStart}
             style={styles.input}
           />
-          <Calendar size={18} color={iosColors.secondaryText} />
+          <Icon name="Calendar" size="sm" color={iosColors.secondaryText} />
         </View>
         <View style={styles.inputWithIcon}>
           <IOSInput
@@ -48,7 +48,7 @@ export function AnalyticsFilters({
             onChangeText={onChangeEnd}
             style={styles.input}
           />
-          <Calendar size={18} color={iosColors.secondaryText} />
+          <Icon name="Calendar" size="sm" color={iosColors.secondaryText} />
         </View>
       </View>
       <Text style={styles.label}>Driver Filter</Text>
@@ -59,7 +59,7 @@ export function AnalyticsFilters({
           onChangeText={onChangeDriver}
           style={styles.input}
         />
-        <Search size={18} color={iosColors.secondaryText} />
+        <Icon name="Search" size="sm" color={iosColors.secondaryText} />
       </View>
       <Text style={styles.label}>Restaurant Filter</Text>
       <View style={styles.inputWithIcon}>
@@ -69,7 +69,7 @@ export function AnalyticsFilters({
           onChangeText={onChangeRestaurant}
           style={styles.input}
         />
-        <Search size={18} color={iosColors.secondaryText} />
+        <Icon name="Search" size="sm" color={iosColors.secondaryText} />
       </View>
     </IOSFilterSheet>
   );

@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TouchableOpacity, ScrollView } from 'react-native';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import { IOSInput } from '@/components/ios/IOSInput';
 import { IOSPillButton } from '@/components/ios/IOSPillButton';
 import { IOSQuickLinkPill } from '@/components/ios/IOSQuickLinkPill';
-import { Filter, CreditCard, ClipboardList } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
+import { wp } from '@/styles/responsive';
 
 type Props = {
   search: string;
@@ -34,9 +35,6 @@ export function OrderFilters({
   onQuickReviews,
   onQuickPayouts,
 }: Props) {
-  const { width } = useWindowDimensions();
-  const isPhone = width < 400;
-
   return (
     <View style={{ gap: 8, marginBottom: 12 }}>
       <Text style={iosTypography.caption}>Load by order/user/restaurant id or filter by state</Text>
@@ -48,7 +46,7 @@ export function OrderFilters({
           autoCapitalize="none"
           style={{ flex: 1, paddingLeft: iosSpacing.lg }}
         />
-        <Filter size={18} color={iosColors.secondaryText} />
+        <Icon name="Filter" size="sm" color={iosColors.secondaryText} />
       </View>
       <View style={iosRow}>
         <Dropdown
@@ -64,11 +62,11 @@ export function OrderFilters({
           onChange={onChangePaymentStatus}
         />
       </View>
-      <IOSPillButton label={loading ? 'Loading…' : 'Apply'} onPress={onSubmit} disabled={loading} size={isPhone ? 'xs' : 'md'} />
+      <IOSPillButton label={loading ? 'Loading…' : 'Apply'} onPress={onSubmit} disabled={loading} size="md" />
       {(onQuickReviews || onQuickPayouts) && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[iosRow, { marginTop: iosSpacing.xs }]}>
-          {onQuickReviews && <IOSQuickLinkPill label="Quick Links: Reviews" onPress={onQuickReviews} icon={<ClipboardList size={18} color="#FFF" />} />}
-          {onQuickPayouts && <IOSQuickLinkPill label="Quick Links: Payouts" onPress={onQuickPayouts} icon={<CreditCard size={18} color="#FFF" />} />}
+          {onQuickReviews && <IOSQuickLinkPill label="Quick Links: Reviews" onPress={onQuickReviews} icon={<Icon name="ClipboardList" size="sm" color="#FFF" />} />}
+          {onQuickPayouts && <IOSQuickLinkPill label="Quick Links: Payouts" onPress={onQuickPayouts} icon={<Icon name="CreditCard" size="sm" color="#FFF" />} />}
         </ScrollView>
       )}
     </View>

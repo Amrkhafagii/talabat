@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Info } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDriverByUserId, getDriverEarningsStats } from '@/utils/database';
 import { DeliveryDriver } from '@/types/database';
@@ -241,7 +241,7 @@ export default function DeliveryEarnings() {
         {/* Pro Tip */}
         <Card style={styles.tipCard}>
           <View style={styles.tipHeader}>
-            <Info size={18} color={theme.colors.status.success} />
+            <Icon name="Info" size="sm" color={theme.colors.status.success} />
             <Text style={styles.tipTitle}>Pro Tip</Text>
           </View>
           <Text style={styles.tipBody}>

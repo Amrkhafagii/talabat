@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { styles as adminStyles } from '@/styles/adminMetrics';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import { IOSInput } from '@/components/ios/IOSInput';
+import { wp } from '@/styles/responsive';
 
 type SavedChip = { label: string; value: string };
 type SortOption = { key: string; label: string };
@@ -56,8 +57,6 @@ export function ReviewFilters({
   pageLabel,
   useIos = false,
 }: FilterProps) {
-  const { width } = useWindowDimensions();
-  const isNarrow = width < 400;
   const [pageInput, setPageInput] = useState(typeof page === 'number' ? String(page + 1) : '');
   const safePage = useMemo(() => {
     if (!pageInput) return null;
@@ -71,16 +70,18 @@ export function ReviewFilters({
     }
   }, [page]);
 
+  const horizontal = useIos ? Math.max(iosSpacing.sm, wp('4%')) : 0;
+
   return (
     <View style={{ marginBottom: useIos ? iosSpacing.sm : adminStyles.metaRow.fontSize ? 8 : 8 }}>
       <Text style={useIos ? iosTypography.caption : adminStyles.metaRow}>Showing {count} of {total}</Text>
       {!!savedChips.length && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={useIos ? iosFilter.chipRow : adminStyles.filterChipRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={useIos ? [iosFilter.chipRow, { paddingHorizontal: horizontal }] : adminStyles.filterChipRow}>
           {savedChips.map(chip => renderChip(chip.value, chip.label, () => onChangeQuery(chip.value)))}
         </ScrollView>
       )}
       {!!presets.length && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={useIos ? iosFilter.chipRow : adminStyles.filterChipRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={useIos ? [iosFilter.chipRow, { paddingHorizontal: horizontal }] : adminStyles.filterChipRow}>
           {presets.map((p, idx) => renderChip(`${p.value}-${idx}`, p.label, () => onChangeQuery(p.value)))}
         </ScrollView>
       )}
@@ -103,7 +104,7 @@ export function ReviewFilters({
       {!!statusOptions.length && onChangeStatus && (
         <View style={useIos ? iosFilter.sortRow : adminStyles.sortRow}>
           <Text style={useIos ? iosTypography.caption : adminStyles.metaRow}>Status</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={useIos ? iosFilter.chipRow : adminStyles.filterChipRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={useIos ? [iosFilter.chipRow, { paddingHorizontal: horizontal }] : adminStyles.filterChipRow}>
             {statusOptions.map(opt => renderChip(opt.key, opt.label, () => onChangeStatus && onChangeStatus(opt.key), opt.key === status))}
           </ScrollView>
         </View>
@@ -111,7 +112,7 @@ export function ReviewFilters({
       {!!sortOptions.length && onChangeSort && (
         <View style={useIos ? iosFilter.sortRow : adminStyles.sortRow}>
           <Text style={useIos ? iosTypography.caption : adminStyles.metaRow}>Sort</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={useIos ? iosFilter.chipRow : adminStyles.filterChipRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={useIos ? [iosFilter.chipRow, { paddingHorizontal: horizontal }] : adminStyles.filterChipRow}>
             {sortOptions.map(opt => renderChip(opt.key, opt.label, () => onChangeSort && onChangeSort(opt.key), opt.key === sort))}
           </ScrollView>
         </View>
@@ -230,9 +231,16 @@ export function ReviewFilters({
 export default ReviewFilters;
 
 const iosFilter = StyleSheet.create({
-  chipRow: { flexDirection: 'row', gap: iosSpacing.xs, paddingRight: iosSpacing.xs, marginTop: iosSpacing.xs, marginBottom: iosSpacing.xs },
+  chipRow: {
+    flexDirection: 'row',
+    gap: iosSpacing.xs,
+    paddingRight: iosSpacing.xs,
+    marginTop: iosSpacing.xs,
+    marginBottom: iosSpacing.xs,
+    paddingHorizontal: Math.max(iosSpacing.sm, wp('4%')),
+  },
   chip: {
-    paddingHorizontal: iosSpacing.sm,
+    paddingHorizontal: Math.max(iosSpacing.sm, wp('4%')),
     paddingVertical: iosSpacing.xs,
     borderRadius: iosRadius.pill,
     backgroundColor: iosColors.chipBg,

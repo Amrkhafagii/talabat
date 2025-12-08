@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CheckCircle2, Car, FileText, Phone, MapPin, Settings, LogOut, ShieldCheck } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDriverByUserId, getUserProfile } from '@/utils/database';
 import { DeliveryDriver, User as UserType } from '@/types/database';
@@ -63,7 +63,7 @@ export default function DeliveryProfile() {
             <Text style={styles.name}>{userProfile?.full_name || 'Driver'}</Text>
             <Text style={styles.meta}>{userProfile?.phone || user?.email}</Text>
             <View style={styles.verifiedRow}>
-              <CheckCircle2 size={16} color={theme.colors.success} />
+              <Icon name="CheckCircle2" size={16} color={theme.colors.success} />
               <Text style={styles.verifiedText}>{driver?.documents_verified ? 'Verified' : 'Pending Verification'}</Text>
             </View>
           </View>
@@ -87,7 +87,7 @@ export default function DeliveryProfile() {
         <Text style={styles.sectionTitle}>Vehicle & License</Text>
         <Card style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Car size={18} color={theme.colors.accent} />
+            <Icon name="Car" size="sm" color={theme.colors.accent} />
             <View style={styles.infoText}>
               <Text style={styles.infoLabel}>Vehicle</Text>
               <Text style={styles.infoValue}>
@@ -98,7 +98,7 @@ export default function DeliveryProfile() {
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
-            <ShieldCheck size={18} color={theme.colors.success} />
+            <Icon name="ShieldCheck" size="sm" color={theme.colors.success} />
             <View style={styles.infoText}>
               <Text style={styles.infoLabel}>License</Text>
               <Text style={styles.infoValue}>{driver?.license_number || 'Not provided'}</Text>
@@ -109,7 +109,7 @@ export default function DeliveryProfile() {
         <Text style={styles.sectionTitle}>Documents</Text>
         <Card style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <FileText size={18} color={theme.colors.text} />
+            <Icon name="FileText" size="sm" color={theme.colors.text} />
             <View style={styles.infoText}>
               <Text style={styles.infoLabel}>ID / License</Text>
               <Text style={styles.infoValue}>{driver?.license_document_status || 'pending'}</Text>
@@ -117,7 +117,7 @@ export default function DeliveryProfile() {
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
-            <FileText size={18} color={theme.colors.text} />
+            <Icon name="FileText" size="sm" color={theme.colors.text} />
             <View style={styles.infoText}>
               <Text style={styles.infoLabel}>Vehicle Registration</Text>
               <Text style={styles.infoValue}>{driver?.vehicle_document_url ? 'Uploaded' : 'Pending'}</Text>
@@ -128,17 +128,17 @@ export default function DeliveryProfile() {
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <Card style={styles.infoCard}>
           <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/(tabs)/delivery/earnings' as any)}>
-            <Phone size={18} color={theme.colors.text} />
+            <Icon name="Phone" size="sm" color={theme.colors.text} />
             <Text style={styles.actionText}>My Earnings</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
           <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/(tabs)/delivery/history' as any)}>
-            <MapPin size={18} color={theme.colors.text} />
+            <Icon name="MapPin" size="sm" color={theme.colors.text} />
             <Text style={styles.actionText}>Delivery History</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
           <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/(tabs)/delivery/wallet' as any)}>
-            <Settings size={18} color={theme.colors.text} />
+            <Icon name="Settings" size="sm" color={theme.colors.text} />
             <Text style={styles.actionText}>Wallet & Payouts</Text>
           </TouchableOpacity>
         </Card>

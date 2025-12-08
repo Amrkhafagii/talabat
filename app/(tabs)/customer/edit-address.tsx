@@ -2,19 +2,19 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Chrome as Home, Briefcase, Heart } from 'lucide-react-native';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserAddresses, updateUserAddress } from '@/utils/database';
 import { UserAddress } from '@/types/database';
 
 const addressTypes = [
-  { id: 'Home', icon: Home, label: 'Home' },
-  { id: 'Work', icon: Briefcase, label: 'Work' },
-  { id: 'Other', icon: Heart, label: 'Other' },
+  { id: 'Home', icon: 'Home', label: 'Home' },
+  { id: 'Work', icon: 'Briefcase', label: 'Work' },
+  { id: 'Other', icon: 'Heart', label: 'Other' },
 ];
 
 export default function EditAddress() {
@@ -165,30 +165,28 @@ export default function EditAddress() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Address Type</Text>
           <View style={styles.typeContainer}>
-            {addressTypes.map((type) => {
-              const IconComponent = type.icon;
-              return (
-                <TouchableOpacity
-                  key={type.id}
-                  style={[
-                    styles.typeButton,
-                    selectedType === type.id && styles.selectedType
-                  ]}
-                  onPress={() => setSelectedType(type.id)}
-                >
-                  <IconComponent 
-                    size={24} 
-                    color={selectedType === type.id ? theme.colors.primary[500] : theme.colors.textMuted} 
-                  />
-                  <Text style={[
-                    styles.typeText,
-                    selectedType === type.id && styles.selectedTypeText
-                  ]}>
-                    {type.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            {addressTypes.map((type) => (
+              <TouchableOpacity
+                key={type.id}
+                style={[
+                  styles.typeButton,
+                  selectedType === type.id && styles.selectedType
+                ]}
+                onPress={() => setSelectedType(type.id)}
+              >
+                <Icon 
+                  name={type.icon}
+                  size="lg"
+                  color={selectedType === type.id ? theme.colors.primary[500] : theme.colors.textMuted} 
+                />
+                <Text style={[
+                  styles.typeText,
+                  selectedType === type.id && styles.selectedTypeText
+                ]}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           {selectedType === 'Other' && (

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, Package } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDriverByUserId, getDriverDeliveryHistory, getDriverEarningsStats } from '@/utils/database';
 import { DeliveryDriver, Delivery } from '@/types/database';
@@ -228,7 +228,7 @@ export default function DeliveryHistory() {
                 <Card key={delivery.id} style={styles.listCard}>
                   <View style={styles.listHeader}>
                     <View style={styles.listIcon}>
-                      <Package size={18} color={theme.colors.accent} />
+                      <Icon name="Package" size="sm" color={theme.colors.accent} />
                     </View>
                     <View style={styles.listText}>
                       <Text style={styles.listTitle}>{delivery.order?.restaurant?.name || 'Restaurant'}</Text>
@@ -245,7 +245,7 @@ export default function DeliveryHistory() {
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <MapPin size={48} color={theme.colors.textSubtle} />
+              <Icon name="MapPin" size={48} color={theme.colors.textSubtle} />
               <Text style={styles.emptyTitle}>No deliveries found</Text>
               <Text style={styles.emptyText}>
                 {selectedPeriod === 'today' 

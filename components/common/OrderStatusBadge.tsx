@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Clock, CircleCheck as CheckCircle, Truck, Package, Circle as XCircle } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { getOrderStatusToken } from '@/styles/statusTokens';
 
@@ -10,15 +10,15 @@ interface OrderStatusBadgeProps {
   showIcon?: boolean;
 }
 
-const statusIcons: Record<string, typeof Clock> = {
-  pending: Clock,
-  confirmed: CheckCircle,
-  preparing: Package,
-  ready: CheckCircle,
-  picked_up: Truck,
-  on_the_way: Truck,
-  delivered: CheckCircle,
-  cancelled: XCircle,
+const statusIcons: Record<string, string> = {
+  pending: 'Clock',
+  confirmed: 'CheckCircle',
+  preparing: 'Package',
+  ready: 'CheckCircle',
+  picked_up: 'Truck',
+  on_the_way: 'Truck',
+  delivered: 'CheckCircle',
+  cancelled: 'XCircle',
 };
 
 export default function OrderStatusBadge({ 
@@ -28,7 +28,7 @@ export default function OrderStatusBadge({
 }: OrderStatusBadgeProps) {
   const theme = useRestaurantTheme();
   const token = useMemo(() => getOrderStatusToken(status, theme), [status, theme]);
-  const IconComponent = statusIcons[status] || Clock;
+  const iconName = statusIcons[status] || 'Clock';
 
   const sizeStyles = {
     small: {
@@ -63,9 +63,10 @@ export default function OrderStatusBadge({
         }
       ]}>
       {showIcon && (
-        <IconComponent 
-          size={currentSize.iconSize} 
-          color={token.color} 
+        <Icon
+          name={iconName}
+          size={currentSize.iconSize}
+          color={token.color}
           style={styles.icon}
         />
       )}

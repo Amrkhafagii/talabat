@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Eye, EyeOff } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Location from 'expo-location';
@@ -12,6 +11,7 @@ import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import UserTypeSelector from '@/components/ui/UserTypeSelector';
+import { Icon } from '@/components/ui/Icon';
 import { signupSchema, SignupFormData } from '@/utils/validation/schemas';
 import { supabase } from '@/utils/supabase';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
@@ -252,12 +252,12 @@ export default function SignUp() {
                 autoCapitalize="none"
                 autoComplete="new-password"
                 rightElement={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    {showPassword ? (
-                      <EyeOff size={20} color={theme.colors.textMuted} />
-                    ) : (
-                      <Eye size={20} color={theme.colors.textMuted} />
-                    )}
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={theme.tap.hitSlop}>
+                    <Icon
+                      name={showPassword ? 'EyeOff' : 'Eye'}
+                      size="md"
+                      color={theme.colors.textMuted}
+                    />
                   </TouchableOpacity>
                 }
               />
@@ -317,12 +317,12 @@ export default function SignUp() {
                 autoCapitalize="none"
                 autoComplete="new-password"
                 rightElement={
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                    {showConfirmPassword ? (
-                      <EyeOff size={20} color={theme.colors.textMuted} />
-                    ) : (
-                      <Eye size={20} color={theme.colors.textMuted} />
-                    )}
+                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} hitSlop={theme.tap.hitSlop}>
+                    <Icon
+                      name={showConfirmPassword ? 'EyeOff' : 'Eye'}
+                      size="md"
+                      color={theme.colors.textMuted}
+                    />
                   </TouchableOpacity>
                 }
               />

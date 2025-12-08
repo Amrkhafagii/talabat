@@ -2,7 +2,6 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Lock, Eye, EyeOff, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -10,6 +9,7 @@ import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import Card from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/utils/supabase';
 import { resetPasswordSchema, ResetPasswordFormData } from '@/utils/validation/schemas';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
@@ -121,7 +121,7 @@ export default function ResetPassword() {
         <View style={styles.content}>
           <Card style={styles.successCard}>
             <View style={styles.successIcon}>
-              <CheckCircle size={64} color={theme.colors.status.success} />
+              <Icon name="CheckCircle" size={64} color={theme.colors.status.success} />
             </View>
             
             <Text style={styles.successTitle}>Password Reset Successful!</Text>
@@ -159,7 +159,7 @@ export default function ResetPassword() {
           <View style={styles.content}>
             <View style={styles.headerSection}>
               <View style={styles.iconContainer}>
-                <Lock size={48} color={theme.colors.primary[500]} />
+                <Icon name="Lock" size={48} color={theme.colors.primary[500]} />
               </View>
               <Text style={styles.title}>Create New Password</Text>
               <Text style={styles.subtitle}>
@@ -184,12 +184,12 @@ export default function ResetPassword() {
                 autoCapitalize="none"
                 autoComplete="new-password"
                 rightElement={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    {showPassword ? (
-                      <EyeOff size={20} color={theme.colors.textMuted} />
-                    ) : (
-                      <Eye size={20} color={theme.colors.textMuted} />
-                    )}
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={theme.tap.hitSlop}>
+                    <Icon
+                      name={showPassword ? 'EyeOff' : 'Eye'}
+                      size="md"
+                      color={theme.colors.textMuted}
+                    />
                   </TouchableOpacity>
                 }
               />
@@ -249,12 +249,12 @@ export default function ResetPassword() {
                 autoCapitalize="none"
                 autoComplete="new-password"
                 rightElement={
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                    {showConfirmPassword ? (
-                      <EyeOff size={20} color={theme.colors.textMuted} />
-                    ) : (
-                      <Eye size={20} color={theme.colors.textMuted} />
-                    )}
+                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} hitSlop={theme.tap.hitSlop}>
+                    <Icon
+                      name={showConfirmPassword ? 'EyeOff' : 'Eye'}
+                      size="md"
+                      color={theme.colors.textMuted}
+                    />
                   </TouchableOpacity>
                 }
               />

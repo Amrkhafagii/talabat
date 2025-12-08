@@ -2,10 +2,10 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Camera, User } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile, updateUserProfile } from '@/utils/database';
 import { User as UserType } from '@/types/database';
@@ -112,7 +112,7 @@ export default function EditProfile() {
               </Text>
             </View>
             <TouchableOpacity style={styles.cameraButton}>
-              <Camera size={16} color={theme.colors.textInverse} />
+              <Icon name="Camera" size="sm" color={theme.colors.textInverse} />
             </TouchableOpacity>
           </View>
           <Text style={styles.changePictureText}>Tap to change picture</Text>
@@ -160,7 +160,7 @@ export default function EditProfile() {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Account Type</Text>
             <View style={styles.accountTypeContainer}>
-              <User size={20} color={theme.colors.primary[500]} />
+              <Icon name="User" size="md" color={theme.colors.primary[500]} />
               <Text style={styles.accountTypeText}>
                 {userProfile?.user_type === 'customer' ? 'Customer' : 
                  userProfile?.user_type === 'restaurant' ? 'Restaurant Owner' : 

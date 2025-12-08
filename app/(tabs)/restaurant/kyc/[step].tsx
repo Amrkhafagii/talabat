@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams } from 'expo-router';
 
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { wp, hp } from '@/styles/responsive';
 
 export default function KycStepScreen() {
   const theme = useRestaurantTheme();
@@ -79,14 +80,15 @@ export default function KycStepScreen() {
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const isCompact = theme.device.isSmallScreen;
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
+  const vertical = Math.max(theme.spacing.md, hp('2.5%'));
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      paddingTop: theme.spacing.lg,
-      paddingBottom: theme.insets.bottom + theme.spacing.lg,
+      paddingHorizontal: horizontal,
+      paddingTop: vertical,
+      paddingBottom: theme.insets.bottom + vertical,
     },
     header: { gap: theme.spacing.xs, marginBottom: theme.spacing.md },
     title: { ...theme.typography.title2 },
@@ -119,9 +121,9 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     helperRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, marginTop: theme.spacing.xs },
     helperText: { ...theme.typography.caption, color: theme.colors.secondaryText },
     cta: {
-      marginTop: theme.spacing.lg,
+      marginTop: vertical,
       backgroundColor: theme.colors.accent,
-      paddingVertical: theme.spacing.md,
+      paddingVertical: Math.max(theme.spacing.md, hp('2%')),
       borderRadius: theme.radius.cta,
       alignItems: 'center',
       ...theme.shadows.card,

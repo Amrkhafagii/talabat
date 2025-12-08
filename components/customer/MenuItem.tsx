@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Plus, Minus } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 import Badge from '../ui/Badge';
 import { useAppTheme } from '@/styles/appTheme';
 
@@ -45,7 +45,7 @@ export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = f
         {quantity > 0 ? (
           <View style={styles.quantityControls}>
             <TouchableOpacity style={styles.quantityButton} onPress={onRemove}>
-              <Minus size={16} color={theme.colors.primary[500]} />
+              <Icon name="Minus" size="sm" color={theme.colors.primary[500]} />
             </TouchableOpacity>
             <Text style={styles.quantityText}>{quantity}</Text>
             <TouchableOpacity
@@ -53,7 +53,7 @@ export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = f
               onPress={handleAdd}
               disabled={disabled}
             >
-              <Plus size={16} color={disabled ? theme.colors.textSubtle : theme.colors.primary[500]} />
+              <Icon name="Plus" size="sm" color={disabled ? theme.colors.textSubtle : theme.colors.primary[500]} />
             </TouchableOpacity>
           </View>
         ) : (
@@ -62,7 +62,7 @@ export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = f
             onPress={handleAdd}
             disabled={disabled}
           >
-            <Plus size={20} color={disabled ? theme.colors.textSubtle : theme.colors.textInverse} />
+            <Icon name="Plus" size="md" color={disabled ? theme.colors.textSubtle : theme.colors.textInverse} />
           </TouchableOpacity>
         )}
       </View>

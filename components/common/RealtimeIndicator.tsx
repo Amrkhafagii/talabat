@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Wifi, WifiOff } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/utils/supabase';
 import { useAppTheme } from '@/styles/appTheme';
 
@@ -49,9 +49,9 @@ export default function RealtimeIndicator({ show = true }: RealtimeIndicatorProp
   return (
     <View style={[styles.container, !isConnected && styles.disconnected]}>
       {isConnected ? (
-        <Wifi size={12} color={theme.colors.status.success} />
+        <Icon name="Wifi" size={12} color={theme.colors.status.success} />
       ) : (
-        <WifiOff size={12} color={theme.colors.status.error} />
+        <Icon name="WifiOff" size={12} color={theme.colors.status.error} />
       )}
       <Text style={[styles.text, !isConnected && styles.disconnectedText]}>
         {isConnected ? 'Live' : 'Offline'}

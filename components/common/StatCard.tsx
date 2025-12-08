@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { Text, StyleSheet, View } from 'react-native';
 import Card from '../ui/Card';
+import { Icon, type IconName } from '../ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface StatCardProps {
-  icon: React.ComponentType<{ size?: number; color?: string }>;
+  icon: IconName;
   value: string | number;
   label: string;
   iconColor?: string;
@@ -12,7 +13,7 @@ interface StatCardProps {
 }
 
 export default function StatCard({
-  icon: Icon,
+  icon,
   value,
   label,
   iconColor,
@@ -25,7 +26,7 @@ export default function StatCard({
   return (
     <Card style={styles.statCard} padding={theme.spacing.md}>
       <View style={styles.iconWrapper}>
-        <Icon size={22} color={resolvedIconColor} />
+        <Icon name={icon} size={22} color={resolvedIconColor} />
       </View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>

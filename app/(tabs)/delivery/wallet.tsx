@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Wallet as WalletIcon, CheckCircle2, Clock4, XCircle } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getWalletsByUser, getWalletTransactions, getWalletBalances } from '@/utils/db/wallets';
 import { getDriverByUserId, updateDriverProfile } from '@/utils/database';
@@ -114,9 +114,9 @@ export default function DriverWallet() {
   };
 
   const statusIcon = (status: string) => {
-    if (status === 'completed') return <CheckCircle2 size={16} color={theme.colors.success} />;
-    if (status === 'pending') return <Clock4 size={16} color={theme.colors.accent} />;
-    if (status === 'failed') return <XCircle size={16} color={theme.colors.status.error} />;
+    if (status === 'completed') return <Icon name="CheckCircle2" size={16} color={theme.colors.success} />;
+    if (status === 'pending') return <Icon name="Clock4" size={16} color={theme.colors.accent} />;
+    if (status === 'failed') return <Icon name="XCircle" size={16} color={theme.colors.status.error} />;
     return null;
   };
 
@@ -133,7 +133,7 @@ export default function DriverWallet() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Card style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <WalletIcon size={24} color={theme.colors.text} />
+            <Icon name="Wallet" size="xl" color={theme.colors.text} />
             <Text style={styles.balanceLabel}>Current Balance</Text>
           </View>
           <Text style={styles.balanceValue}>{formatCurrency(Number(wallet?.balance ?? 0))}</Text>

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TouchableOpacity, View, Text, ViewStyle, StyleSheet } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
+import { Icon } from './Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 type ListRowProps = {
@@ -47,7 +47,7 @@ export default function ListRow({
       <View style={styles.right}>
         {badge}
         {value ? <Text style={styles.value}>{value}</Text> : null}
-        {rightAccessory ?? (onPress ? <ChevronRight size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.secondaryText} /> : null)}
+        {rightAccessory ?? (onPress ? <Icon name="ChevronRight" size="sm" color={theme.colors.secondaryText} /> : null)}
       </View>
     </TouchableOpacity>
   );

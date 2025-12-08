@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
-import { Chrome as Home, ShoppingCart, Receipt, User } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert } from 'react-native';
 import { fetchInstapayStatus } from '@/utils/instapayCheck';
+import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function CustomerLayout() {
@@ -83,7 +83,7 @@ export default function CustomerLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
+            <Icon name="Home" size={size} color={color} />
           ),
         }}
       />
@@ -92,7 +92,7 @@ export default function CustomerLayout() {
         options={{
           title: 'Cart',
           tabBarIcon: ({ size, color }) => (
-            <ShoppingCart size={size} color={color} />
+            <Icon name="ShoppingCart" size={size} color={color} />
           ),
         }}
       />
@@ -101,7 +101,7 @@ export default function CustomerLayout() {
         options={{
           title: 'Orders',
           tabBarIcon: ({ size, color }) => (
-            <Receipt size={size} color={color} />
+            <Icon name="Receipt" size={size} color={color} />
           ),
         }}
       />
@@ -110,7 +110,7 @@ export default function CustomerLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ size, color }) => (
-            <User size={size} color={color} />
+            <Icon name="User" size={size} color={color} />
           ),
         }}
       />

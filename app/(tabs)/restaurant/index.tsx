@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, I
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Bell, ArrowUpRight, Clock3, Users, UtensilsCrossed, Wallet, Settings, BarChart3, Receipt } from 'lucide-react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
@@ -12,6 +11,8 @@ import { ensureRestaurantForUser, getRestaurantDashboard } from '@/utils/databas
 import { isRestaurantOpenNow, formatTodayHours } from '@/utils/hours';
 import { Restaurant, RestaurantDashboard as RestaurantDashboardData } from '@/types/database';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { wp, hp } from '@/styles/responsive';
+import { Icon, type IconName } from '@/components/ui/Icon';
 
 type RangeKey = 'today' | '7d' | '30d';
 
@@ -149,7 +150,7 @@ export default function RestaurantDashboard() {
             </View>
           </View>
           <TouchableOpacity style={styles.alertButton} onPress={() => router.push('/(tabs)/restaurant/orders')}>
-            <Bell size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
+            <Icon name="Bell" size={theme.iconSizes.md} color={theme.colors.text} />
             {newOrdersCount > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationCount}>{newOrdersCount}</Text>
@@ -178,10 +179,10 @@ export default function RestaurantDashboard() {
               hitSlop={theme.tap.hitSlop}
             >
               <View style={[styles.iconPill, { backgroundColor: action.tint }]}>
-                <action.icon size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={action.iconColor} />
+                <Icon name={action.iconName} size={theme.iconSizes.sm} color={action.iconColor} />
               </View>
               <Text style={styles.quickActionLabel}>{action.label}</Text>
-              <ArrowUpRight size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.secondaryText} />
+              <Icon name="ArrowUpRight" size={theme.iconSizes.sm} color={theme.colors.secondaryText} />
             </TouchableOpacity>
           ))}
         </View>
@@ -196,7 +197,7 @@ export default function RestaurantDashboard() {
               activeOpacity={0.9}
             >
               <View style={styles.orderIcon}>
-                <Receipt size={theme.iconSizes.sm} strokeWidth={theme.icons.strokeWidth} color={theme.colors.secondaryText} />
+                <Icon name="Receipt" size={theme.iconSizes.sm} color={theme.colors.secondaryText} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.orderTitle}>Order #{order.short_code || order.order_number || order.id.slice(-4)}</Text>
@@ -220,7 +221,7 @@ export default function RestaurantDashboard() {
 type QuickAction = {
   key: string;
   label: string;
-  icon: typeof Clock3;
+  iconName: IconName;
   tint: string;
   iconColor: string;
   onPress: () => void;
@@ -231,7 +232,7 @@ function buildQuickActions(theme: ReturnType<typeof useRestaurantTheme>): QuickA
     {
       key: 'orders',
       label: 'Manage Orders',
-      icon: Clock3,
+      iconName: 'Clock3',
       tint: theme.colors.primary[100],
       iconColor: theme.colors.primary[600],
       onPress: () => router.push('/(tabs)/restaurant/orders'),
@@ -239,7 +240,7 @@ function buildQuickActions(theme: ReturnType<typeof useRestaurantTheme>): QuickA
     {
       key: 'menu',
       label: 'Edit Menu',
-      icon: UtensilsCrossed,
+      iconName: 'UtensilsCrossed',
       tint: theme.colors.statusSoft.info,
       iconColor: theme.colors.status.info,
       onPress: () => router.push('/(tabs)/restaurant/menu'),
@@ -247,7 +248,7 @@ function buildQuickActions(theme: ReturnType<typeof useRestaurantTheme>): QuickA
     {
       key: 'wallet',
       label: 'Wallet & Payouts',
-      icon: Wallet,
+      iconName: 'Wallet',
       tint: theme.colors.statusSoft.success,
       iconColor: theme.colors.status.success,
       onPress: () => router.push('/(tabs)/restaurant/wallet'),
@@ -255,7 +256,7 @@ function buildQuickActions(theme: ReturnType<typeof useRestaurantTheme>): QuickA
     {
       key: 'performance',
       label: 'Performance',
-      icon: BarChart3,
+      iconName: 'BarChart3',
       tint: theme.colors.statusSoft.info,
       iconColor: theme.colors.status.info,
       onPress: () => router.push('/(tabs)/restaurant/performance'),
@@ -263,7 +264,7 @@ function buildQuickActions(theme: ReturnType<typeof useRestaurantTheme>): QuickA
     {
       key: 'settings',
       label: 'Operational Settings',
-      icon: Settings,
+      iconName: 'Settings',
       tint: theme.colors.statusSoft.warning,
       iconColor: theme.colors.status.warning,
       onPress: () => router.push('/(tabs)/restaurant/settings'),
@@ -280,7 +281,11 @@ function formatNumber(value: number) {
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const isCompact = theme.device.isSmallScreen;
+  const gutter = Math.max(theme.spacing.md, wp('5%'));
+  const wideGutter = Math.max(theme.spacing.lg, wp('6%'));
+  const vertical = Math.max(theme.spacing.lg, hp('2.5%'));
+  const cardMin = wp('44%');
+  const cardMax = wp('92%');
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -324,8 +329,8 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: wideGutter,
+      paddingVertical: vertical,
       backgroundColor: theme.colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
@@ -372,11 +377,14 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: theme.spacing.sm,
-      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: wideGutter,
+      paddingVertical: vertical,
     },
     statCard: {
-      flexBasis: theme.device.isSmallScreen ? '48%' : '48%',
+      flexBasis: wp('48%'),
+      minWidth: cardMin,
+      maxWidth: cardMax,
+      flexGrow: 1,
       backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.xl,
       padding: theme.spacing.md,
@@ -390,7 +398,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: theme.spacing.sm,
-      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      paddingHorizontal: wideGutter,
       marginBottom: theme.spacing.lg,
     },
     quickActionCard: {
@@ -402,7 +410,10 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       borderRadius: theme.radius.lg,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      width: isCompact ? '100%' : '48%',
+      flexBasis: wp('48%'),
+      minWidth: cardMin,
+      maxWidth: cardMax,
+      flexGrow: 1,
     },
     iconPill: {
       width: 32,
@@ -412,10 +423,10 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       justifyContent: 'center',
     },
     quickActionLabel: { ...theme.typography.subhead, color: theme.colors.text, flex: 1, marginLeft: theme.spacing.sm },
-    sectionHeading: { ...theme.typography.subhead, marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg, marginBottom: theme.spacing.sm },
+    sectionHeading: { ...theme.typography.subhead, marginHorizontal: gutter, marginBottom: theme.spacing.sm },
     recentList: {
       backgroundColor: theme.colors.surface,
-      marginHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
+      marginHorizontal: gutter,
       borderRadius: theme.radius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border,

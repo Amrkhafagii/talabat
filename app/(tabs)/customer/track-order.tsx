@@ -2,11 +2,11 @@ import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
-import { MapPin, Clock, User, Store, ShieldCheck } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import OrderStatusBadge from '@/components/common/OrderStatusBadge';
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
@@ -18,12 +18,12 @@ import { createDeliveryEvent, logAudit, computeEtaBand, getBackupCandidates, log
 import { useAppTheme } from '@/styles/appTheme';
 
 const orderSteps = [
-  { key: 'pending', label: 'Order Placed', icon: Store },
-  { key: 'confirmed', label: 'Order Confirmed', icon: Store },
-  { key: 'preparing', label: 'Preparing Food', icon: Clock },
-  { key: 'ready', label: 'Ready for Pickup', icon: MapPin },
-  { key: 'picked_up', label: 'Out for Delivery', icon: User },
-  { key: 'delivered', label: 'Delivered', icon: MapPin },
+  { key: 'pending', label: 'Order Placed', icon: 'Store' },
+  { key: 'confirmed', label: 'Order Confirmed', icon: 'Store' },
+  { key: 'preparing', label: 'Preparing Food', icon: 'Clock' },
+  { key: 'ready', label: 'Ready for Pickup', icon: 'MapPin' },
+  { key: 'picked_up', label: 'Out for Delivery', icon: 'User' },
+  { key: 'delivered', label: 'Delivered', icon: 'MapPin' },
 ];
 
 const normalizeStatus = (status: string) => {
@@ -376,7 +376,7 @@ export default function TrackOrder() {
           <Text style={styles.orderTime}>Ordered {formatOrderTime(order.created_at)}</Text>
           {etaWindow && showTrustedEta && (
             <View style={styles.trustedEta}>
-              <ShieldCheck size={16} color={theme.colors.status.success} />
+              <Icon name="ShieldCheck" size="sm" color={theme.colors.status.success} />
               <Text style={styles.trustedEtaText}>Trusted arrival {etaWindow}</Text>
             </View>
           )}
@@ -453,9 +453,10 @@ export default function TrackOrder() {
                       isCompleted && styles.stepIconCompleted,
                       isCurrent && styles.stepIconCurrent
                     ]}>
-                      <StepIcon 
-                        size={16} 
-                        color={isCompleted ? theme.colors.textInverse : theme.colors.textSubtle} 
+                      <Icon
+                        name={StepIcon}
+                        size={16}
+                        color={isCompleted ? theme.colors.textInverse : theme.colors.textSubtle}
                       />
                     </View>
                     {index < orderSteps.length - 1 && (
@@ -488,7 +489,7 @@ export default function TrackOrder() {
             <Text style={styles.sectionTitle}>Your Driver</Text>
             <View style={styles.driverInfo}>
               <View style={styles.driverAvatar}>
-                <User size={24} color={theme.colors.primary[500]} />
+                <Icon name="User" size="md" color={theme.colors.primary[500]} />
               </View>
               <View style={styles.driverDetails}>
                 <Text style={styles.driverName}>
@@ -574,7 +575,7 @@ export default function TrackOrder() {
         <Card style={styles.addressCard}>
           <Text style={styles.sectionTitle}>Delivery Address</Text>
           <View style={styles.addressInfo}>
-            <MapPin size={20} color={theme.colors.primary[500]} />
+            <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
             <Text style={styles.addressText}>{order.delivery_address}</Text>
           </View>
           {order.delivery_instructions && (

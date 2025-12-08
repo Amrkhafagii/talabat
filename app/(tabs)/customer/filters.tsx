@@ -2,10 +2,10 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Star, X } from 'lucide-react-native';
 
 import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { getCategories } from '@/utils/database';
 import { Category } from '@/types/database';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
@@ -134,7 +134,7 @@ export default function Filters() {
                   {cuisine}
                 </Text>
                 {selectedCuisines.includes(cuisine) && (
-                  <X size={16} color={theme.colors.textInverse} style={styles.chipIcon} />
+                  <Icon name="X" size="sm" color={theme.colors.textInverse} style={styles.chipIcon} />
                 )}
               </TouchableOpacity>
             ))}
@@ -153,11 +153,11 @@ export default function Filters() {
               >
                 <View style={styles.ratingStars}>
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
+                    <Icon
                       key={star}
-                      size={20}
+                      name="Star"
+                      size="md"
                       color={star <= rating ? theme.colors.status.warning : theme.colors.border}
-                      fill={star <= rating ? theme.colors.status.warning : 'transparent'}
                     />
                   ))}
                 </View>

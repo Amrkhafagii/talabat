@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ViewStyle, TextStyle, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
+import { wp } from '@/styles/responsive';
 
 export type NavItem = { key: string; label: string; href?: string; children?: NavItem[] };
 
@@ -31,8 +32,6 @@ function isActive(activeSection: string | null, item: NavItem) {
 }
 
 function SectionNav({ activeSection, onPress, items = defaultItems, scrollable = false, variant = 'ios' }: SectionNavProps) {
-  const { width } = useWindowDimensions();
-  const isPhone = width < 450;
   return (
     <ScrollView
       horizontal
@@ -50,7 +49,6 @@ function SectionNav({ activeSection, onPress, items = defaultItems, scrollable =
             key={item.key}
             style={[
               iosNav.navPill,
-              isPhone && iosNav.navPillPhone,
               variant === 'ios-sub' && iosNav.navPillSub,
               active && iosNav.navPillActive,
             ]}
@@ -63,7 +61,6 @@ function SectionNav({ activeSection, onPress, items = defaultItems, scrollable =
               style={[
                 iosNav.navPillText,
                 active && iosNav.navPillTextActive,
-                isPhone && iosNav.navPillTextPhone,
               ]}
               numberOfLines={1}
               ellipsizeMode="tail"
@@ -98,14 +95,14 @@ const iosNav = StyleSheet.create<IosNavStyles>({
     flexDirection: 'row',
     flexWrap: 'nowrap',
     gap: iosSpacing.xs,
-    marginHorizontal: iosSpacing.sm,
+    marginHorizontal: Math.max(iosSpacing.sm, wp('4%')),
     marginTop: iosSpacing.sm,
     marginBottom: iosSpacing.sm,
   },
   sectionNavScrollable: { paddingRight: iosSpacing.sm },
   subNav: { marginTop: iosSpacing.xs },
   navPill: {
-    paddingHorizontal: iosSpacing.md,
+    paddingHorizontal: Math.max(iosSpacing.md, wp('4%')),
     paddingVertical: iosSpacing.sm,
     borderRadius: iosRadius.pill,
     backgroundColor: iosColors.chipBg,

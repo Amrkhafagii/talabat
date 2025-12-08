@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Switch } from 'react-native';
-import { Pencil, Trash2, Star, GripVertical } from 'lucide-react-native';
+import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface MenuItemManagement {
@@ -68,7 +68,7 @@ export default function MenuItemManagementCard({
               thumbColor={theme.colors.textInverse}
             />
           </View>
-          {dragHandle ?? <GripVertical size={18} color={theme.colors.secondaryText} />}
+          {dragHandle ?? <Icon name="GripVertical" size="sm" color={theme.colors.secondaryText} />}
         </View>
 
         {item.description ? <Text style={styles.description} numberOfLines={2}>{item.description}</Text> : null}
@@ -77,17 +77,17 @@ export default function MenuItemManagementCard({
           <Text style={styles.price}>${item.price.toFixed(2)}</Text>
           <View style={styles.iconRow}>
             <TouchableOpacity onPress={onTogglePopular} style={[styles.iconButton, item.isPopular && styles.iconButtonActive]}>
-              <Star
+              <Icon
+                name="Star"
                 size={14}
                 color={item.isPopular ? theme.colors.textInverse : theme.colors.secondaryText}
-                fill={item.isPopular ? theme.colors.textInverse : 'none'}
               />
             </TouchableOpacity>
             <TouchableOpacity onPress={onEdit} style={styles.iconButton}>
-              <Pencil size={14} color={theme.colors.secondaryText} />
+              <Icon name="Pencil" size={14} color={theme.colors.secondaryText} />
             </TouchableOpacity>
             <TouchableOpacity onPress={onDelete} style={styles.iconButton}>
-              <Trash2 size={14} color={theme.colors.status.error} />
+              <Icon name="Trash2" size={14} color={theme.colors.status.error} />
             </TouchableOpacity>
           </View>
         </View>

@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, MapPin, CreditCard, Bell, CircleHelp as HelpCircle, LogOut, CreditCard as Edit, Plus } from 'lucide-react-native';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { Icon } from '@/components/ui/Icon';
 import { getUserProfile, getUserAddresses } from '@/utils/database';
 import { User as UserType, UserAddress } from '@/types/database';
 
@@ -12,25 +12,25 @@ const profileOptions = [
   {
     id: 1,
     title: 'Payment Methods',
-    icon: CreditCard,
+    icon: 'CreditCard',
     action: () => console.log('Payment'),
   },
   {
     id: 2,
     title: 'Notifications',
-    icon: Bell,
+    icon: 'Bell',
     action: () => console.log('Notifications'),
   },
   {
     id: 3,
     title: 'Help & Support',
-    icon: HelpCircle,
+    icon: 'HelpCircle',
     action: () => console.log('Help'),
   },
   {
     id: 4,
     title: 'Wallet',
-    icon: CreditCard,
+    icon: 'CreditCard',
     action: () => router.push('/customer/wallet' as any),
   },
 ];
@@ -106,11 +106,11 @@ export default function Profile() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={theme.colors.text} />
+          <Icon name="ArrowLeft" size="lg" color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
         <TouchableOpacity style={styles.editButton} onPress={editProfile}>
-          <Edit size={20} color={theme.colors.primary[500]} />
+          <Icon name="Edit" size="md" color={theme.colors.primary[500]} />
         </TouchableOpacity>
       </View>
 
@@ -151,7 +151,7 @@ export default function Profile() {
         <View style={styles.addressSection}>
           <View style={styles.addressHeader}>
             <View style={styles.addressHeaderLeft}>
-              <MapPin size={20} color={theme.colors.primary[500]} />
+              <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
               <Text style={styles.addressTitle}>Delivery Addresses</Text>
             </View>
             <TouchableOpacity onPress={manageAddresses}>
@@ -177,7 +177,7 @@ export default function Profile() {
             </View>
           ) : (
             <TouchableOpacity style={styles.addAddressCard} onPress={manageAddresses}>
-              <Plus size={24} color={theme.colors.textMuted} />
+              <Icon name="Plus" size="lg" color={theme.colors.textMuted} />
               <Text style={styles.addAddressText}>Add delivery address</Text>
             </TouchableOpacity>
           )}
@@ -186,7 +186,6 @@ export default function Profile() {
         {/* Options */}
         <View style={styles.optionsSection}>
           {profileOptions.map((option) => {
-            const IconComponent = option.icon;
             return (
               <TouchableOpacity
                 key={option.id}
@@ -196,7 +195,7 @@ export default function Profile() {
               >
                 <View style={styles.optionLeft}>
                   <View style={styles.optionIcon}>
-                    <IconComponent size={20} color={theme.colors.primary[500]} />
+                    <Icon name={option.icon} size="md" color={theme.colors.primary[500]} />
                   </View>
                   <Text style={styles.optionText}>{option.title}</Text>
                 </View>
@@ -208,7 +207,7 @@ export default function Profile() {
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-          <LogOut size={20} color={theme.colors.status.error} />
+          <Icon name="LogOut" size="md" color={theme.colors.status.error} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>

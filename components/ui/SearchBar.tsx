@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, TextInput, ViewStyle, TextStyle } from 'react-native';
-import { Search } from 'lucide-react-native';
+import { Icon } from './Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 interface SearchBarProps {
@@ -16,7 +16,7 @@ export default function SearchBar({
   placeholder = "Search...",
   style,
 }: SearchBarProps) {
-  const { colors, spacing, radius, typography, tap, iconSizes, icons } = useRestaurantTheme();
+  const { colors, spacing, radius, typography, tap } = useRestaurantTheme();
 
   const styles = useMemo(() => ({
     container: {
@@ -40,7 +40,7 @@ export default function SearchBar({
 
   return (
     <View style={[styles.container, style]}>
-      <Search size={iconSizes.md} strokeWidth={icons.strokeWidth} color={colors.mutedText} />
+      <Icon name="Search" size="md" color={colors.mutedText} />
       <TextInput
         style={styles.input}
         placeholder={placeholder}

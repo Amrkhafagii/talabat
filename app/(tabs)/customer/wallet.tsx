@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Wallet as WalletIcon, Receipt } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +8,7 @@ import { getWalletsByUser, getWalletTransactions } from '@/utils/database';
 import { Wallet, WalletTransaction } from '@/types/database';
 import { formatCurrency } from '@/utils/formatters';
 import { useAppTheme } from '@/styles/appTheme';
+import { Icon } from '@/components/ui/Icon';
 
 export default function CustomerWallet() {
   const { user } = useAuth();
@@ -61,7 +61,7 @@ export default function CustomerWallet() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color={theme.colors.text} />
+            <Icon name="ArrowLeft" size="xl" color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Wallet</Text>
           <View style={styles.placeholder} />
@@ -80,7 +80,7 @@ export default function CustomerWallet() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={theme.colors.text} />
+          <Icon name="ArrowLeft" size="xl" color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wallet</Text>
         <View style={styles.placeholder} />
@@ -100,7 +100,7 @@ export default function CustomerWallet() {
       >
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <WalletIcon size={24} color={theme.colors.primary[500]} />
+            <Icon name="Wallet" size="xl" color={theme.colors.primary[500]} />
             <Text style={styles.balanceLabel}>Balance</Text>
           </View>
           <Text style={styles.balanceValue}>
@@ -128,7 +128,7 @@ export default function CustomerWallet() {
             transactions.map(tx => (
               <View key={tx.id} style={styles.txRow}>
                 <View style={styles.txLeft}>
-                  <Receipt size={18} color={theme.colors.textMuted} />
+                  <Icon name="Receipt" size="sm" color={theme.colors.textMuted} />
                   <View>
                     <Text style={styles.txType}>{tx.type}</Text>
                     <Text style={styles.txMeta}>

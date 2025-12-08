@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Mail, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -10,6 +9,7 @@ import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import Card from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/utils/supabase';
 import { forgotPasswordSchema, ForgotPasswordFormData } from '@/utils/validation/schemas';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
@@ -105,7 +105,7 @@ export default function ForgotPassword() {
             <View style={styles.content}>
               <Card style={styles.successCard}>
                 <View style={styles.successIcon}>
-                  <CheckCircle size={64} color={theme.colors.status.success} />
+                  <Icon name="CheckCircle" size={64} color={theme.colors.status.success} />
                 </View>
                 
                 <Text style={styles.successTitle}>Email Sent!</Text>
@@ -174,7 +174,7 @@ export default function ForgotPassword() {
           <View style={styles.content}>
             <View style={styles.headerSection}>
               <View style={styles.iconContainer}>
-                <Mail size={48} color={theme.colors.primary[500]} />
+                <Icon name="Mail" size={48} color={theme.colors.primary[500]} />
               </View>
               <Text style={styles.title}>Forgot your password?</Text>
               <Text style={styles.subtitle}>

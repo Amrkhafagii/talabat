@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
-import { AlertCircle, ArrowLeft } from 'lucide-react-native';
 
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { requestPayout } from '@/utils/database';
 import Button from '@/components/ui/Button';
+import { wp, hp } from '@/styles/responsive';
+import { Icon } from '@/components/ui/Icon';
 
 type Params = {
   walletId?: string;
@@ -59,7 +60,7 @@ export default function PayoutConfirmScreen() {
       <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={theme.tap.hitSlop} style={styles.backButton}>
-          <ArrowLeft size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.text} />
+          <Icon name="ArrowLeft" size="md" color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Confirm Payout</Text>
         <View style={styles.placeholder} />
@@ -86,7 +87,7 @@ export default function PayoutConfirmScreen() {
       </View>
 
       <View style={styles.infoBanner}>
-        <AlertCircle size={theme.iconSizes.md} strokeWidth={theme.icons.strokeWidth} color={theme.colors.accent} />
+        <Icon name="AlertCircle" size="md" color={theme.colors.accent} />
         <View style={{ flex: 1 }}>
           <Text style={styles.infoTitle}>Processing Time</Text>
           <Text style={styles.infoText}>Funds will typically arrive in your bank account within 1-3 business days.</Text>
@@ -110,14 +111,15 @@ export default function PayoutConfirmScreen() {
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
-  const isCompact = theme.device.isSmallScreen;
+  const horizontal = Math.max(theme.spacing.md, wp('5%'));
+  const vertical = Math.max(theme.spacing.md, hp('2.5%'));
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      paddingHorizontal: isCompact ? theme.spacing.md : theme.spacing.lg,
-      paddingTop: theme.spacing.lg,
-      paddingBottom: theme.insets.bottom + theme.spacing.lg,
+      paddingHorizontal: horizontal,
+      paddingTop: vertical,
+      paddingBottom: theme.insets.bottom + vertical,
       gap: theme.spacing.md,
     },
     header: {
@@ -196,7 +198,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     infoTitle: { ...theme.typography.subhead },
     infoText: { ...theme.typography.caption, color: theme.colors.secondaryText, lineHeight: 20 },
     actions: {
-      marginTop: theme.spacing.md,
+      marginTop: vertical,
       gap: theme.spacing.sm,
     },
     cancelText: { ...theme.typography.subhead, color: theme.colors.secondaryText, textAlign: 'center' },

@@ -88,7 +88,7 @@ const styles = StyleSheet.create<Styles>({
   },
   badgeActive: { backgroundColor: iosColors.primary },
   badgeText: { ...iosTypography.caption, color: iosColors.secondaryText, fontWeight: '600' },
-  badgeTextActive: { color: '#FFFFFF' },
+  badgeTextActive: { color: iosColors.textInverse },
 });
 
 export default IOSSegmentedControl;

@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     borderRadius: iosRadius.md,
     backgroundColor: iosColors.primary,
   },
-  actionText: { ...iosTypography.caption, color: '#FFFFFF', fontWeight: '600' },
+  actionText: { ...iosTypography.caption, color: iosColors.textInverse, fontWeight: '600' },
 });
 
 export default IOSQueueRow;

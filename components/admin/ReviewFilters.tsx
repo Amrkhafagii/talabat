@@ -261,7 +261,7 @@ const iosFilter = StyleSheet.create({
     borderRadius: iosRadius.pill,
     backgroundColor: iosColors.primary,
   },
-  goText: { ...iosTypography.button, color: '#FFFFFF' },
+  goText: { ...iosTypography.button, color: iosColors.textInverse },
   pageControls: { flexDirection: 'row', justifyContent: 'space-between', gap: iosSpacing.sm, marginTop: iosSpacing.sm },
   navButton: {
     flex: 1,

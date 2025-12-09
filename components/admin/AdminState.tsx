@@ -83,5 +83,5 @@ const iosStyles = StyleSheet.create({
     minHeight: 36,
     justifyContent: 'center',
   },
-  ctaText: { ...iosTypography.button, color: '#FFFFFF' },
+  ctaText: { ...iosTypography.button, color: iosColors.textInverse },
 });

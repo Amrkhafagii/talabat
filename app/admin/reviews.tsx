@@ -489,7 +489,7 @@ const reviewStyles = StyleSheet.create({
   },
   chipActive: { backgroundColor: iosColors.primary },
   chipText: { ...iosTypography.caption, color: iosColors.secondaryText },
-  chipTextActive: { color: '#FFFFFF' },
+  chipTextActive: { color: iosColors.textInverse },
   tokenRow: { flexDirection: 'row', gap: iosSpacing.xs },
   tokenChip: {
     paddingHorizontal: iosSpacing.sm,
@@ -519,13 +519,13 @@ const tabStyles = StyleSheet.create({
     paddingHorizontal: iosSpacing.md,
     paddingVertical: iosSpacing.sm,
     borderRadius: 999,
-    backgroundColor: '#E5E5EA',
+    backgroundColor: iosColors.chipBg,
   },
   pillActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: iosColors.surface,
     borderWidth: 1,
-    borderColor: '#0A84FF',
+    borderColor: iosColors.primary,
   },
   pillText: { ...iosTypography.subhead, color: iosColors.secondaryText },
-  pillTextActive: { color: '#0A84FF', fontWeight: '600' },
+  pillTextActive: { color: iosColors.primary, fontWeight: '600' },
 });

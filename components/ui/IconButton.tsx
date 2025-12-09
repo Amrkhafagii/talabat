@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Insets, Pressable, PressableStateCallbackType, StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import { ColorValue, Insets, Platform, StyleProp, StyleSheet, TouchableNativeFeedback, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Icon, type IconFamily, type IconName, type IconProps } from './Icon';
 import { useAppTheme } from '@/styles/appTheme';
 
@@ -36,7 +36,7 @@ export const IconButton = memo(function IconButton({
 }: IconButtonProps) {
   const theme = useAppTheme();
 
-  const pressableStyle = ({ pressed }: PressableStateCallbackType) => [
+  const baseStyle: StyleProp<ViewStyle> = [
     styles.button,
     {
       minHeight: theme.tap.minHeight,
@@ -44,30 +44,54 @@ export const IconButton = memo(function IconButton({
       padding: theme.spacing.xs,
       borderRadius: theme.radius.sm,
       backgroundColor: backgroundColor ?? 'transparent',
-      opacity: disabled ? 0.5 : pressed ? 0.75 : 1,
+      opacity: disabled ? 0.5 : 1,
     },
     style,
   ];
 
+  const rippleColor: ColorValue = typeof color === 'string' ? color : theme.colors.overlay;
+
+  const iconNode = (
+    <Icon
+      name={name}
+      family={family}
+      size={size}
+      color={color}
+      status={status}
+      allowFontScaling={allowFontScaling}
+    />
+  );
+
+  if (Platform.OS === 'android') {
+    return (
+      <TouchableNativeFeedback
+        accessibilityLabel={accessibilityLabel ?? `${name} button`}
+        accessibilityRole="button"
+        disabled={disabled}
+        hitSlop={hitSlop ?? theme.tap.hitSlop}
+        onPress={onPress}
+        background={TouchableNativeFeedback.Ripple(rippleColor, true)}
+        useForeground
+        testID={testID}
+      >
+        <View style={[baseStyle, styles.rippleContainer]}>{iconNode}</View>
+      </TouchableNativeFeedback>
+    );
+  }
+
   return (
-    <Pressable
+    <TouchableOpacity
+      activeOpacity={0.7}
       accessibilityLabel={accessibilityLabel ?? `${name} button`}
       accessibilityRole="button"
       disabled={disabled}
       hitSlop={hitSlop ?? theme.tap.hitSlop}
       onPress={onPress}
-      style={pressableStyle}
+      style={baseStyle}
       testID={testID}
     >
-      <Icon
-        name={name}
-        family={family}
-        size={size}
-        color={color}
-        status={status}
-        allowFontScaling={allowFontScaling}
-      />
-    </Pressable>
+      {iconNode}
+    </TouchableOpacity>
   );
 });
 
@@ -77,5 +101,8 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  rippleContainer: {
+    overflow: 'hidden',
   },
 });

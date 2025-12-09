@@ -1,9 +1,12 @@
-# Icon System – Vector Icons (Phase 1)
+# Icon System – Platform Native (Phase 2)
 
-- **Families (locked)**: use `Feather` from `@expo/vector-icons` for 80–90% of line icons; use `MaterialCommunityIcons` for filled states and pictograms that Feather lacks (wallet, receipt, shield, status glyphs). Avoid other families unless a unique glyph is missing; if we must, prefer `Ionicons` as a tertiary option.
-- **Sizing & weight**: drive all icons off `theme.iconSizes` (`sm 18`, `md 20`, `lg 22`, `xl 24`). Default to `md` for actions/forms, `lg` for bottom tabs and list affordances, `sm` for inline chips/fields, `xl` for hero/empty states. Feather stroke weight is fixed; choose the `Outlined` vs `Filled` variants in MaterialCommunityIcons to simulate weight changes.
-- **Color rules**: default `theme.colors.text`; secondary/muted states use `theme.colors.textMuted` or `theme.colors.textSubtle`; active/CTA states use `theme.colors.accent` (pressed `accentStrong`); inverse over dark surfaces uses `theme.colors.textInverse`. Status colors map to `theme.colors.status.{success|warning|error|info|hold}` for strokes/foreground and `theme.colors.statusSoft.*` for backgrounds.
-- **Outline vs fill usage**: outline for neutral/inactive list items, inputs, toolbars; filled/two-tone variants for active/selected tabs, toggles, confirmations, and emphasized CTAs. Avoid mixing outline/filled in the same control set; inactive tabs stay outline, active tabs switch to filled or `accent` outline.
-- **Interaction & accessibility**: minimum touch target 44px height; wrap icons in hit areas using `theme.tap.hitSlop`. Keep sufficient contrast (WCAG AA) by pairing `textMuted` with light backgrounds only; fall back to `text` on tinted surfaces.
-- **Dependency prep**: Expo already ships `@expo/vector-icons`; no new install required. We will import from `@expo/vector-icons/Feather` and `@expo/vector-icons/MaterialCommunityIcons` to avoid native linking. During migration we will remove `lucide-react-native`, `@lucide/lab`, and `expo-symbols` from dependencies.
-- **Mapping policy**: create a shared icon registry that aliases existing Lucide names (e.g., `ShieldCheck`, `Wallet`, `Truck`, `MapPin`, `Star`) to chosen Feather/MaterialCommunity glyphs, with a consistent fallback icon. Keep the registry the single source of truth to avoid per-screen drift.
+- **Families (locked):** iOS renders `Ionicons`, Android renders `MaterialIcons`. The shared registry lives in `components/ui/Icon.tsx`; avoid importing icon packs directly.
+- **Platform fit:** icons default to `theme.iconSizes` with automatic platform offsets (iOS -1pt, Android +1pt) for more native proportions. New `StarOutline` mapping covers rating states without manual family overrides.
+- **Color rules:** defaults are platform-aware (`text` on iOS, `secondaryText` on Android) with status colors from `theme.colors.status.*`. Pass explicit colors for CTAs or inverse surfaces; otherwise the registry picks sensible tones per platform.
+- **Touch feedback:** `IconButton` now uses `TouchableOpacity` (`activeOpacity 0.7`) on iOS and `TouchableNativeFeedback` ripple on Android with the app overlay tint. Keep hit targets ≥44px via `theme.tap.hitSlop`.
+- **Mapping policy:** each semantic name maps to Ionicons/MaterialIcons counterparts with a single fallback (`help-circle-outline`/`help-outline`). Add new names to the registry rather than passing raw glyph strings so platforms stay in sync.
+
+## Phased rollout
+1) **Infrastructure (done):** platform-aware registry + IconButton native feedback; Feather/MaterialCommunityIcons removed from the shared component.
+2) **Migration:** replace any remaining direct `@expo/vector-icons` imports or `family` overrides with registry names; align dynamic cases (ratings, tabs) to `Star`/`StarOutline` etc.; verify sizes/colors on both platforms.
+3) **Hardening:** snapshot key screens on iOS/Android, fix any missing mappings, and document any bespoke icons. Drop unused icon dependencies when confirmed.

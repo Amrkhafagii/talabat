@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePathname, useLocalSearchParams, router } from 'expo-router';
@@ -8,6 +8,7 @@ import { IOSHeaderBar } from '@/components/ios/IOSHeaderBar';
 import { IOSBottomTabBar } from '@/components/ios/IOSBottomTabBar';
 import { wp, hp } from '@/styles/responsive';
 import { Icon } from '@/components/ui/Icon';
+import { useAppTheme, type AppTheme } from '@/styles/appTheme';
 
 type AdminShellProps = {
   title: string;
@@ -25,15 +26,6 @@ type AdminShellProps = {
 type NavItem = { key: string; label: string; href: string; children?: NavItem[] };
 type HeaderAction = { label: string; onPress: () => void };
 type BottomTab = { key: string; label: string; href?: string; icon?: React.ReactNode | ((active: boolean) => React.ReactNode); onPress?: () => void };
-
-const defaultBottomTabs: BottomTab[] = [
-  { key: 'metrics', label: 'Overview', href: '/admin/metrics', icon: (active: boolean) => <Icon name="LayoutDashboard" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'analytics', label: 'Metrics', href: '/admin/analytics', icon: (active: boolean) => <Icon name="BarChart3" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: (active: boolean) => <Icon name="ClipboardList" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'orders', label: 'Orders', href: '/admin/orders', icon: (active: boolean) => <Icon name="Truck" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'payouts', label: 'Payouts', href: '/admin/payouts', icon: (active: boolean) => <Icon name="CreditCard" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-  { key: 'settings', label: 'Settings', href: '/admin/settings', icon: (active: boolean) => <Icon name="Settings" size={20} color={active ? iosColors.primary : iosColors.secondaryText} /> },
-];
 
 const defaultNavItems: NavItem[] = [
   { key: 'metrics', label: 'Overview', href: '/admin/metrics' },
@@ -67,6 +59,13 @@ export function AdminShell({
   bottomTabs,
   activeBottomTab,
 }: AdminShellProps) {
+  const theme = useAppTheme();
+  const colors = iosColors;
+  const spacing = iosSpacing;
+  const radius = iosRadius;
+  const typography = iosTypography;
+  const styles = useMemo(() => createStyles({ colors, spacing, radius, typography, theme }), [colors, spacing, radius, typography, theme]);
+
   const pathname = usePathname();
   const params = useLocalSearchParams<{ tab?: string; section?: string }>();
   const isNarrow = false;
@@ -81,7 +80,10 @@ export function AdminShell({
   const navVariant = headerVariant === 'ios' ? 'ios' : 'primary';
   const subNavVariant = headerVariant === 'ios' ? 'ios-sub' : 'sub';
 
-  const resolvedBottomTabs = bottomTabs ?? (headerVariant === 'ios' ? defaultBottomTabs : undefined);
+  const resolvedBottomTabs = useMemo(
+    () => bottomTabs ?? (headerVariant === 'ios' ? buildDefaultBottomTabs(colors) : undefined),
+    [bottomTabs, headerVariant, colors]
+  );
   const activeTabKey = resolvedBottomTabs
     ? resolvedBottomTabs.find((tab) => pathname.startsWith(tab.href ?? ''))?.key ?? activeBottomTab ?? ''
     : activeBottomTab;
@@ -153,30 +155,57 @@ export function AdminShell({
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: iosColors.background },
-  iosSafeArea: { backgroundColor: iosColors.background },
-  container: { flex: 1, backgroundColor: iosColors.background },
-  iosContainer: { backgroundColor: iosColors.background },
-  header: {
-    padding: Math.max(iosSpacing.lg, hp('2.5%')),
-    paddingTop: Math.max(iosSpacing.xl, hp('3%')),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: { ...iosTypography.title2, color: iosColors.text },
-  signOutButton: {
-    paddingHorizontal: iosSpacing.md,
-    paddingVertical: iosSpacing.xs + 2,
-    borderRadius: iosRadius.md,
-    backgroundColor: iosColors.primary,
-  },
-  signOutText: { color: '#fff', fontWeight: '600' },
-  content: { padding: Math.max(iosSpacing.lg, wp('5%')), paddingBottom: Math.max(iosSpacing.xl, hp('3%')) },
-  iosContent: {
-    paddingHorizontal: Math.max(iosSpacing.lg, wp('5%')),
-    paddingTop: Math.max(iosSpacing.lg, hp('2.5%')),
-    paddingBottom: Math.max(iosSpacing.xl, hp('3%')),
-  },
-});
+function buildDefaultBottomTabs(colors: typeof iosColors): BottomTab[] {
+  return [
+    { key: 'metrics', label: 'Overview', href: '/admin/metrics', icon: (active: boolean) => <Icon name="LayoutDashboard" size={20} color={active ? colors.primary : colors.secondaryText} /> },
+    { key: 'analytics', label: 'Metrics', href: '/admin/analytics', icon: (active: boolean) => <Icon name="BarChart3" size={20} color={active ? colors.primary : colors.secondaryText} /> },
+    { key: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: (active: boolean) => <Icon name="ClipboardList" size={20} color={active ? colors.primary : colors.secondaryText} /> },
+    { key: 'orders', label: 'Orders', href: '/admin/orders', icon: (active: boolean) => <Icon name="Truck" size={20} color={active ? colors.primary : colors.secondaryText} /> },
+    { key: 'payouts', label: 'Payouts', href: '/admin/payouts', icon: (active: boolean) => <Icon name="CreditCard" size={20} color={active ? colors.primary : colors.secondaryText} /> },
+    { key: 'settings', label: 'Settings', href: '/admin/settings', icon: (active: boolean) => <Icon name="Settings" size={20} color={active ? colors.primary : colors.secondaryText} /> },
+  ];
+}
+
+function createStyles({
+  colors,
+  spacing,
+  radius,
+  typography,
+  theme,
+}: {
+  colors: typeof iosColors;
+  spacing: typeof iosSpacing;
+  radius: typeof iosRadius;
+  typography: typeof iosTypography;
+  theme: AppTheme;
+}) {
+  const inverseText = theme.colors.textInverse || '#fff';
+
+  return StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: colors.background },
+    iosSafeArea: { backgroundColor: colors.background },
+    container: { flex: 1, backgroundColor: colors.background },
+    iosContainer: { backgroundColor: colors.background },
+    header: {
+      padding: Math.max(spacing.lg, hp('2.5%')),
+      paddingTop: Math.max(spacing.xl, hp('3%')),
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    title: { ...(typography.title2 || {}), color: colors.text },
+    signOutButton: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs + 2,
+      borderRadius: radius.md,
+      backgroundColor: colors.primary,
+    },
+    signOutText: { color: inverseText, fontWeight: '600' },
+    content: { padding: Math.max(spacing.lg, wp('5%')), paddingBottom: Math.max(spacing.xl, hp('3%')) },
+    iosContent: {
+      paddingHorizontal: Math.max(spacing.lg, wp('5%')),
+      paddingTop: Math.max(spacing.lg, hp('2.5%')),
+      paddingBottom: Math.max(spacing.xl, hp('3%')),
+    },
+  });
+}

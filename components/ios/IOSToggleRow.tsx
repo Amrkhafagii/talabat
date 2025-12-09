@@ -23,7 +23,7 @@ export function IOSToggleRow({ label, value, onValueChange, disabled, helperText
         onValueChange={onValueChange}
         disabled={disabled}
         trackColor={{ false: iosColors.separator, true: iosColors.primary }}
-        thumbColor="#FFFFFF"
+        thumbColor={iosColors.textInverse}
         ios_backgroundColor={iosColors.separator}
       />
     </View>

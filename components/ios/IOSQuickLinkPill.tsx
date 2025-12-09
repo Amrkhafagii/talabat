@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     backgroundColor: iosColors.primary,
     ...iosShadow.button,
   },
-  text: { ...iosTypography.button, color: '#FFFFFF' },
+  text: { ...iosTypography.button, color: iosColors.textInverse },
 });
 
 export default IOSQuickLinkPill;

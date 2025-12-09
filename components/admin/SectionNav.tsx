@@ -127,5 +127,5 @@ const iosNav = StyleSheet.create<IosNavStyles>({
   },
   navPillText: { ...iosTypography.subhead, color: iosColors.text, lineHeight: 18 },
   navPillTextPhone: { fontSize: 13, lineHeight: 16 },
-  navPillTextActive: { color: '#FFFFFF', fontWeight: '600' },
+  navPillTextActive: { color: iosColors.textInverse, fontWeight: '600' },
 });

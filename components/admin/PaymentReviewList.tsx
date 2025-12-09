@@ -108,7 +108,7 @@ const cardStyles = StyleSheet.create({
     borderRadius: iosRadius.md,
     backgroundColor: iosColors.primary,
   },
-  approveText: { ...iosTypography.caption, color: '#FFFFFF', fontWeight: '700' },
+  approveText: { ...iosTypography.caption, color: iosColors.textInverse, fontWeight: '700' },
   rejectBtn: {
     paddingHorizontal: iosSpacing.sm,
     paddingVertical: iosSpacing.xs,

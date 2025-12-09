@@ -124,7 +124,7 @@ const iosStyles = StyleSheet.create({
   },
   chipActive: { backgroundColor: iosColors.primary },
   chipText: { ...iosTypography.subhead, color: iosColors.secondaryText },
-  chipTextActive: { color: '#FFFFFF' },
+  chipTextActive: { color: iosColors.textInverse },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

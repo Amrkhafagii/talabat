@@ -72,7 +72,7 @@ const styles = StyleSheet.create<Styles>({
     borderRadius: iosRadius.pill,
     ...iosShadow.button,
   },
-  doneText: { ...iosTypography.button, color: '#FFFFFF' },
+  doneText: { ...iosTypography.button, color: iosColors.textInverse },
   side: { width: 80, flexDirection: 'row', justifyContent: 'flex-start' },
 });
 

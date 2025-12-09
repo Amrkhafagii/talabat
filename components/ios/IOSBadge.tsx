@@ -12,10 +12,10 @@ type IOSBadgeProps = {
 
 const palette: Record<Tone, { bg: string; text: string; border: string }> = {
   neutral: { bg: iosColors.chipBg, text: iosColors.chipText, border: iosColors.chipBg },
-  info: { bg: iosColors.infoAlt, text: '#FFFFFF', border: iosColors.infoAlt },
-  success: { bg: iosColors.successAlt, text: '#FFFFFF', border: iosColors.successAlt },
-  warning: { bg: iosColors.warningAlt, text: '#FFFFFF', border: iosColors.warningAlt },
-  error: { bg: iosColors.destructive, text: '#FFFFFF', border: iosColors.destructive },
+  info: { bg: iosColors.infoAlt, text: iosColors.textInverse, border: iosColors.infoAlt },
+  success: { bg: iosColors.successAlt, text: iosColors.textInverse, border: iosColors.successAlt },
+  warning: { bg: iosColors.warningAlt, text: iosColors.textInverse, border: iosColors.warningAlt },
+  error: { bg: iosColors.destructive, text: iosColors.textInverse, border: iosColors.destructive },
 };
 
 export function IOSBadge({ label, tone = 'neutral', style }: IOSBadgeProps) {

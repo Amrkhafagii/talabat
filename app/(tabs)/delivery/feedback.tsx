@@ -90,8 +90,7 @@ export default function FeedbackScreen() {
             {[1, 2, 3, 4, 5].map((value) => (
               <TouchableOpacity key={value} onPress={() => setRating(value)}>
                 <Icon
-                  family="MaterialCommunityIcons"
-                  name={value <= rating ? 'star' : 'star-outline'}
+                  name={value <= rating ? 'Star' : 'StarOutline'}
                   size={28}
                   color={value <= rating ? theme.colors.accent : theme.colors.textMuted}
                 />
@@ -136,8 +135,7 @@ export default function FeedbackScreen() {
                 <View style={styles.starsRow}>
                   {[1, 2, 3, 4, 5].map((value) => (
                     <Icon
-                      family="MaterialCommunityIcons"
-                      name={value <= (item.rating || 0) ? 'star' : 'star-outline'}
+                      name={value <= (item.rating || 0) ? 'Star' : 'StarOutline'}
                       key={value}
                       size={16}
                       color={value <= (item.rating || 0) ? theme.colors.accent : theme.colors.textMuted}

@@ -156,13 +156,13 @@ export default function AdminMetricsPage({ userEmail, onSignOut, ...vm }: AdminM
 const hero = StyleSheet.create({
   wrapper: { paddingHorizontal: iosSpacing.md },
   card: {
-    backgroundColor: '#0B122A',
+    backgroundColor: iosColors.primaryAlt,
     borderRadius: iosRadius.xl,
     padding: iosSpacing.lg,
     marginBottom: iosSpacing.lg,
   },
   headerRow: { marginBottom: iosSpacing.md },
-  title: { ...iosTypography.title1, color: '#FFFFFF' },
+  title: { ...iosTypography.title1, color: iosColors.textInverse },
   subtitle: { ...iosTypography.subhead, color: iosColors.separator },
   circleRow: { flexDirection: 'row', justifyContent: 'space-between' },
 });
@@ -207,13 +207,13 @@ const healthStyles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 999,
     borderWidth: 3,
-    borderColor: '#1E2A5A',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: iosColors.primaryAlt,
+    backgroundColor: iosColors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
     padding: iosSpacing.sm,
   },
-  value: { ...iosTypography.title2, color: '#FFFFFF' },
+  value: { ...iosTypography.title2, color: iosColors.textInverse },
   label: { ...iosTypography.caption, color: iosColors.separator, textAlign: 'center', marginTop: iosSpacing.xs },
 });
 
@@ -263,5 +263,5 @@ const badgeStyles = StyleSheet.create({
     paddingVertical: iosSpacing.xxs,
     borderRadius: iosRadius.pill,
   },
-  text: { ...iosTypography.caption, color: '#FFFFFF', fontWeight: '700' },
+  text: { ...iosTypography.caption, color: iosColors.textInverse, fontWeight: '700' },
 });

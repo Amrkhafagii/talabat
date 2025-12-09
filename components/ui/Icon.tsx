@@ -1,99 +1,98 @@
 import React, { ComponentProps, memo, useMemo } from 'react';
-import { ColorValue, StyleProp, TextStyle } from 'react-native';
-import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { ColorValue, Platform, StyleProp, TextStyle } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAppTheme, type AppTheme } from '@/styles/appTheme';
 
-type FeatherName = ComponentProps<typeof Feather>['name'];
-type MaterialName = ComponentProps<typeof MaterialCommunityIcons>['name'];
-export type IconFamily = 'Feather' | 'MaterialCommunityIcons';
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
+export type IconFamily = 'Ionicons' | 'MaterialIcons';
 
-type IconConfig =
-  | { family: 'Feather'; name: FeatherName }
-  | { family: 'MaterialCommunityIcons'; name: MaterialName };
+type IconConfig = { ios: IoniconName; android: MaterialIconName };
 
 export const ICON_MAP = {
-  AlertCircle: { family: 'Feather', name: 'alert-circle' },
-  AlertTriangle: { family: 'Feather', name: 'alert-triangle' },
-  ArrowDown: { family: 'Feather', name: 'arrow-down' },
-  ArrowLeft: { family: 'Feather', name: 'arrow-left' },
-  ArrowRightCircle: { family: 'Feather', name: 'arrow-right-circle' },
-  ArrowUp: { family: 'Feather', name: 'arrow-up' },
-  ArrowUpRight: { family: 'Feather', name: 'arrow-up-right' },
-  BarChart3: { family: 'MaterialCommunityIcons', name: 'chart-bar' },
-  Bell: { family: 'Feather', name: 'bell' },
-  BookOpen: { family: 'Feather', name: 'book-open' },
-  Briefcase: { family: 'Feather', name: 'briefcase' },
-  Calendar: { family: 'Feather', name: 'calendar' },
-  CalendarDays: { family: 'MaterialCommunityIcons', name: 'calendar-month-outline' },
-  Camera: { family: 'Feather', name: 'camera' },
-  Car: { family: 'MaterialCommunityIcons', name: 'car-outline' },
-  ChartBar: { family: 'MaterialCommunityIcons', name: 'chart-bar' },
-  Check: { family: 'Feather', name: 'check' },
-  CheckCircle: { family: 'Feather', name: 'check-circle' },
-  CheckCircle2: { family: 'Feather', name: 'check-circle' },
-  CheckSquare: { family: 'Feather', name: 'check-square' },
-  ChevronDown: { family: 'Feather', name: 'chevron-down' },
-  ChevronRight: { family: 'Feather', name: 'chevron-right' },
-  ChevronUp: { family: 'Feather', name: 'chevron-up' },
-  Chrome: { family: 'Feather', name: 'home' },
-  Home: { family: 'Feather', name: 'home' },
-  Circle: { family: 'Feather', name: 'circle' },
-  CircleCheck: { family: 'Feather', name: 'check-circle' },
-  CircleHelp: { family: 'Feather', name: 'help-circle' },
-  HelpCircle: { family: 'Feather', name: 'help-circle' },
-  ClipboardList: { family: 'MaterialCommunityIcons', name: 'clipboard-list-outline' },
-  Clock: { family: 'Feather', name: 'clock' },
-  Clock3: { family: 'MaterialCommunityIcons', name: 'clock-outline' },
-  Clock4: { family: 'MaterialCommunityIcons', name: 'clock-outline' },
-  Copy: { family: 'Feather', name: 'copy' },
-  CreditCard: { family: 'Feather', name: 'credit-card' },
-  DollarSign: { family: 'Feather', name: 'dollar-sign' },
-  Eye: { family: 'Feather', name: 'eye' },
-  EyeOff: { family: 'Feather', name: 'eye-off' },
-  FileText: { family: 'Feather', name: 'file-text' },
-  Filter: { family: 'Feather', name: 'filter' },
-  GripVertical: { family: 'MaterialCommunityIcons', name: 'drag-vertical' },
-  Heart: { family: 'Feather', name: 'heart' },
-  History: { family: 'MaterialCommunityIcons', name: 'history' },
-  Info: { family: 'Feather', name: 'info' },
-  KeyRound: { family: 'MaterialCommunityIcons', name: 'key-variant' },
-  LayoutDashboard: { family: 'MaterialCommunityIcons', name: 'view-dashboard-outline' },
-  Lock: { family: 'Feather', name: 'lock' },
-  LogOut: { family: 'Feather', name: 'log-out' },
-  Mail: { family: 'Feather', name: 'mail' },
-  MapPin: { family: 'Feather', name: 'map-pin' },
-  Minus: { family: 'Feather', name: 'minus' },
-  Navigation: { family: 'Feather', name: 'navigation' },
-  Package: { family: 'Feather', name: 'package' },
-  Pencil: { family: 'Feather', name: 'edit-3' },
-  Edit: { family: 'Feather', name: 'edit-3' },
-  Phone: { family: 'Feather', name: 'phone' },
-  Plus: { family: 'Feather', name: 'plus' },
-  Receipt: { family: 'MaterialCommunityIcons', name: 'receipt-outline' },
-  RefreshCw: { family: 'Feather', name: 'refresh-ccw' },
-  Search: { family: 'Feather', name: 'search' },
-  Settings: { family: 'Feather', name: 'settings' },
-  Shield: { family: 'Feather', name: 'shield' },
-  ShieldCheck: { family: 'MaterialCommunityIcons', name: 'shield-check' },
-  ShoppingCart: { family: 'Feather', name: 'shopping-cart' },
-  Square: { family: 'Feather', name: 'square' },
-  Star: { family: 'Feather', name: 'star' },
-  Store: { family: 'MaterialCommunityIcons', name: 'storefront-outline' },
-  Trash2: { family: 'Feather', name: 'trash-2' },
-  Truck: { family: 'Feather', name: 'truck' },
-  User: { family: 'Feather', name: 'user' },
-  Users: { family: 'Feather', name: 'users' },
-  UtensilsCrossed: { family: 'MaterialCommunityIcons', name: 'silverware-fork-knife' },
-  Wallet: { family: 'MaterialCommunityIcons', name: 'wallet-outline' },
-  WalletIcon: { family: 'MaterialCommunityIcons', name: 'wallet-outline' },
-  Wifi: { family: 'Feather', name: 'wifi' },
-  WifiOff: { family: 'Feather', name: 'wifi-off' },
-  X: { family: 'Feather', name: 'x' },
-  XCircle: { family: 'Feather', name: 'x-circle' },
+  AlertCircle: { ios: 'alert-circle-outline', android: 'error-outline' },
+  AlertTriangle: { ios: 'warning-outline', android: 'warning-amber' },
+  ArrowDown: { ios: 'arrow-down', android: 'arrow-downward' },
+  ArrowLeft: { ios: 'arrow-back', android: 'arrow-back' },
+  ArrowRightCircle: { ios: 'arrow-forward-circle-outline', android: 'arrow-circle-right' },
+  ArrowUp: { ios: 'arrow-up', android: 'arrow-upward' },
+  ArrowUpRight: { ios: 'arrow-up-right-box-outline', android: 'arrow-outward' },
+  BarChart3: { ios: 'bar-chart-outline', android: 'bar-chart' },
+  Bell: { ios: 'notifications-outline', android: 'notifications-none' },
+  BookOpen: { ios: 'book-outline', android: 'menu-book' },
+  Briefcase: { ios: 'briefcase-outline', android: 'work-outline' },
+  Calendar: { ios: 'calendar-outline', android: 'calendar-today' },
+  CalendarDays: { ios: 'calendar-number-outline', android: 'calendar-month' },
+  Camera: { ios: 'camera-outline', android: 'photo-camera' },
+  Car: { ios: 'car-outline', android: 'directions-car' },
+  ChartBar: { ios: 'stats-chart-outline', android: 'insert-chart-outlined' },
+  Check: { ios: 'checkmark', android: 'check' },
+  CheckCircle: { ios: 'checkmark-circle-outline', android: 'check-circle-outline' },
+  CheckCircle2: { ios: 'checkmark-circle-outline', android: 'check-circle-outline' },
+  CheckSquare: { ios: 'checkbox-outline', android: 'check-box' },
+  ChevronDown: { ios: 'chevron-down', android: 'keyboard-arrow-down' },
+  ChevronRight: { ios: 'chevron-forward', android: 'chevron-right' },
+  ChevronUp: { ios: 'chevron-up', android: 'keyboard-arrow-up' },
+  Chrome: { ios: 'logo-chrome', android: 'home' },
+  Home: { ios: 'home-outline', android: 'home' },
+  Circle: { ios: 'ellipse-outline', android: 'circle' },
+  CircleCheck: { ios: 'checkmark-circle-outline', android: 'check-circle-outline' },
+  CircleHelp: { ios: 'help-circle-outline', android: 'help-outline' },
+  HelpCircle: { ios: 'help-circle-outline', android: 'help-outline' },
+  ClipboardList: { ios: 'clipboard-outline', android: 'assignment' },
+  Clock: { ios: 'time-outline', android: 'schedule' },
+  Clock3: { ios: 'time-outline', android: 'schedule' },
+  Clock4: { ios: 'time-outline', android: 'schedule' },
+  Copy: { ios: 'copy-outline', android: 'content-copy' },
+  CreditCard: { ios: 'card-outline', android: 'credit-card' },
+  DollarSign: { ios: 'cash-outline', android: 'attach-money' },
+  Eye: { ios: 'eye-outline', android: 'visibility' },
+  EyeOff: { ios: 'eye-off-outline', android: 'visibility-off' },
+  FileText: { ios: 'document-text-outline', android: 'description' },
+  Filter: { ios: 'filter-outline', android: 'filter-list' },
+  GripVertical: { ios: 'reorder-three-outline', android: 'drag-handle' },
+  Heart: { ios: 'heart-outline', android: 'favorite-border' },
+  History: { ios: 'time-outline', android: 'history' },
+  Info: { ios: 'information-circle-outline', android: 'info-outline' },
+  KeyRound: { ios: 'key-outline', android: 'vpn-key' },
+  LayoutDashboard: { ios: 'grid-outline', android: 'dashboard' },
+  Lock: { ios: 'lock-closed-outline', android: 'lock' },
+  LogOut: { ios: 'log-out-outline', android: 'logout' },
+  Mail: { ios: 'mail-outline', android: 'mail-outline' },
+  MapPin: { ios: 'location-outline', android: 'location-pin' },
+  Minus: { ios: 'remove-outline', android: 'remove' },
+  Navigation: { ios: 'navigate-outline', android: 'navigation' },
+  Package: { ios: 'cube-outline', android: 'inventory-2' },
+  Pencil: { ios: 'pencil-outline', android: 'edit' },
+  Edit: { ios: 'create-outline', android: 'edit' },
+  Phone: { ios: 'call-outline', android: 'phone' },
+  Plus: { ios: 'add', android: 'add' },
+  Receipt: { ios: 'receipt-outline', android: 'receipt-long' },
+  RefreshCw: { ios: 'refresh-outline', android: 'refresh' },
+  Search: { ios: 'search-outline', android: 'search' },
+  Settings: { ios: 'settings-outline', android: 'settings' },
+  Shield: { ios: 'shield-outline', android: 'shield' },
+  ShieldCheck: { ios: 'shield-checkmark-outline', android: 'verified-user' },
+  ShoppingCart: { ios: 'cart-outline', android: 'shopping-cart' },
+  Square: { ios: 'square-outline', android: 'square' },
+  Star: { ios: 'star', android: 'star' },
+  StarOutline: { ios: 'star-outline', android: 'star-outline' },
+  Store: { ios: 'storefront-outline', android: 'storefront' },
+  Trash2: { ios: 'trash-outline', android: 'delete-outline' },
+  Truck: { ios: 'bus-outline', android: 'local-shipping' },
+  User: { ios: 'person-outline', android: 'person-outline' },
+  Users: { ios: 'people-outline', android: 'groups' },
+  UtensilsCrossed: { ios: 'restaurant-outline', android: 'restaurant' },
+  Wallet: { ios: 'wallet-outline', android: 'wallet' },
+  WalletIcon: { ios: 'wallet-outline', android: 'wallet' },
+  Wifi: { ios: 'wifi-outline', android: 'wifi' },
+  WifiOff: { ios: 'cloud-offline-outline', android: 'wifi-off' },
+  X: { ios: 'close', android: 'close' },
+  XCircle: { ios: 'close-circle-outline', android: 'cancel' },
 } as const satisfies Record<string, IconConfig>;
 
-const FALLBACK_ICON: IconConfig = { family: 'Feather', name: 'help-circle' };
+const FALLBACK_ICON: IconConfig = { ios: 'help-circle-outline', android: 'help-outline' };
 
 export type IconName = keyof typeof ICON_MAP;
 
@@ -115,14 +114,30 @@ type CommonIconProps = {
 export type IconProps = CommonIconProps & {
   // Keep the surface area small so we can swap families without leaking props.
   // Extra props can be added as needed during migrations.
-  onLayout?: ComponentProps<typeof Feather>['onLayout'];
+  onLayout?: ComponentProps<typeof Ionicons>['onLayout'];
 };
 
-export function resolveIcon(name: IconName | string): { config: IconConfig; isFallback: boolean } {
+type ResolvedIcon = {
+  name: IoniconName | MaterialIconName;
+  family: IconFamily;
+  isFallback: boolean;
+};
+
+export function resolveIcon(name: IconName | string, familyOverride?: IconFamily): ResolvedIcon {
+  const family = familyOverride ?? (Platform.OS === 'ios' ? 'Ionicons' : 'MaterialIcons');
+  const platformKey = family === 'Ionicons' ? 'ios' : 'android';
   const config = ICON_MAP[name as IconName];
-  if (config) return { config, isFallback: false };
-  console.warn(`[Icon] Missing icon mapping for "${name}", falling back to help-circle.`);
-  return { config: FALLBACK_ICON, isFallback: true };
+
+  if (config) {
+    return { name: config[platformKey], family, isFallback: false };
+  }
+
+  if (!familyOverride) {
+    console.warn(`[Icon] Missing icon mapping for "${name}", falling back to help icon.`);
+    return { name: FALLBACK_ICON[platformKey], family, isFallback: true };
+  }
+
+  return { name: name as IoniconName | MaterialIconName, family, isFallback: false };
 }
 
 export const Icon = memo(function Icon({
@@ -139,18 +154,23 @@ export const Icon = memo(function Icon({
 }: IconProps) {
   const theme = useAppTheme();
 
-  const resolvedSize = typeof size === 'number' ? size : theme.iconSizes[size] ?? theme.iconSizes.md;
+  const baseSize = typeof size === 'number' ? size : theme.iconSizes[size] ?? theme.iconSizes.md;
+  const platformSizeAdjustment = Platform.select({ ios: -1, android: 1, default: 0 }) ?? 0;
+  const resolvedSize = Math.max(8, baseSize + platformSizeAdjustment);
   const resolvedColor =
     color ??
-    (status && theme.colors.status[status])
-    ?? theme.colors.text;
+    (status && theme.colors.status[status]) ??
+    Platform.select({
+      ios: theme.colors.text,
+      android: theme.colors.secondaryText ?? theme.colors.text,
+      default: theme.colors.text,
+    });
 
-  const { config } = useMemo(() => {
-    if (family) return { config: { family, name: name as FeatherName } as IconConfig, isFallback: false };
-    return resolveIcon(name);
+  const resolvedIcon = useMemo(() => {
+    return resolveIcon(name, family);
   }, [family, name]);
 
-  const IconComponent = config.family === 'MaterialCommunityIcons' ? MaterialCommunityIcons : Feather;
+  const IconComponent = resolvedIcon.family === 'MaterialIcons' ? MaterialIcons : Ionicons;
 
   return (
     <IconComponent
@@ -158,7 +178,7 @@ export const Icon = memo(function Icon({
       accessibilityLabel={accessibilityLabel ?? `${name} icon`}
       accessibilityRole="image"
       color={resolvedColor as string}
-      name={config.name as any}
+      name={resolvedIcon.name as any}
       onLayout={onLayout}
       size={resolvedSize}
       style={style}

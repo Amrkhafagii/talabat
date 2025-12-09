@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useAppTheme } from '@/styles/appTheme';
 
 type Props = {
   message: string | null;
@@ -7,17 +8,24 @@ type Props = {
 };
 
 export function AdminToast({ message, tone = 'info' }: Props) {
+  const theme = useAppTheme();
+  const palette = useMemo(() => {
+    const bg = theme.colors.statusSoft;
+    const fg = theme.colors.status;
+    return {
+      info: { backgroundColor: bg.info, color: fg.info },
+      success: { backgroundColor: bg.success, color: fg.success },
+      warning: { backgroundColor: bg.warning, color: fg.warning },
+      error: { backgroundColor: bg.error, color: fg.error },
+    } as const;
+  }, [theme.colors.status, theme.colors.statusSoft]);
+
   if (!message) return null;
-  const toneStyle = {
-    info: styles.info,
-    success: styles.success,
-    warning: styles.warning,
-    error: styles.error,
-  }[tone];
+  const toneStyle = palette[tone];
 
   return (
-    <View style={[styles.toast, toneStyle]}>
-      <Text style={styles.text}>{message}</Text>
+    <View style={[styles.toast, { backgroundColor: toneStyle.backgroundColor }]}>
+      <Text style={[styles.text, { color: toneStyle.color }]}>{message}</Text>
     </View>
   );
 }
@@ -28,9 +36,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 8,
   },
-  text: { color: '#0F172A', fontWeight: '600' },
-  info: { backgroundColor: '#E0F2FE' },
-  success: { backgroundColor: '#DCFCE7' },
-  warning: { backgroundColor: '#FEF3C7' },
-  error: { backgroundColor: '#FEE2E2' },
+  text: { fontWeight: '600' },
 });

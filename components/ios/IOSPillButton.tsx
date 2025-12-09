@@ -15,9 +15,9 @@ type IOSPillButtonProps = {
 };
 
 const variantStyles: Record<Variant, { bg: string; text: string; border: string; shadow?: ViewStyle }> = {
-  primary: { bg: iosColors.primary, text: '#FFFFFF', border: iosColors.primary, shadow: iosShadow.button },
+  primary: { bg: iosColors.primary, text: iosColors.textInverse, border: iosColors.primary, shadow: iosShadow.button },
   neutral: { bg: iosColors.surfaceAlt, text: iosColors.text, border: iosColors.border },
-  destructive: { bg: iosColors.destructive, text: '#FFFFFF', border: iosColors.destructive },
+  destructive: { bg: iosColors.destructive, text: iosColors.textInverse, border: iosColors.destructive },
   ghost: { bg: 'transparent', text: iosColors.primary, border: 'transparent' },
 };
 

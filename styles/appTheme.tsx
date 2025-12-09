@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { Dimensions, Platform, TextStyle, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hp, rf, sp } from './responsive';
+import { syncIosTheme } from './iosTheme';
 
 type Density = 'compact' | 'regular' | 'spacious';
 export type ThemeMode = 'light' | 'dark';
@@ -340,6 +341,11 @@ export function AppThemeProvider({ children, initialMode = 'light' }: { children
     }),
     [density, height, insets, isSmallScreen, mode, palette, radius, scaledIcons, shadows, spacing, tapHitSlop, tapMinHeight, typography, width, primary, statusSoft]
   );
+
+  useEffect(() => {
+    // Keep the legacy iOS token surface in sync for admin components.
+    syncIosTheme(theme);
+  }, [theme]);
 
   return <AppThemeContext.Provider value={theme}>{children}</AppThemeContext.Provider>;
 }

@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   approve: { backgroundColor: iosColors.primary },
   reject: { backgroundColor: iosColors.surfaceAlt, borderWidth: 1, borderColor: iosColors.separator },
-  buttonText: { ...iosTypography.caption, color: '#FFFFFF', fontWeight: '700' },
+  buttonText: { ...iosTypography.caption, color: iosColors.textInverse, fontWeight: '700' },
   rejectText: { color: iosColors.destructive },
 });
 

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleProp, ViewStyle } from 'react-native';
 import { iosSpacing } from '@/styles/iosTheme';
-import { wp } from '@/styles/responsive';
+import { useResponsiveDevice, wp } from '@/styles/responsive';
 
 type AdminGridProps = {
   minColumnWidth?: number;
@@ -12,9 +12,14 @@ type AdminGridProps = {
 
 // Responsive grid: percent-based columns with flexible growth.
 export function AdminGrid({ minColumnWidth = 320, gap = iosSpacing.sm, children, style }: AdminGridProps) {
-  const horizontalPadding = Math.max(iosSpacing.md, wp('5%'));
-  const effectiveMin = Math.max(minColumnWidth, wp('44%'));
-  const maxWidth = wp('92%');
+  const device = useResponsiveDevice();
+  const { horizontalPadding, columnBasis, effectiveMin, maxWidth } = useMemo(() => {
+    const horizontalPadding = Math.max(iosSpacing.md, wp(device.isTablet ? '4%' : '5%'));
+    const columnBasis = wp(device.isTablet ? '31%' : '48%');
+    const effectiveMin = Math.max(minColumnWidth, wp(device.isTablet ? '30%' : '44%'));
+    const maxWidth = wp(device.isTablet ? '34%' : '92%');
+    return { horizontalPadding, columnBasis, effectiveMin, maxWidth };
+  }, [device.isTablet, minColumnWidth]);
   const childArray = React.Children.toArray(children);
 
   return (
@@ -23,7 +28,7 @@ export function AdminGrid({ minColumnWidth = 320, gap = iosSpacing.sm, children,
         <View
           key={idx}
           style={{
-            flexBasis: wp('48%'),
+            flexBasis: columnBasis,
             flexGrow: 1,
             minWidth: effectiveMin,
             maxWidth,

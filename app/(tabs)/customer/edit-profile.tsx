@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
@@ -18,8 +18,10 @@ export default function EditProfile() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { width: screenWidth } = useWindowDimensions();
   const theme = useAppTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const responsive = useMemo(() => computeResponsiveSizes(screenWidth), [screenWidth]);
+  const styles = useMemo(() => createStyles(theme, responsive), [theme, responsive]);
 
   useEffect(() => {
     if (user) {
@@ -201,7 +203,15 @@ export default function EditProfile() {
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+type ResponsiveSizes = { avatar: number; camera: number };
+
+const computeResponsiveSizes = (screenWidth: number): ResponsiveSizes => {
+  const avatar = Math.min(Math.max(screenWidth * 0.26, 80), 112);
+  const camera = Math.min(Math.max(avatar * 0.32, 30), 36);
+  return { avatar, camera };
+};
+
+const createStyles = (theme: ReturnType<typeof useAppTheme>, responsive: ResponsiveSizes) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -233,9 +243,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       marginBottom: 12,
     },
     profilePicture: {
-      width: 100,
-      height: 100,
-      borderRadius: 50,
+      width: responsive.avatar,
+      height: responsive.avatar,
+      borderRadius: responsive.avatar / 2,
       backgroundColor: theme.colors.primary[500],
       justifyContent: 'center',
       alignItems: 'center',
@@ -249,9 +259,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       position: 'absolute',
       bottom: 0,
       right: 0,
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: responsive.camera,
+      height: responsive.camera,
+      borderRadius: responsive.camera / 2,
       backgroundColor: theme.colors.text,
       justifyContent: 'center',
       alignItems: 'center',

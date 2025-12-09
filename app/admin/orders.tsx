@@ -111,7 +111,7 @@ export default function AdminOrders() {
         </AdminGrid>
       </IOSCard>
 
-      <AdminGrid minColumnWidth={320}>
+      <AdminGrid minColumnWidth={260}>
         <IOSCard padding="md" style={[orderIos.card, { minHeight: 320 }]}>
           <Text style={orderIos.title}>Alerts & Issues</Text>
           <AdminState
@@ -138,7 +138,7 @@ export default function AdminOrders() {
         </IOSCard>
         <IOSCard padding="md" style={[orderIos.card, { minHeight: 320 }]}>
           <Text style={orderIos.title}>Cases</Text>
-          <AdminGrid minColumnWidth={300}>
+          <AdminGrid minColumnWidth={230}>
             <OrderAdminList orders={filteredOrders} onSelect={(id) => loadOrder(id)} />
             {selected && (
               <View style={{ gap: iosSpacing.sm }}>

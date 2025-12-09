@@ -48,7 +48,7 @@ export function OrderFilters({
         />
         <Icon name="Filter" size="sm" color={iosColors.secondaryText} />
       </View>
-      <View style={iosRow}>
+      <View style={iosStyles.dropdownRow}>
         <Dropdown
           label="Delivery status"
           value={deliveryStatus}
@@ -64,7 +64,11 @@ export function OrderFilters({
       </View>
       <IOSPillButton label={loading ? 'Loading…' : 'Apply'} onPress={onSubmit} disabled={loading} size="md" />
       {(onQuickReviews || onQuickPayouts) && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[iosRow, { marginTop: iosSpacing.xs }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[iosRow, { flexWrap: 'nowrap', marginTop: iosSpacing.xs }]}
+        >
           {onQuickReviews && <IOSQuickLinkPill label="Quick Links: Reviews" onPress={onQuickReviews} icon={<Icon name="ClipboardList" size="sm" color="#FFF" />} />}
           {onQuickPayouts && <IOSQuickLinkPill label="Quick Links: Payouts" onPress={onQuickPayouts} icon={<Icon name="CreditCard" size="sm" color="#FFF" />} />}
         </ScrollView>
@@ -85,7 +89,7 @@ function Dropdown({
   onChange: (val: string) => void;
 }) {
   return (
-    <View style={{ flex: 1 }}>
+    <View style={iosStyles.dropdownContainer}>
       <Text style={iosTypography.caption}>{label}</Text>
       <View style={iosStyles.dropdown}>
         <Text style={iosStyles.dropdownValue}>{value}</Text>
@@ -115,12 +119,15 @@ const iosStyles = StyleSheet.create({
     padding: iosSpacing.sm,
   },
   dropdownValue: { ...iosTypography.body, marginBottom: iosSpacing.xs },
-  dropdownOptions: { flexDirection: 'row', gap: iosSpacing.xs },
+  dropdownOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: iosSpacing.xs, rowGap: iosSpacing.xs },
   chip: {
-    paddingHorizontal: iosSpacing.sm,
-    paddingVertical: iosSpacing.xs,
+    paddingHorizontal: Math.max(iosSpacing.sm, wp('2.5%')),
+    paddingVertical: Math.max(iosSpacing.xs, wp('1%')),
     borderRadius: iosRadius.pill,
     backgroundColor: iosColors.chipBg,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chipActive: { backgroundColor: iosColors.primary },
   chipText: { ...iosTypography.subhead, color: iosColors.secondaryText },
@@ -130,6 +137,18 @@ const iosStyles = StyleSheet.create({
     alignItems: 'center',
     gap: iosSpacing.xs,
   },
+  dropdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: iosSpacing.xs,
+    flexWrap: 'wrap',
+    rowGap: iosSpacing.xs,
+  },
+  dropdownContainer: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: wp('44%'),
+  },
 });
 
-const iosRow: ViewStyle = { flexDirection: 'row', justifyContent: 'space-between', gap: iosSpacing.xs };
+const iosRow: ViewStyle = { flexDirection: 'row', justifyContent: 'space-between', gap: iosSpacing.xs, flexWrap: 'wrap' };

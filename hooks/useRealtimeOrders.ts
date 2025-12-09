@@ -187,6 +187,29 @@ export function useRealtimeOrders({
     options?: { cancellationReason?: string }
   ) => {
     try {
+      // Only drivers/delivery flow should complete the order. If this hook is used from the
+      // restaurant surface, block "delivered" unless the delivery row is already delivered.
+      if (status === 'delivered') {
+        const { data: deliveryRow, error: deliveryLookupError } = await supabase
+          .from('deliveries')
+          .select('status')
+          .eq('order_id', orderId)
+          .maybeSingle();
+
+        if (deliveryLookupError) {
+          console.warn('Cannot verify delivery before marking delivered', deliveryLookupError.message);
+          return false;
+        }
+
+        if (deliveryRow && deliveryRow.status !== 'delivered') {
+          console.warn('Restaurant UI attempted to mark delivered before driver completed handoff', {
+            orderId,
+            deliveryStatus: deliveryRow.status,
+          });
+          return false;
+        }
+      }
+
       const requiresPaymentApproval = ['confirmed', 'preparing', 'ready', 'picked_up', 'on_the_way'].includes(status);
 
       if (requiresPaymentApproval) {

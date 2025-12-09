@@ -6,7 +6,7 @@ import { SectionNav } from './SectionNav';
 import { iosColors, iosSpacing, iosRadius, iosTypography } from '@/styles/iosTheme';
 import { IOSHeaderBar } from '@/components/ios/IOSHeaderBar';
 import { IOSBottomTabBar } from '@/components/ios/IOSBottomTabBar';
-import { wp, hp } from '@/styles/responsive';
+import { hp, useResponsiveDevice, wp } from '@/styles/responsive';
 import { Icon } from '@/components/ui/Icon';
 import { useAppTheme, type AppTheme } from '@/styles/appTheme';
 
@@ -60,15 +60,19 @@ export function AdminShell({
   activeBottomTab,
 }: AdminShellProps) {
   const theme = useAppTheme();
+  const device = useResponsiveDevice();
   const colors = iosColors;
   const spacing = iosSpacing;
   const radius = iosRadius;
   const typography = iosTypography;
-  const styles = useMemo(() => createStyles({ colors, spacing, radius, typography, theme }), [colors, spacing, radius, typography, theme]);
+  const styles = useMemo(
+    () => createStyles({ colors, spacing, radius, typography, theme, device }),
+    [colors, spacing, radius, typography, theme, device]
+  );
 
   const pathname = usePathname();
   const params = useLocalSearchParams<{ tab?: string; section?: string }>();
-  const isNarrow = false;
+  const isNarrow = device.isSmallScreen || !device.isTablet;
   const activeItem = navItems.find(item => isActive(pathname, item));
   const childItems = activeItem?.children;
   const activeChildSection = typeof params.tab === 'string'
@@ -87,6 +91,7 @@ export function AdminShell({
   const activeTabKey = resolvedBottomTabs
     ? resolvedBottomTabs.find((tab) => pathname.startsWith(tab.href ?? ''))?.key ?? activeBottomTab ?? ''
     : activeBottomTab;
+  const bottomTabPadding = resolvedBottomTabs ? hp(device.isTablet ? '4%' : '8%') : 0;
 
   const renderHeader = () => {
     if (headerVariant === 'ios') {
@@ -135,7 +140,7 @@ export function AdminShell({
           contentContainerStyle={[
             styles.content,
             headerVariant === 'ios' ? styles.iosContent : null,
-            resolvedBottomTabs ? { paddingBottom: hp('8%') } : null,
+            resolvedBottomTabs ? { paddingBottom: bottomTabPadding } : null,
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -172,14 +177,19 @@ function createStyles({
   radius,
   typography,
   theme,
+  device,
 }: {
   colors: typeof iosColors;
   spacing: typeof iosSpacing;
   radius: typeof iosRadius;
   typography: typeof iosTypography;
   theme: AppTheme;
+  device: ReturnType<typeof useResponsiveDevice>;
 }) {
   const inverseText = theme.colors.textInverse || '#fff';
+  const baseHorizontal = Math.max(spacing.lg, wp(device.isTablet ? '4%' : '5.5%'));
+  const baseVertical = Math.max(spacing.lg, hp(device.isTablet ? '2%' : '3%'));
+  const contentVertical = Math.max(spacing.xl, hp(device.isTablet ? '2.5%' : '3.5%'));
 
   return StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: colors.background },
@@ -187,8 +197,9 @@ function createStyles({
     container: { flex: 1, backgroundColor: colors.background },
     iosContainer: { backgroundColor: colors.background },
     header: {
-      padding: Math.max(spacing.lg, hp('2.5%')),
-      paddingTop: Math.max(spacing.xl, hp('3%')),
+      paddingHorizontal: baseHorizontal,
+      paddingVertical: baseVertical,
+      paddingTop: baseVertical + spacing.xs,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -201,11 +212,11 @@ function createStyles({
       backgroundColor: colors.primary,
     },
     signOutText: { color: inverseText, fontWeight: '600' },
-    content: { padding: Math.max(spacing.lg, wp('5%')), paddingBottom: Math.max(spacing.xl, hp('3%')) },
+    content: { paddingHorizontal: baseHorizontal, paddingTop: baseVertical, paddingBottom: contentVertical },
     iosContent: {
-      paddingHorizontal: Math.max(spacing.lg, wp('5%')),
-      paddingTop: Math.max(spacing.lg, hp('2.5%')),
-      paddingBottom: Math.max(spacing.xl, hp('3%')),
+      paddingHorizontal: baseHorizontal,
+      paddingTop: baseVertical,
+      paddingBottom: contentVertical,
     },
   });
 }

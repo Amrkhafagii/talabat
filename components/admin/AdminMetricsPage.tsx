@@ -8,6 +8,7 @@ import AlertsSnapshot from '@/components/admin/AlertsSnapshot';
 import AdminGrid from '@/components/admin/AdminGrid';
 import type { AdminMetricsCoordinatorState } from '@/hooks/useAdminMetricsCoordinator';
 import { IOSCard } from '@/components/ios/IOSCard';
+import { wp } from '@/styles/responsive';
 
 type AdminMetricsPageProps = {
   userEmail: string;
@@ -164,7 +165,7 @@ const hero = StyleSheet.create({
   headerRow: { marginBottom: iosSpacing.md },
   title: { ...iosTypography.title1, color: iosColors.textInverse },
   subtitle: { ...iosTypography.subhead, color: iosColors.separator },
-  circleRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  circleRow: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: iosSpacing.sm },
 });
 
 const cards = StyleSheet.create({
@@ -203,7 +204,11 @@ function HealthCircle({ label, value }: { label: string; value: string }) {
 
 const healthStyles = StyleSheet.create({
   circle: {
-    width: '32%',
+    flexBasis: wp('32%'),
+    flexGrow: 1,
+    flexShrink: 0,
+    minWidth: 140,
+    maxWidth: 220,
     aspectRatio: 1,
     borderRadius: 999,
     borderWidth: 3,

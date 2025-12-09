@@ -262,7 +262,7 @@ async function updateOrderStatusFromDelivery(deliveryId: string, status: string)
     .single();
 
   if (delivery?.order_id) {
-    await updateOrderStatus(delivery.order_id, status);
+    await updateOrderStatus(delivery.order_id, status, { skipPaymentCheck: true });
   }
 }
 

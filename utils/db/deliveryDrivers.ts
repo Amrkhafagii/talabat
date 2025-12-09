@@ -106,11 +106,12 @@ export async function updateDriverLocation(
   const authUserId = session?.session?.user?.id;
 
   let driver = await getDriverById(driverId);
+  if (!driver && authUserId) {
+    driver = await getDriverByUserId(authUserId);
+  }
   if (!driver) {
-    // Fallback: look up by current user id in case we were passed a userId instead of driverId
-    if (authUserId) {
-      driver = await getDriverByUserId(authUserId);
-    }
+    // Handle case where caller passed a user id instead of driver id
+    driver = await getDriverByUserId(driverId);
   }
 
   if (!driver) {
@@ -139,7 +140,7 @@ export async function updateDriverLocation(
   const { error } = await supabase
     .from('delivery_drivers')
     .update(payload)
-    .eq('id', driverId);
+    .eq('id', driver.id);
 
   if (error) {
     console.error('Error updating driver location:', {

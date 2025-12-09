@@ -70,7 +70,7 @@ export default function RestaurantOrders() {
     try {
       const success = await updateOrderStatus(orderId, newStatus, { cancellationReason });
       if (!success) {
-        Alert.alert('Error', 'Failed to update order status');
+        Alert.alert('Error', newStatus === 'delivered' ? 'Delivery must be completed by the driver.' : 'Failed to update order status');
         return;
       }
       await logOrderEvent(orderId, newStatus, cancellationReason, user?.id);
@@ -299,7 +299,7 @@ function OrderCard({
   const showAccept = order.status === 'pending' && paymentApproved;
   const showReject = order.status === 'pending';
   const showReady = ['confirmed', 'preparing'].includes(order.status);
-  const showDelivered = order.status === 'ready';
+  const showHandedToCourier = order.status === 'ready';
   const customerName = order.customer_name || `Customer ${order.user_id.slice(-4)}`;
   const displayId = order.short_code || order.order_number || order.id.slice(-6).toUpperCase();
 
@@ -327,7 +327,7 @@ function OrderCard({
         <Text style={styles.meta}>Placed {formatOrderTime(order.created_at)}</Text>
       </View>
 
-      {(showReject || showAccept || showReady || showDelivered) && (
+      {(showReject || showAccept || showReady || showHandedToCourier) && (
         <View style={[styles.actions, showReject && showAccept ? styles.actionsRow : null]}>
           {showReject && (
             <Button
@@ -351,8 +351,8 @@ function OrderCard({
           {showReady && (
             <Button title="Ready for Pickup" size="medium" pill fullWidth onPress={() => onAction(order.id, 'ready')} />
           )}
-          {showDelivered && (
-            <Button title="Mark Delivered" size="medium" pill variant="secondary" fullWidth onPress={() => onAction(order.id, 'picked_up')} />
+          {showHandedToCourier && (
+            <Button title="Handed to Courier" size="medium" pill variant="secondary" fullWidth onPress={() => onAction(order.id, 'picked_up')} />
           )}
         </View>
       )}

@@ -7,8 +7,8 @@ export function useResponsiveSpacing() {
 
   return useMemo(
     () => {
-      const baseHorizontal = Math.max(spacing.lg, wp('5%'));
-      const baseVertical = Math.max(spacing.lg, hp('2.5%'));
+      const baseHorizontal = Math.max(spacing.lg, wp(device.isTablet ? '4%' : '5%'));
+      const baseVertical = Math.max(spacing.lg, hp(device.isTablet ? '2%' : '2.5%'));
       return {
         horizontalGutter: baseHorizontal + Math.max(insets.left, insets.right) / 2,
         verticalGutter: baseVertical,

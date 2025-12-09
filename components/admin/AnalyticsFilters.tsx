@@ -82,13 +82,16 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: iosSpacing.sm,
   },
   inputWithIcon: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: iosSpacing.xs,
+    flexGrow: 1,
+    width: '48%',
+    minWidth: 170,
   },
   input: { flex: 1, paddingRight: iosSpacing.md },
 });

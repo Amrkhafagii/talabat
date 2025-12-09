@@ -318,7 +318,9 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     },
     sectionTitle: { ...theme.typography.subhead, marginBottom: theme.spacing.sm },
     photoPlaceholder: {
-      height: 180,
+      aspectRatio: 4 / 3,
+      minHeight: 140,
+      maxHeight: 220,
       borderRadius: theme.radius.lg,
       borderWidth: 1,
       borderColor: theme.colors.border,

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
@@ -34,8 +34,10 @@ export default function RestaurantCard({
   etaLabel,
   trusted = false,
 }: RestaurantCardProps) {
+  const { width: screenWidth } = useWindowDimensions();
   const theme = useRestaurantTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const responsive = useMemo(() => computeResponsiveSizes(screenWidth, theme), [screenWidth, theme]);
+  const styles = useMemo(() => createStyles(theme, responsive), [theme, responsive]);
 
   if (variant === 'promoted') {
     return (
@@ -125,11 +127,32 @@ export default function RestaurantCard({
     );
   }
 
-const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
+type ResponsiveSizes = {
+  promotedBasis: number;
+  promotedMin: number;
+  promotedMax: number;
+  promotedGap: number;
+  thumbSize: number;
+};
+
+const computeResponsiveSizes = (screenWidth: number, theme: ReturnType<typeof useRestaurantTheme>): ResponsiveSizes => {
+  const spacingMd = (theme.spacing?.md as number | undefined) ?? 16;
+  const promotedMin = 240;
+  const promotedMax = 360;
+  const promotedBasis = Math.min(Math.max(screenWidth * 0.78, promotedMin), promotedMax);
+  const thumbSize = Math.min(Math.max(screenWidth * 0.3, 96), 140);
+
+  return { promotedBasis, promotedMin, promotedMax, promotedGap: spacingMd, thumbSize };
+};
+
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>, responsive: ResponsiveSizes) =>
   StyleSheet.create({
     promotedCard: {
-      width: 280,
-      marginRight: 16,
+      flexBasis: responsive.promotedBasis,
+      flexGrow: 1,
+      maxWidth: responsive.promotedMax,
+      minWidth: responsive.promotedMin,
+      marginRight: responsive.promotedGap,
       backgroundColor: theme.colors.surface,
       borderRadius: 16,
       ...theme.shadows.card,
@@ -176,8 +199,8 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       overflow: 'hidden',
     },
   restaurantImage: {
-    width: 100,
-    height: 100,
+    width: responsive.thumbSize,
+    height: responsive.thumbSize,
   },
     restaurantDetails: {
       flex: 1,

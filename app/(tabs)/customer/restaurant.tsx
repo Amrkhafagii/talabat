@@ -12,6 +12,7 @@ import { getRestaurantById, getMenuItemsByRestaurant } from '@/utils/database';
 import { Restaurant, MenuItem as MenuItemType } from '@/types/database';
 import { isRestaurantOpenNow } from '@/utils/hours';
 import { useAppTheme } from '@/styles/appTheme';
+import { wp } from '@/styles/responsive';
 
 const baseCategories = ['All', 'Popular', 'Mains', 'Sides', 'Beverages', 'Desserts'];
 
@@ -281,7 +282,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     },
     restaurantImage: {
       width: '100%',
-      height: 200,
+      aspectRatio: 16 / 9,
+      minHeight: 180,
+      maxHeight: 260,
     },
     restaurantDetails: {
       padding: 20,
@@ -338,7 +341,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       marginBottom: 8,
     },
     categoryTab: {
-      paddingHorizontal: 20,
+      paddingHorizontal: Math.max(theme.spacing.sm, wp('4%')),
       paddingVertical: 8,
       marginHorizontal: 4,
       borderRadius: 20,

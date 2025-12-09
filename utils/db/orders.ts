@@ -332,11 +332,18 @@ export async function getOrderById(orderId: string): Promise<Order | null> {
   return data;
 }
 
-export async function updateOrderStatus(orderId: string, status: string, additionalData?: any): Promise<boolean> {
+type UpdateOrderStatusOptions = {
+  cancellationReason?: string;
+  skipPaymentCheck?: boolean;
+  [key: string]: any;
+};
+
+export async function updateOrderStatus(orderId: string, status: string, additionalData?: UpdateOrderStatusOptions): Promise<boolean> {
   const updateData: any = { status };
   const requiresPaymentApproval = ['confirmed', 'preparing', 'ready', 'picked_up', 'on_the_way'].includes(status);
+  const skipPaymentCheck = additionalData?.skipPaymentCheck === true;
 
-  if (requiresPaymentApproval) {
+  if (requiresPaymentApproval && !skipPaymentCheck) {
     const { data: orderPayment, error: paymentError } = await supabase
       .from('orders')
       .select('payment_status')
@@ -368,8 +375,8 @@ export async function updateOrderStatus(orderId: string, status: string, additio
       break;
     case 'cancelled':
       updateData.cancelled_at = new Date().toISOString();
-      if (additionalData?.cancellation_reason) {
-        updateData.cancellation_reason = additionalData.cancellation_reason;
+      if (additionalData?.cancellationReason || (additionalData as any)?.cancellation_reason) {
+        updateData.cancellation_reason = additionalData.cancellationReason || (additionalData as any)?.cancellation_reason;
       } else {
         updateData.cancellation_reason = 'unspecified';
       }

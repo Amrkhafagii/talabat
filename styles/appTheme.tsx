@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Dimensions, Platform, TextStyle, ViewStyle } from 'react-native';
+import { Platform, TextStyle, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { hp, rf, sp } from './responsive';
+import { Density, hp, rf, sp, useResponsiveDevice } from './responsive';
 import { syncIosTheme } from './iosTheme';
 
-type Density = 'compact' | 'regular' | 'spacious';
 export type ThemeMode = 'light' | 'dark';
 
 type PrimaryRamp = { 50: string; 100: string; 500: string; 600: string };
@@ -281,17 +280,8 @@ export const appThemeDark = {
 export function AppThemeProvider({ children, initialMode = 'light' }: { children: React.ReactNode; initialMode?: ThemeMode }) {
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<ThemeMode>(initialMode);
-  const [windowSize, setWindowSize] = useState(() => Dimensions.get('window'));
-
-  useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) => setWindowSize(window));
-    return () => sub?.remove?.();
-  }, []);
-
-  const width = windowSize.width;
-  const height = windowSize.height;
-  const isSmallScreen = width <= 380;
-  const density: Density = isSmallScreen ? 'compact' : width >= 900 ? 'spacious' : 'regular';
+  const device = useResponsiveDevice();
+  const { width, isSmallScreen, isTablet, density } = device;
 
   const palette = mode === 'dark' ? darkPalette : lightPalette;
   const primary = mode === 'dark' ? primaryRampDark : primaryRampLight;
@@ -308,7 +298,7 @@ export function AppThemeProvider({ children, initialMode = 'light' }: { children
     };
   }, []);
 
-  const tapMinHeight = Math.max(44, hp('5%'));
+  const tapMinHeight = Math.max(44, hp(isTablet ? '4%' : '5%'));
   const tapHitSlop = sp(12);
 
   const theme = useMemo<AppTheme>(
@@ -334,12 +324,12 @@ export function AppThemeProvider({ children, initialMode = 'light' }: { children
       icons: { strokeWidth: 1.6 },
       tap: { minHeight: tapMinHeight, hitSlop: { top: tapHitSlop, bottom: tapHitSlop, left: tapHitSlop, right: tapHitSlop } },
       insets,
-      device: { width, density, isSmallScreen, isTablet: width >= 768 },
+      device: { width, density, isSmallScreen, isTablet },
       statusBarStyle: mode === 'dark' ? 'light' : 'dark',
       statusBarBackground: palette.background,
       setMode,
     }),
-    [density, height, insets, isSmallScreen, mode, palette, radius, scaledIcons, shadows, spacing, tapHitSlop, tapMinHeight, typography, width, primary, statusSoft]
+    [density, insets, isSmallScreen, isTablet, mode, palette, radius, scaledIcons, shadows, spacing, tapHitSlop, tapMinHeight, typography, width, primary, statusSoft]
   );
 
   useEffect(() => {

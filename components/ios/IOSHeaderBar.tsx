@@ -73,7 +73,7 @@ const styles = StyleSheet.create<Styles>({
     ...iosShadow.button,
   },
   doneText: { ...iosTypography.button, color: iosColors.textInverse },
-  side: { width: 80, flexDirection: 'row', justifyContent: 'flex-start' },
+  side: { flexDirection: 'row', justifyContent: 'flex-start', flexShrink: 1 },
 });
 
 export default IOSHeaderBar;

@@ -5,6 +5,7 @@ import { IOSCard } from '@/components/ios/IOSCard';
 import { IOSBadge } from '@/components/ios/IOSBadge';
 import { iosColors, iosSpacing, iosTypography, iosRadius } from '@/styles/iosTheme';
 import type { DriverPayable, RestaurantPayable } from '@/utils/db/admin';
+import { formatCurrency } from '@/utils/formatters';
 
 type Props = {
   restaurantPayables: RestaurantPayable[];
@@ -43,7 +44,9 @@ export function PayoutBacklog({ restaurantPayables, driverPayables, loading = fa
           <View key={p.order_id} style={iosStyles.card}>
             <Text style={iosStyles.title}>{p.restaurant_name || p.restaurant_id}</Text>
             <Text style={iosStyles.meta}>Order: {p.order_id}</Text>
-            <Text style={iosStyles.row}>Amount due: ${(Number(p.restaurant_net ?? 0) + Number(p.tip_amount ?? 0)).toFixed(2)}</Text>
+            <Text style={iosStyles.row}>
+              Amount due: {formatCurrency(Number(p.restaurant_net ?? 0) + Number(p.tip_amount ?? 0))}
+            </Text>
             {p.restaurant_payout_last_error && (
               <Text style={[iosStyles.row, iosStyles.warn]}>Last error: {p.restaurant_payout_last_error}</Text>
             )}
@@ -53,7 +56,7 @@ export function PayoutBacklog({ restaurantPayables, driverPayables, loading = fa
           <View key={p.order_id} style={iosStyles.card}>
             <Text style={iosStyles.title}>{p.driver_name || p.driver_id}</Text>
             <Text style={iosStyles.meta}>Order: {p.order_id}</Text>
-            <Text style={iosStyles.row}>Amount due: ${Number(p.driver_payable ?? 0).toFixed(2)}</Text>
+            <Text style={iosStyles.row}>Amount due: {formatCurrency(Number(p.driver_payable ?? 0))}</Text>
             {p.driver_payout_last_error && (
               <Text style={[iosStyles.row, iosStyles.warn]}>Last error: {p.driver_payout_last_error}</Text>
             )}
@@ -80,7 +83,7 @@ export function PayoutBacklog({ restaurantPayables, driverPayables, loading = fa
           <Text style={adminStyles.title}>{p.restaurant_name || p.restaurant_id}</Text>
           <Text style={adminStyles.metaRow}>Order: {p.order_id}</Text>
           <Text style={adminStyles.row}>
-            Amount due: ${(Number(p.restaurant_net ?? 0) + Number(p.tip_amount ?? 0)).toFixed(2)}
+            Amount due: {formatCurrency(Number(p.restaurant_net ?? 0) + Number(p.tip_amount ?? 0))}
           </Text>
           {p.restaurant_payout_last_error && (
             <Text style={[adminStyles.row, adminStyles.warningText]}>Last error: {p.restaurant_payout_last_error}</Text>
@@ -91,7 +94,7 @@ export function PayoutBacklog({ restaurantPayables, driverPayables, loading = fa
         <View key={p.order_id} style={adminStyles.card}>
           <Text style={adminStyles.title}>{p.driver_name || p.driver_id}</Text>
           <Text style={adminStyles.metaRow}>Order: {p.order_id}</Text>
-          <Text style={adminStyles.row}>Amount due: ${Number(p.driver_payable ?? 0).toFixed(2)}</Text>
+          <Text style={adminStyles.row}>Amount due: {formatCurrency(Number(p.driver_payable ?? 0))}</Text>
           {p.driver_payout_last_error && (
             <Text style={[adminStyles.row, adminStyles.warningText]}>Last error: {p.driver_payout_last_error}</Text>
           )}

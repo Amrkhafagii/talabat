@@ -58,7 +58,7 @@ export function PayoutBalances({ balances, walletTx, onSettle, onViewTx }: Props
             </View>
             <IOSBadge label={`Balance ${money(b.balance)}`} tone={(b.balance ?? 0) < 0 ? 'error' : 'info'} />
           </View>
-          <Text style={styles.balanceValue}>${money(b.balance)}</Text>
+          <Text style={styles.balanceValue}>{money(b.balance)}</Text>
           <Text style={styles.helperText}>Instapay: {b.instapay_handle || '—'} ({b.instapay_channel || 'instapay'})</Text>
           {(b as any)?.status === 'blocked' && (
             <Text style={[styles.helperText, styles.blocked]}>Blocked account. Reason: {(b as any)?.block_reason || 'N/A'}</Text>

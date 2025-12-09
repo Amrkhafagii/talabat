@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { styles } from '@/styles/adminMetrics';
+import { formatCurrency } from '@/utils/formatters';
 
 export type HeroStatsProps = {
   approvalsCount: number;
@@ -28,7 +29,7 @@ export default function HeroStats({ approvalsCount, payoutsCount, platformNet = 
         ].map(card => (
           <TouchableOpacity key={card.key} style={styles.statCard} onPress={() => onPressSection(card.key)}>
             <Text style={styles.statLabel}>{card.label}</Text>
-            <Text style={styles.statValue}>{card.money ? `$${Number(card.value).toFixed(2)}` : card.value}</Text>
+            <Text style={styles.statValue}>{card.money ? formatCurrency(Number(card.value)) : card.value}</Text>
           </TouchableOpacity>
         ))}
       </View>

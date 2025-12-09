@@ -39,7 +39,7 @@ create table if not exists public.driver_cash_transactions (
   driver_id uuid references public.delivery_drivers(id) on delete cascade,
   reconciliation_id uuid references public.driver_cash_reconciliations(id) on delete set null,
   amount numeric(12,2) not null,
-  currency text default 'USD',
+  currency text default 'EGP',
   type text not null check (type in ('collection','payout','adjustment')),
   reference text,
   metadata jsonb,

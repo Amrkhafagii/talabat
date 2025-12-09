@@ -66,7 +66,7 @@ export default function PaymentReviewList({ items, loading, error, mismatch, onA
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={cardStyles.title}>Payment ID: #{item.id}</Text>
                 <Text style={cardStyles.meta}>User: {item.user_id ?? '—'}    Date: {item.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}</Text>
-                <Text style={cardStyles.meta}>Amount: ${money(item.total_charged ?? item.total ?? 0)}    Status: {headerStatus}</Text>
+                <Text style={cardStyles.meta}>Amount: {money(item.total_charged ?? item.total ?? 0)}    Status: {headerStatus}</Text>
               </View>
               <View style={cardStyles.badgeRow}>
                 {mismatch(item) && <IOSBadge label="Mismatch" tone="error" />}

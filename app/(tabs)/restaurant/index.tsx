@@ -13,6 +13,7 @@ import { Restaurant, RestaurantDashboard as RestaurantDashboardData } from '@/ty
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { wp, hp } from '@/styles/responsive';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { formatCurrency } from '@/utils/formatters';
 
 type RangeKey = 'today' | '7d' | '30d';
 
@@ -273,7 +274,7 @@ function buildQuickActions(theme: ReturnType<typeof useRestaurantTheme>): QuickA
 }
 
 function formatMoney(value: number) {
-  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatCurrency(value);
 }
 
 function formatNumber(value: number) {

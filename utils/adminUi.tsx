@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import type { PaymentReviewItem } from '@/utils/db/admin';
+import { formatCurrency } from '@/utils/formatters';
 
 export type BadgeState = 'pending' | 'review' | 'paid' | 'failed' | 'initiated';
 
 export const expectedPaymentAmount = (o: PaymentReviewItem) =>
   Number((o.subtotal ?? 0) + (o.tax_amount ?? 0) + (o.tip_amount ?? 0) + (o.delivery_fee ?? 0) + (o.platform_fee ?? 0));
 
-export const money = (val?: number | null) => Number(val ?? 0).toFixed(2);
+export const money = (val?: number | null) => formatCurrency(Number(val ?? 0));
 
 export const safeUrl = (u?: string | null) => {
   if (!u) return null;

@@ -13,6 +13,7 @@ import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { ensureRestaurantForUser, getRestaurantDashboard, getTrustedArrivals } from '@/utils/database';
 import { Restaurant, RestaurantDashboard as RestaurantDashboardData, TrustedArrival } from '@/types/database';
 import { wp, hp } from '@/styles/responsive';
+import { formatCurrency } from '@/utils/formatters';
 
 type RangeKey = 'today' | '7d' | '30d';
 
@@ -168,7 +169,7 @@ export default function DailyPerformanceScreen() {
 }
 
 function formatMoney(value: number) {
-  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatCurrency(value);
 }
 
 function formatNumber(value: number) {

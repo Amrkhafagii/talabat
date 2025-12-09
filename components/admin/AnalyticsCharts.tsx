@@ -17,8 +17,8 @@ export function AnalyticsCharts({ totalsCustomer, totalsPlatform, paidOrders, dr
   return (
     <View>
       <View style={chartStyles.metricRow}>
-        <KpiCard label="Total Customer Paid" value={`$${money(totalsCustomer)}`} delta="+12%" />
-        <KpiCard label="Platform Fee" value={`$${money(totalsPlatform)}`} delta="+8%" />
+        <KpiCard label="Total Customer Paid" value={money(totalsCustomer)} delta="+12%" />
+        <KpiCard label="Platform Fee" value={money(totalsPlatform)} delta="+8%" />
         <KpiCard label="Paid Orders" value={`${paidOrders}`} delta="+10%" />
       </View>
 
@@ -62,7 +62,7 @@ function BarList({ items, iconMode = false }: { items: { label: string; value: n
           <View key={item.label} style={{ gap: iosSpacing.xxs }}>
             <View style={chartStyles.barRow}>
               <Text style={chartStyles.barLabel}>{iconMode ? `🍔 ${item.label}` : item.label}</Text>
-              <Text style={chartStyles.barValue}>${money(item.value)}</Text>
+              <Text style={chartStyles.barValue}>{money(item.value)}</Text>
             </View>
             <View style={chartStyles.barBg}>
               <View style={[chartStyles.barFill, { width: `${pct}%` }]} />

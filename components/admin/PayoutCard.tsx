@@ -30,7 +30,7 @@ export function PayoutCard({ kind, data, onRetry }: Props) {
         </View>
       </View>
       <Text style={styles.metaRow}>Order: {data.order_id}</Text>
-      <Text style={styles.row}>Amount due: ${amount}</Text>
+      <Text style={styles.row}>Amount due: {amount}</Text>
       {lastError && <Text style={[styles.row, styles.warningText]}>Last error: {lastError}</Text>}
       <Text style={styles.metaRow}>Ref: {ref ?? '—'}</Text>
       {onRetry && (

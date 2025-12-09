@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Switch } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { formatCurrency } from '@/utils/formatters';
 
 interface MenuItemManagement {
   id: string;
@@ -74,7 +75,7 @@ export default function MenuItemManagementCard({
         {item.description ? <Text style={styles.description} numberOfLines={2}>{item.description}</Text> : null}
 
         <View style={styles.bottomRow}>
-          <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+          <Text style={styles.price}>{formatCurrency(item.price)}</Text>
           <View style={styles.iconRow}>
             <TouchableOpacity onPress={onTogglePopular} style={[styles.iconButton, item.isPopular && styles.iconButtonActive]}>
               <Icon

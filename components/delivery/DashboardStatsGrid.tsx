@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import StatCard from '@/components/common/StatCard';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { formatCurrency } from '@/utils/formatters';
 
 type Stats = {
   todayEarnings: number;
@@ -23,7 +24,7 @@ export function DashboardStatsGrid({ stats, paddingHorizontal }: Props) {
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Today</Text>
       <View style={styles.grid}>
-        <StatCard icon="DollarSign" value={`$${stats.todayEarnings.toFixed(2)}`} label="Earnings" />
+        <StatCard icon="DollarSign" value={formatCurrency(stats.todayEarnings)} label="Earnings" />
         <StatCard icon="CheckCircle" value={stats.completedDeliveries} label="Deliveries" />
         <StatCard icon="Clock" value={`${stats.avgDeliveryTime}m`} label="Avg Time" />
         <StatCard icon="Truck" value={stats.rating.toFixed(1)} label="Rating" />

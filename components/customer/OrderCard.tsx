@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Icon } from '@/components/ui/Icon';
 import Card from '../ui/Card';
 import OrderStatusBadge from '../common/OrderStatusBadge';
 import Button from '../ui/Button';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { Icon } from '@/components/ui/Icon';
+import { formatCurrency } from '@/utils/formatters';
 
 interface Order {
   id: string;
@@ -75,7 +76,7 @@ export default function OrderCard({ order, onTrack, onReorder }: OrderCardProps)
 
       {/* Order Footer */}
       <View style={styles(theme).orderFooter}>
-        <Text style={styles(theme).orderTotal}>Total: ${order.total.toFixed(2)}</Text>
+        <Text style={styles(theme).orderTotal}>Total: {formatCurrency(order.total)}</Text>
         <View style={styles(theme).orderActions}>
           {onTrack && (
             <Button title="Track Order" onPress={onTrack} size="small" />

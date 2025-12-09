@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Icon } from '@/components/ui/Icon';
 import { useAppTheme } from '@/styles/appTheme';
+import { Icon } from '@/components/ui/Icon';
+import { formatCurrency } from '@/utils/formatters';
 
 interface CartItem {
   id: string;
@@ -23,7 +24,7 @@ export default function CartItemCard({ item, onUpdateQuantity }: CartItemCardPro
     <View style={styles.cartItem}>
       <View style={styles.itemInfo}>
         <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+        <Text style={styles.itemPrice}>{formatCurrency(item.price)}</Text>
       </View>
       <View style={styles.quantityControls}>
         <TouchableOpacity 

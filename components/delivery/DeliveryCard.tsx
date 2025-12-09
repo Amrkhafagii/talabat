@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Icon } from '@/components/ui/Icon';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
+import { Icon } from '@/components/ui/Icon';
+import { formatCurrency } from '@/utils/formatters';
 
 interface DeliveryOrder {
   id: string;
@@ -48,7 +49,7 @@ export default function DeliveryCard({
           <Text style={styles.customerName}>To: {order.customerName}</Text>
         </View>
         <View style={styles.payment}>
-          <Text style={styles.paymentAmount}>${order.payment.toFixed(2)}</Text>
+          <Text style={styles.paymentAmount}>{formatCurrency(order.payment)}</Text>
           <Text style={styles.paymentLabel}>Payment</Text>
         </View>
       </View>

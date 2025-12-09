@@ -3,6 +3,7 @@ import { Order, OrderFilters } from '@/types/database';
 import { getPushTokens } from './pushTokens';
 import { sendPushNotification } from '../push';
 import { payoutDriverDelivery } from './wallets';
+import { formatCurrency } from '../formatters';
 import { computeEtaBand, etaTimestampsFromNow, getRestaurantSla, logAudit, createDeliveryEvent, weatherFactorFromSeverity } from './trustedArrival';
 import { logOrderEvent } from './orderEvents';
 
@@ -208,7 +209,7 @@ async function notifyRestaurantNewOrder(restaurantId: string, orderId: string, t
     await Promise.all((tokens || []).map(token => sendPushNotification(
       token,
       'New Order',
-      `You have a new order (${orderId.slice(-6).toUpperCase()}) • ${total.toFixed(2)}`,
+      `You have a new order (${orderId.slice(-6).toUpperCase()}) • ${formatCurrency(total)}`,
       { orderId }
     )));
   } catch (err) {

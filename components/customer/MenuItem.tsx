@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
 import Badge from '../ui/Badge';
 import { useAppTheme } from '@/styles/appTheme';
+import { formatCurrency } from '@/utils/formatters';
 
 interface MenuItemData {
   id: string;
@@ -38,7 +39,7 @@ export default function MenuItem({ item, quantity, onAdd, onRemove, disabled = f
           {item.popular && <Badge label="POPULAR" tone="info" />}
         </View>
         <Text style={styles.itemDescription}>{item.description}</Text>
-        <Text style={styles.itemPrice}>${item.price}</Text>
+        <Text style={styles.itemPrice}>{formatCurrency(item.price)}</Text>
       </View>
       <View style={styles.itemImageContainer}>
         <Image source={{ uri: item.image }} style={styles.itemImage} />

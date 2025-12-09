@@ -11,7 +11,7 @@ import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { getRestaurantByUserId, releaseOrderPayment, getPushTokens, assignNearestDriverForOrder, logOrderEvent } from '@/utils/database';
 import { sendPushNotification } from '@/utils/push';
 import { Restaurant } from '@/types/database';
-import { formatOrderTime } from '@/utils/formatters';
+import { formatCurrency, formatOrderTime } from '@/utils/formatters';
 import { getOrderItems } from '@/utils/orderHelpers';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import Badge from '@/components/ui/Badge';
@@ -322,7 +322,7 @@ function OrderCard({
       <View style={styles.totalRow}>
         <View>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>${order.total.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>{formatCurrency(order.total)}</Text>
         </View>
         <Text style={styles.meta}>Placed {formatOrderTime(order.created_at)}</Text>
       </View>

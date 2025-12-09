@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Icon } from '@/components/ui/Icon';
 import { useAppTheme } from '@/styles/appTheme';
+import { Icon } from '@/components/ui/Icon';
+import { formatCurrency } from '@/utils/formatters';
 
 type Props = {
   subtotal: number;
@@ -24,23 +25,23 @@ export function CartSummary({ subtotal, deliveryFee, tax, platformFee, total, et
       <View style={styles.summaryContainer}>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Subtotal</Text>
-          <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Delivery Fee</Text>
-          <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(deliveryFee)}</Text>
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Tax</Text>
-          <Text style={styles.summaryValue}>${tax.toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(tax)}</Text>
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Platform fee (10%)</Text>
-          <Text style={styles.summaryValue}>${platformFee.toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(platformFee)}</Text>
         </View>
         <View style={[styles.summaryRow, styles.totalRow]}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
         </View>
         {etaLabel && (
           <View style={[styles.etaBadge, etaTrusted ? styles.etaTrusted : styles.etaCaution]}>

@@ -78,7 +78,7 @@ export default function PayoutQueues({
               <IOSBadge label={statusLabel(payoutStatus)} tone="info" />
             </View>
             <Text style={iosStyles.meta}>Next retry: {nextRetry ?? '—'}</Text>
-            <Text style={iosStyles.meta}>Amount: ${money(amount)}</Text>
+            <Text style={iosStyles.meta}>Amount: {money(amount)}</Text>
             {lastError ? <Text style={[iosStyles.meta, iosStyles.warn]}>Last error: {lastError}</Text> : null}
             <View style={iosStyles.actionRow}>
               <IOSPillButton

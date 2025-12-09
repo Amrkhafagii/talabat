@@ -6,6 +6,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { requestPayout } from '@/utils/database';
+import { formatCurrency } from '@/utils/formatters';
 import Button from '@/components/ui/Button';
 import { wp, hp } from '@/styles/responsive';
 import { Icon } from '@/components/ui/Icon';
@@ -32,7 +33,8 @@ export default function PayoutConfirmScreen() {
   const methodLabel = params.methodLabel || 'Selected method';
   const currency = params.currency || 'EGP';
   const canSubmit = Boolean(params.walletId && params.methodId && parsedAmount > 0);
-  const formatMoney = (value: number) => `${currency} ${value.toFixed(2)}`;
+  const formatMoney = (value: number) =>
+    currency.toUpperCase() === 'EGP' ? formatCurrency(value) : `${currency} ${value.toFixed(2)}`;
 
   const handleConfirm = async () => {
     if (!canSubmit) {

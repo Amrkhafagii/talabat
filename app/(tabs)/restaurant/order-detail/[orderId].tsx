@@ -10,7 +10,7 @@ import { getOrderTimeline, OrderTimelineEvent } from '@/utils/db/orderEvents';
 import { Order } from '@/types/database';
 import TimelineItem from '@/components/ui/TimelineItem';
 import { getOrderStatusToken, getPaymentStatusToken } from '@/styles/statusTokens';
-import { formatOrderTime } from '@/utils/formatters';
+import { formatCurrency, formatOrderTime } from '@/utils/formatters';
 import { wp, hp } from '@/styles/responsive';
 import { Icon } from '@/components/ui/Icon';
 
@@ -105,15 +105,15 @@ export default function OrderDetailScreen() {
             <View key={item.id} style={styles.itemRow}>
               <Text style={styles.itemName}>{item.menu_item?.name || 'Item'}</Text>
               <Text style={styles.itemQty}>x{item.quantity}</Text>
-              <Text style={styles.itemPrice}>${(item.total_price ?? 0).toFixed(2)}</Text>
+              <Text style={styles.itemPrice}>{formatCurrency(Number(item.total_price ?? 0))}</Text>
             </View>
           ))}
           <View style={styles.divider} />
-          <Row label="Subtotal" value={`$${order.subtotal.toFixed(2)}`} />
-          <Row label="Delivery" value={`$${order.delivery_fee.toFixed(2)}`} />
-          <Row label="Tax" value={`$${order.tax_amount.toFixed(2)}`} />
-          <Row label="Tip" value={`$${order.tip_amount.toFixed(2)}`} />
-          <Row label="Total" value={`$${order.total.toFixed(2)}`} bold />
+          <Row label="Subtotal" value={formatCurrency(order.subtotal)} />
+          <Row label="Delivery" value={formatCurrency(order.delivery_fee)} />
+          <Row label="Tax" value={formatCurrency(order.tax_amount)} />
+          <Row label="Tip" value={formatCurrency(order.tip_amount)} />
+          <Row label="Total" value={formatCurrency(order.total)} bold />
         </View>
 
         <View style={styles.card}>

@@ -13,8 +13,11 @@ export function formatOrderTime(dateString: string): string {
   }
 }
 
-export function formatCurrency(amount: number): string {
-  return `$${amount.toFixed(2)}`;
+export function formatCurrency(amount: number | string): string {
+  const numeric = typeof amount === 'string' ? Number(amount) : amount;
+  const value = Number.isFinite(numeric) ? numeric : 0;
+  const pretty = value.toLocaleString('en-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `EGP ${pretty}`;
 }
 
 function formatDistance(distance: string): string {

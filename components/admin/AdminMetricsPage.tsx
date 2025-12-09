@@ -9,6 +9,7 @@ import AdminGrid from '@/components/admin/AdminGrid';
 import type { AdminMetricsCoordinatorState } from '@/hooks/useAdminMetricsCoordinator';
 import { IOSCard } from '@/components/ios/IOSCard';
 import { wp } from '@/styles/responsive';
+import { formatCurrency } from '@/utils/formatters';
 
 type AdminMetricsPageProps = {
   userEmail: string;
@@ -136,7 +137,9 @@ export default function AdminMetricsPage({ userEmail, onSignOut, ...vm }: AdminM
         </IOSCard>
         <IOSCard padding="md" style={cards.section}>
           <Text style={cards.sectionTitle}>Payout Backlog</Text>
-          <Text style={cards.sectionHelper}>Restaurant due: ${restaurantOutstanding.toFixed(2)} • Driver due: ${driverOutstanding.toFixed(2)}</Text>
+          <Text style={cards.sectionHelper}>
+            Restaurant due: {formatCurrency(restaurantOutstanding)} • Driver due: {formatCurrency(driverOutstanding)}
+          </Text>
           <Text style={cards.sectionHelper}>Use Payouts screen to process retries.</Text>
         </IOSCard>
         <IOSCard padding="md" style={cards.section}>

@@ -12,6 +12,7 @@ import { CartHeader } from '@/components/customer/CartHeader';
 import { CartAddressSection } from '@/components/customer/CartAddressSection';
 import { CartReceiptSection } from '@/components/customer/CartReceiptSection';
 import { CartSummary } from '@/components/customer/CartSummary';
+import { formatCurrency } from '@/utils/formatters';
 
 export default function Cart() {
   const {
@@ -88,7 +89,7 @@ export default function Cart() {
             <View key={`sub-${prompt.item.id}`} style={styles.substitutionCard}>
               <Text style={styles.substitutionTitle}>Item unavailable</Text>
               <Text style={styles.substitutionText}>
-                {prompt.item.name} is unavailable. We suggest {prompt.substitute.name} for ${prompt.substitute.price.toFixed(2)}.
+                {prompt.item.name} is unavailable. We suggest {prompt.substitute.name} for {formatCurrency(prompt.substitute.price)}.
               </Text>
               <View style={styles.subButtons}>
                 <TouchableOpacity style={[styles.subButton, styles.subAccept]} onPress={() => applySubstitutionChoice(prompt.item, prompt.substitute)}>
@@ -177,7 +178,7 @@ export default function Cart() {
           <Text style={styles.placeOrderText}>
             {placing ? 'Placing Order...' : 'Place Order'}
           </Text>
-          <Text style={styles.orderTotal}>${total.toFixed(2)}</Text>
+          <Text style={styles.orderTotal}>{formatCurrency(total)}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

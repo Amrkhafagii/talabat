@@ -13,6 +13,7 @@ import { Restaurant, MenuItem as MenuItemType } from '@/types/database';
 import { isRestaurantOpenNow } from '@/utils/hours';
 import { useAppTheme } from '@/styles/appTheme';
 import { wp } from '@/styles/responsive';
+import { formatCurrency } from '@/utils/formatters';
 
 const baseCategories = ['All', 'Popular', 'Mains', 'Sides', 'Beverages', 'Desserts'];
 
@@ -226,7 +227,7 @@ export default function RestaurantDetail() {
             <Text style={styles.cartText}>
               {!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours) ? 'Closed' : 'View Cart'}
             </Text>
-            <Text style={styles.cartTotal}>${getCartTotalForItems().toFixed(2)}</Text>
+            <Text style={styles.cartTotal}>{formatCurrency(getCartTotalForItems())}</Text>
           </TouchableOpacity>
         </View>
       )}

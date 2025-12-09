@@ -86,8 +86,7 @@ export async function getMenuItemsByIds(ids: string[]): Promise<MenuItem[]> {
       restaurant:restaurants(*),
       category_info:categories(*)
     `)
-    .in('id', ids)
-    .eq('photo_approval_status', 'approved');
+    .in('id', ids);
 
   if (error) {
     console.error('Error fetching menu items by IDs:', error);

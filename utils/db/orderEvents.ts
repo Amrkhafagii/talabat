@@ -1,17 +1,27 @@
 import { supabase } from '../supabase';
 
 export async function logOrderEvent(orderId: string, eventType: string, eventNote?: string, createdBy?: string): Promise<boolean> {
-  const { error } = await supabase.from('order_events').insert({
+  const payload = {
     order_id: orderId,
     event_type: eventType,
     event_note: eventNote ?? null,
     created_by: createdBy ?? null,
-  });
-  if (error) {
-    console.error('Error logging order event', error);
-    return false;
+  };
+
+  const { error } = await supabase.from('order_events').insert(payload);
+  if (!error) return true;
+
+  // If the provided user is missing in the users table, retry without FK to avoid hard failure.
+  if (error.code === '23503' && createdBy) {
+    const { error: retryError } = await supabase.from('order_events').insert({ ...payload, created_by: null });
+    if (!retryError) {
+      console.warn('order_events: missing created_by user, logged event without user', { createdBy, orderId, eventType });
+      return true;
+    }
   }
-  return true;
+
+  console.error('Error logging order event', error);
+  return false;
 }
 
 export type OrderTimelineEvent = {

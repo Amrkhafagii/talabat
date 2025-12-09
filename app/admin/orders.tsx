@@ -10,7 +10,7 @@ import { useAdminReports } from '@/hooks/useAdminReports';
 import { OrderIssues } from '@/components/admin/OrderIssues';
 import { OrderAdminList } from '@/components/admin/OrderAdminList';
 import { OrderAdminDetailView } from '@/components/admin/OrderAdminDetailView';
-import { getOrderAdminDetail, OrderAdminDetail } from '@/utils/db/adminOps';
+import { getOrderAdminDetail, OrderAdminDetail } from '@/utils/db/admin';
 import { styles } from '@/styles/adminMetrics';
 import OrderFilters from '@/components/admin/OrderFilters';
 import AdminGrid from '@/components/admin/AdminGrid';

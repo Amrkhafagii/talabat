@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { styles } from '@/styles/adminMetrics';
-import type { OpsPlaybook } from '@/utils/db/adminOps';
+import type { OpsPlaybook } from '@/utils/db/admin';
 
 type Props = { playbook: OpsPlaybook | null };
 

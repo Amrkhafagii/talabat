@@ -7,7 +7,7 @@
 - Hooks: `hooks/useAdminGate.ts` (auth/claim guard), `useAdminOpsData.ts` (money/payables + approvals data), `useAdminReports.ts` (alerts/settlement/issues), `useAdminMetricsCoordinator.ts` (aggregates data + actions for metrics page).
 - Styles: `styles/iosTheme.ts` and `styles/adminMetrics.ts` (iOS tokens and shared card/list/typography).
 
-## Data dependencies (utils/db/adminOps.ts)
+## Data dependencies (utils/db/admin/*)
 - Reviews & approvals: `list_payment_review_queue`, `approve_payment_review`, `reject_payment_review`, `list_driver_license_reviews`, `review_driver_license`, `list_menu_photo_reviews`, `review_menu_photo`, `submit_payment_proof` (manual helper).
 - Payables & payouts: `list_restaurant_payables`, `list_driver_payables`, `initiate_*_payout`, `finalize_*_payout`, `retry*` helpers, `list_payout_balances`, `settle_wallet_balance`, `list_wallet_transactions_for_user`, `list_aging_payables`.
 - Orders visibility & detail: `list_restaurant_payment_visibility`, `list_driver_payout_visibility`, `get_order_admin_detail`.
@@ -23,7 +23,7 @@
 - **Settings**: Admin/tools surface including rollout config, manual tools, safety/ops utilities (safety-events, substitutions as needed).
 
 ## File-size guardrails (700-line cap)
-- Largest admin-related file: `utils/db/adminOps.ts` (≈674 lines) — candidate to split by domain (approvals, payables, analytics) if expanded.
+- Largest admin-related surface now split under `utils/db/admin/*` (approvals, payables, analytics).
 - `components/admin/ManualTools.tsx` (≈341 lines) — monitor if new utilities are added.
 - All other admin components/routes/hooks are <200 lines; keep new work modular (subcards, filter components) to stay under 700.
 

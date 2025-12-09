@@ -152,13 +152,33 @@ export function useRealtimeOrders({
       const { eventType, new: newRecord } = payload;
 
       if (eventType === 'UPDATE' && newRecord.order_id) {
-        // Update the delivery information in the corresponding order
-        setOrders(prevOrders => 
-          prevOrders.map(order => 
-            order.id === newRecord.order_id
-              ? { ...order, delivery: newRecord }
-              : order
-          )
+        // Update the delivery information in the corresponding order and mirror critical status fields
+        setOrders(prevOrders =>
+          prevOrders.map(order => {
+            if (order.id !== newRecord.order_id) return order;
+
+            // Keep driver metadata from the existing delivery object while applying fresh fields from realtime
+            const mergedDelivery = { ...(order.delivery || {}), ...newRecord };
+
+            const statusFromDelivery =
+              newRecord.status === 'delivered'
+                ? 'delivered'
+                : ['picked_up', 'on_the_way'].includes(newRecord.status)
+                  ? 'picked_up'
+                  : order.status;
+
+            const deliveredAt =
+              newRecord.status === 'delivered'
+                ? newRecord.delivered_at || newRecord.updated_at || order.delivered_at
+                : order.delivered_at;
+
+            return {
+              ...order,
+              status: statusFromDelivery || order.status,
+              delivered_at: deliveredAt || order.delivered_at,
+              delivery: mergedDelivery
+            };
+          })
         );
       }
     };

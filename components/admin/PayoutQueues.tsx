@@ -7,7 +7,7 @@ import { IOSBadge } from '@/components/ios/IOSBadge';
 import { IOSPillButton } from '@/components/ios/IOSPillButton';
 import { IOSSegmentedControl } from '@/components/ios/IOSSegmentedControl';
 import { iosColors, iosSpacing, iosTypography, iosRadius } from '@/styles/iosTheme';
-import type { RestaurantPayable, DriverPayable } from '@/utils/db/adminOps';
+import type { RestaurantPayable, DriverPayable } from '@/utils/db/admin';
 import AdminGrid from './AdminGrid';
 
 export type PayoutQueuesProps = {

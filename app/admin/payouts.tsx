@@ -5,7 +5,7 @@ import { AdminShell } from '@/components/admin/AdminShell';
 import { AdminState } from '@/components/admin/AdminState';
 import { useAdminMetricsCoordinator } from '@/hooks/useAdminMetricsCoordinator';
 import { useAdminGate } from '@/hooks/useAdminGate';
-import { retryRestaurantPayout, retryDriverPayout, retryDuePayouts, listWalletTransactionsForUser, settleWalletBalance } from '@/utils/db/adminOps';
+import { retryRestaurantPayout, retryDriverPayout, retryDuePayouts, listWalletTransactionsForUser, settleWalletBalance } from '@/utils/db/admin';
 import { PayoutBalances } from '@/components/admin/PayoutBalances';
 import { AdminToast } from '@/components/admin/AdminToast';
 import { Text, Alert, View, StyleSheet, TouchableOpacity } from 'react-native';

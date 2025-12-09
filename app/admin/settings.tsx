@@ -10,7 +10,7 @@ import { IOSToggleRow } from '@/components/ios/IOSToggleRow';
 import { IOSListRow } from '@/components/ios/IOSListRow';
 import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/utils/supabase';
-import { getAdminSettings, setAdminSettings, AdminSettingsPrefs } from '@/utils/db/adminOps';
+import { getAdminSettings, setAdminSettings, AdminSettingsPrefs } from '@/utils/db/admin';
 
 type SettingsPrefs = {
   pushEnabled: boolean;

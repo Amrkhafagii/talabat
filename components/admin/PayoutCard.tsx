@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { styles } from '@/styles/adminMetrics';
 import { money } from '@/utils/adminUi';
-import type { RestaurantPayable, DriverPayable } from '@/utils/db/adminOps';
+import type { RestaurantPayable, DriverPayable } from '@/utils/db/admin';
 
 type Props = {
   kind: 'restaurant' | 'driver';

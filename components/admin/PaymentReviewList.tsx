@@ -5,7 +5,7 @@ import { IOSCard } from '@/components/ios/IOSCard';
 import { IOSBadge } from '@/components/ios/IOSBadge';
 import { iosSpacing, iosTypography, iosColors, iosRadius } from '@/styles/iosTheme';
 import { money } from '@/utils/adminUi';
-import type { PaymentReviewItem } from '@/utils/db/adminOps';
+import type { PaymentReviewItem } from '@/utils/db/admin';
 import { IOSSkeleton } from '@/components/ios/IOSSkeleton';
 
 export type PaymentReviewListProps = {

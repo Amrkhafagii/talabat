@@ -316,6 +316,17 @@ export function useRealtimeDeliveries({
 
       if (error) throw error;
 
+       // Also reflect into the parent order for customer tracking
+      const deliveryRecord = deliveries.find(d => d.id === deliveryId) || availableDeliveries.find(d => d.id === deliveryId);
+      const orderId = deliveryRecord?.order_id;
+      if (status === 'delivered' && orderId) {
+        const orderUpdate = { status: 'delivered', delivered_at: now, updated_at: now };
+        const { error: orderError } = await supabase.from('orders').update(orderUpdate).eq('id', orderId);
+        if (orderError) {
+          console.warn('[updateDeliveryStatus] failed to mark order delivered', { orderId, message: orderError.message });
+        }
+      }
+
       // Optimistically update local state so UI reacts immediately, even before realtime events land
       const applyUpdate = (list: Delivery[]) =>
         list.map(delivery => 

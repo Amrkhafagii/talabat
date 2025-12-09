@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import type { PaymentReviewItem } from '@/utils/db/adminOps';
+import type { PaymentReviewItem } from '@/utils/db/admin';
 
 export type BadgeState = 'pending' | 'review' | 'paid' | 'failed' | 'initiated';
 

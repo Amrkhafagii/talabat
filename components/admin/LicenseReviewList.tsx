@@ -4,7 +4,7 @@ import * as Linking from 'expo-linking';
 import CopyChip from '@/app/components/CopyChip';
 import { styles as adminStyles } from '@/styles/adminMetrics';
 import { makeBadgeRenderer } from '@/utils/adminUi';
-import type { DriverLicenseReview } from '@/utils/db/adminOps';
+import type { DriverLicenseReview } from '@/utils/db/admin';
 import { IOSCard } from '@/components/ios/IOSCard';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import { IOSStatusChip } from '@/components/ios/IOSStatusChip';

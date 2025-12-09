@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { styles } from '@/styles/adminMetrics';
 import { money } from '@/utils/adminUi';
-import type { SettlementReport } from '@/utils/db/adminOps';
+import type { SettlementReport } from '@/utils/db/admin';
 
 type Props = {
   settlementReport: SettlementReport | null;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Switch } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { styles } from '@/styles/adminMetrics';
-import type { OrderAdminDetail } from '@/utils/db/adminOps';
+import type { OrderAdminDetail } from '@/utils/db/admin';
 import { getOrderAdminDetail, markDriverPayoutManual, markRestaurantPayoutManual, reconcileSettlementImport, submitPaymentProofManual } from '@/utils/database';
 
 export type ManualToolsProps = {

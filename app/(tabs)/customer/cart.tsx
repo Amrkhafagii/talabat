@@ -1,475 +1,53 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
-import * as DocumentPicker from 'expo-document-picker';
+import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 
-import { useCart } from '@/hooks/useCart';
-import { useAuth } from '@/contexts/AuthContext';
-import { getMenuItemsByIds, createOrder, getUserAddresses, getRestaurantById, getSubstitutionForItem, getAutoApplySubstitution } from '@/utils/database';
-import { MenuItem, UserAddress, Restaurant } from '@/types/database';
 import CartItemCard from '@/components/customer/CartItemCard';
-import { computeEtaBand } from '@/utils/db/trustedArrival';
-import { estimateTravelMinutes } from '@/utils/etaService';
-import { supabase } from '@/utils/supabase';
+import { useCartData } from '@/hooks/useCartData';
 import { useAppTheme } from '@/styles/appTheme';
 import { Icon } from '@/components/ui/Icon';
+import { CartHeader } from '@/components/customer/CartHeader';
+import { CartAddressSection } from '@/components/customer/CartAddressSection';
+import { CartReceiptSection } from '@/components/customer/CartReceiptSection';
+import { CartSummary } from '@/components/customer/CartSummary';
 
 export default function Cart() {
-  const { cart, updateQuantity, clearCart, getTotalItems } = useCart();
-  const { user } = useAuth();
-  const [cartItems, setCartItems] = useState<(MenuItem & { quantity: number })[]>([]);
-  const [addresses, setAddresses] = useState<UserAddress[]>([]);
-  const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [placing, setPlacing] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState('instapay');
-  const [receiptUploading, setReceiptUploading] = useState(false);
-  const [receiptUri, setReceiptUri] = useState<string | null>(null);
-  const [receiptError, setReceiptError] = useState<string | null>(null);
-  const [etaLabel, setEtaLabel] = useState<string | null>(null);
-  const [etaTrusted, setEtaTrusted] = useState<boolean>(false);
-  const [substitutionPrompts, setSubstitutionPrompts] = useState<
-    { item: MenuItem & { quantity: number }; substitute: MenuItem; maxDeltaPct?: number }[]
-  >([]);
-  const [substitutionDecisions, setSubstitutionDecisions] = useState<
-    { original_item_id: string; substitute_item_id?: string; decision: 'accept' | 'decline' | 'chat'; price_delta?: number; quantity?: number }[]
-  >([]);
-  const [restaurantMeta, setRestaurantMeta] = useState<Restaurant | null>(null);
-  const fallbackPayMobile = '01023494000';
+  const {
+    cartItems,
+    selectedAddress,
+    loading,
+    placing,
+    setSelectedPayment,
+    receiptUploading,
+    receiptUri,
+    receiptError,
+    etaLabel,
+    etaTrusted,
+    substitutionPrompts,
+    deliveryFee,
+    tax,
+    platformFee,
+    total,
+    updateItemQuantity,
+    pickReceipt,
+    handlePlaceOrder,
+    handleDeclineSubstitution,
+    handleChat,
+    applySubstitutionChoice,
+    getSubtotal,
+    handleSelectAddress,
+    setSubstitutionDecisions,
+  } = useCartData();
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  useEffect(() => {
-    loadCartData();
-  }, [cart, user]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      loadCartData();
-    }, [user])
-  );
-
-  useEffect(() => {
-    if (!selectedAddress && addresses.length > 0) {
-      const defaultAddress = addresses.find(addr => addr.is_default) || addresses[0];
-      setSelectedAddress(defaultAddress);
-    }
-  }, [addresses, selectedAddress]);
-
-  const loadCartData = async () => {
-    try {
-      setLoading(true);
-      
-      // Load cart items in a single batch
-      const cartEntries = Object.entries(cart).filter(([, quantity]) => quantity > 0);
-      const itemIds = cartEntries.map(([itemId]) => itemId);
-
-      if (itemIds.length > 0) {
-        const fetchedItems = await getMenuItemsByIds(itemIds);
-        const itemMap = new Map(fetchedItems.map(item => [item.id, item]));
-
-        const itemsWithQuantity = cartEntries
-          .map(([itemId, quantity]) => {
-            const menuItem = itemMap.get(itemId);
-            return menuItem ? { ...menuItem, quantity } : null;
-          })
-          .filter(Boolean) as (MenuItem & { quantity: number })[];
-
-        setCartItems(itemsWithQuantity);
-
-        const restaurantId = itemsWithQuantity[0]?.restaurant_id;
-        if (restaurantId) {
-          const restaurant = await getRestaurantById(restaurantId);
-          const parsedDelivery = restaurant?.delivery_time ? parseInt(restaurant.delivery_time, 10) : NaN;
-          if (!restaurant) return;
-          const travelMinutes = estimateTravelMinutes(
-            restaurant,
-            selectedAddress?.latitude && selectedAddress?.longitude ? selectedAddress : undefined,
-            {
-              weather: (process.env.EXPO_PUBLIC_WEATHER_SEVERITY as any) || 'normal',
-              traffic: 'moderate',
-            }
-          );
-          const prepP50 = !Number.isNaN(parsedDelivery) ? Math.max(10, Math.round(parsedDelivery * 0.4)) : 12;
-          const prepP90 = !Number.isNaN(parsedDelivery) ? Math.max(prepP50 + 6, Math.round(parsedDelivery * 0.65)) : 20;
-          const eta = computeEtaBand({
-            prepP50Minutes: prepP50,
-            prepP90Minutes: prepP90,
-            bufferMinutes: 4,
-            travelMinutes,
-            reliabilityScore: restaurant?.rating ? Math.min(restaurant.rating / 5, 1) : 0.9,
-            dataFresh: Boolean(restaurant?.updated_at),
-          });
-          const tooWideOrStale = eta.bandTooWide || eta.dataStale;
-          if (tooWideOrStale) {
-            setEtaLabel(restaurant?.delivery_time ? `${restaurant.delivery_time} min` : null);
-            setEtaTrusted(false);
-          } else {
-            setEtaLabel(`${eta.etaLowMinutes}-${eta.etaHighMinutes} min`);
-            setEtaTrusted(eta.trusted);
-          }
-        }
-
-        // Build substitution prompts for unavailable items
-        const prompts: { item: MenuItem & { quantity: number }; substitute: MenuItem; maxDeltaPct?: number }[] = [];
-        for (const item of itemsWithQuantity) {
-          if (item.is_available === false) {
-            const auto = await getAutoApplySubstitution(item.id);
-            if (auto) {
-              const priceDeltaPct = item.price > 0 ? ((auto.substitute.price - item.price) / item.price) * 100 : 0;
-              const allowedDelta = auto.rule.max_delta_pct ?? 15;
-              if (priceDeltaPct <= allowedDelta) {
-                applySubstitutionChoice(item, auto.substitute, true);
-              } else {
-                prompts.push({ item, substitute: auto.substitute, maxDeltaPct: auto.rule.max_delta_pct ?? undefined });
-              }
-            } else {
-              const prompt = await getSubstitutionForItem(item.id);
-              if (prompt) {
-                const priceDeltaPct = item.price > 0 ? ((prompt.substitute.price - item.price) / item.price) * 100 : 0;
-                const allowedDelta = prompt.rule.max_delta_pct ?? 15;
-                if (priceDeltaPct <= allowedDelta) {
-                  prompts.push({ item, substitute: prompt.substitute, maxDeltaPct: prompt.rule.max_delta_pct ?? undefined });
-                }
-              }
-            }
-          }
-        }
-        setSubstitutionPrompts(prompts);
-      } else {
-        setCartItems([]);
-        setEtaLabel(null);
-        setEtaTrusted(false);
-        setSubstitutionPrompts([]);
-      }
-
-      // Load user addresses if user is logged in
-      if (user) {
-        const userAddresses = await getUserAddresses(user.id);
-        setAddresses(userAddresses);
-        
-        // Set default address or first address
-        const defaultAddress = userAddresses.find(addr => addr.is_default) || userAddresses[0];
-        setSelectedAddress(defaultAddress || null);
-      }
-    } catch (error) {
-      console.error('Error loading cart data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const ReceiptSection = () => (
-    <View style={styles.section}>
-      <View style={styles.receiptHeader}>
-        <Text style={styles.sectionTitle}>Payment Receipt</Text>
-        {receiptUri ? (
-          <Text style={styles.receiptStatus}>Attached</Text>
-        ) : (
-          <Text style={styles.receiptStatusPending}>Required</Text>
-        )}
-      </View>
-      {receiptError ? <Text style={styles.receiptError}>{receiptError}</Text> : null}
-      <TouchableOpacity
-        style={styles.receiptButton}
-        onPress={pickReceipt}
-        disabled={receiptUploading}
-      >
-        <Text style={styles.receiptButtonText}>
-          {receiptUploading ? 'Uploading...' : receiptUri ? 'Replace Receipt' : 'Upload Receipt'}
-        </Text>
-      </TouchableOpacity>
-      <Text style={styles.receiptHelper}>
-        Upload your payment receipt. Restaurant will start preparing after verification.
-      </Text>
-    </View>
-  );
-
-  const updateItemQuantity = (itemId: string, change: number) => {
-    const currentQuantity = cart[itemId] || 0;
-    const newQuantity = Math.max(0, currentQuantity + change);
-    updateQuantity(itemId, newQuantity);
-  };
-
-  const getSubtotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
-
-  const deliveryFee = 2.99;
-  const tax = getSubtotal() * 0.08;
-  const platformFee = getSubtotal() * 0.10;
-  const total = getSubtotal() + deliveryFee + tax + platformFee;
-
-  const handleSelectAddress = () => {
-    if (addresses.length === 0) {
-      Alert.alert(
-        'No Addresses',
-        'You need to add a delivery address first.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Add Address', onPress: () => router.push('/customer/add-address' as any) }
-        ]
-      );
-    } else {
-      // Show address selection modal or navigate to address selection screen
-      router.push('/customer/select-address' as any);
-    }
-  };
-
-  const pickReceipt = async () => {
-    try {
-      setReceiptError(null);
-      setReceiptUploading(true);
-      const result = await DocumentPicker.getDocumentAsync({
-        copyToCacheDirectory: true,
-        multiple: false,
-      });
-
-      if (result.canceled || !result.assets?.length) {
-        setReceiptUploading(false);
-        return;
-      }
-
-      const file = result.assets[0];
-      setReceiptUri(file.uri);
-    } catch (err) {
-      console.error('Receipt pick error:', err);
-      setReceiptError('Failed to pick receipt. Please try again.');
-    } finally {
-      setReceiptUploading(false);
-    }
-  };
-
-  const applySubstitutionChoice = (item: MenuItem & { quantity: number }, substitute: MenuItem | null, auto = false, decision: 'accept' | 'decline' | 'chat' = 'accept') => {
-    if (substitute) {
-      // Add substitute quantity and remove original
-      const currentSubQty = cart[substitute.id] || 0;
-      updateQuantity(substitute.id, currentSubQty + item.quantity);
-      updateQuantity(item.id, 0);
-      setCartItems(prev => {
-        const others = prev.filter(p => p.id !== item.id);
-        const existingSub = others.find(p => p.id === substitute.id);
-        if (existingSub) {
-          existingSub.quantity += item.quantity;
-          return [...others];
-        }
-        return [...others, { ...substitute, quantity: item.quantity }];
-      });
-      setSubstitutionDecisions(prev => {
-        const filtered = prev.filter(d => d.original_item_id !== item.id);
-        return [
-          ...filtered,
-          {
-            original_item_id: item.id,
-            substitute_item_id: substitute.id,
-            decision,
-            price_delta: (substitute.price - item.price) * item.quantity,
-            quantity: item.quantity,
-          },
-        ];
-      });
-    } else {
-      // Decline/refund path
-      updateQuantity(item.id, 0);
-      setCartItems(prev => prev.filter(p => p.id !== item.id));
-      setSubstitutionDecisions(prev => {
-        const filtered = prev.filter(d => d.original_item_id !== item.id);
-        return [
-          ...filtered,
-          {
-            original_item_id: item.id,
-            decision,
-            price_delta: -item.price * item.quantity,
-            quantity: item.quantity,
-          },
-        ];
-      });
-    }
-
-    if (!auto) {
-      setSubstitutionPrompts(prev => prev.filter(p => p.item.id !== item.id));
-    }
-  };
-
-  const handleDeclineSubstitution = (item: MenuItem & { quantity: number }) => {
-    applySubstitutionChoice(item, null, false, 'decline');
-  };
-
-  const handleChat = () => {
-    Alert.alert('Chat', 'Connecting you to support to review substitutions.');
-  };
-
-  const uploadReceiptToStorage = async (uri: string) => {
-    try {
-      const { data: authUser } = await supabase.auth.getUser();
-      const owner = authUser?.user?.id ?? 'anon';
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const extGuess = uri.split('.').pop()?.split('?')[0] || 'jpg';
-      const path = `${owner}/receipt-${Date.now()}.${extGuess}`;
-
-      const { data, error } = await supabase.storage
-        .from('order-receipts')
-        .upload(path, blob, { cacheControl: '3600', upsert: true });
-      if (error) throw error;
-
-      const { data: publicUrlData } = supabase.storage.from('order-receipts').getPublicUrl(data.path);
-      return publicUrlData?.publicUrl || data.path || null;
-    } catch (err) {
-      console.error('Receipt upload failed', err);
-      return null;
-    }
-  };
-
-  const handlePlaceOrder = async () => {
-    if (!user) {
-      Alert.alert('Error', 'Please sign in to place an order');
-      return;
-    }
-
-    if (cartItems.length === 0) {
-      Alert.alert('Error', 'Your cart is empty');
-      return;
-    }
-
-    if (!selectedAddress) {
-      Alert.alert('Error', 'Please select a delivery address');
-      return;
-    }
-
-    if (!receiptUri) {
-      Alert.alert('Payment Required', 'Please upload your payment proof before placing the order.');
-      return;
-    }
-
-    // Get restaurant ID from the first item (assuming all items are from the same restaurant)
-    const restaurantId = cartItems[0].restaurant_id;
-    const deliveryAddressString = `${selectedAddress.address_line_1}${selectedAddress.address_line_2 ? `, ${selectedAddress.address_line_2}` : ''}, ${selectedAddress.city}, ${selectedAddress.state} ${selectedAddress.postal_code}`;
-
-    setPlacing(true);
-
-    try {
-      const invalidPrice = cartItems.find(item => {
-        const priceNum = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
-        return priceNum === null || priceNum === undefined || Number.isNaN(priceNum) || priceNum <= 0;
-      });
-      if (invalidPrice) {
-        Alert.alert(
-          'Error',
-          `Item "${invalidPrice.name}" has an invalid price. Please remove or update it before placing the order.`
-        );
-        console.warn('Invalid price detected', { item: invalidPrice });
-        setPlacing(false);
-        return;
-      }
-
-      const invalidQty = cartItems.find(item => !item.quantity || item.quantity <= 0);
-      if (invalidQty) {
-        Alert.alert(
-          'Error',
-          `Item "${invalidQty.name}" has an invalid quantity. Please re-add it to the cart.`
-        );
-        console.warn('Invalid quantity detected', { item: invalidQty });
-        setPlacing(false);
-        return;
-      }
-
-      const payMobile = restaurantMeta?.phone || fallbackPayMobile;
-      const payoutChannel = (restaurantMeta as any)?.payout_method || (restaurantMeta as any)?.payout_account?.method || 'account';
-
-      const orderItems = cartItems.map(item => {
-        const priceNum = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
-        return {
-          menuItemId: item.id,
-          quantity: item.quantity > 0 ? item.quantity : 1,
-          unitPrice: priceNum ?? 0,
-          specialInstructions: undefined,
-        };
-      });
-
-      let receiptForOrder = receiptUri;
-      if (receiptUri && !receiptUri.startsWith('http')) {
-        const uploaded = await uploadReceiptToStorage(receiptUri);
-        if (!uploaded) {
-          Alert.alert('Error', 'Failed to upload receipt. Please try again.');
-          setPlacing(false);
-          return;
-        }
-        receiptForOrder = uploaded;
-        setReceiptUri(uploaded);
-      }
-
-      const { data: order, error } = await createOrder(
-        user.id,
-        restaurantId,
-        selectedAddress.id,
-        deliveryAddressString,
-        orderItems,
-        getSubtotal(),
-        deliveryFee,
-        tax,
-        0, // tip amount
-        total,
-        selectedPayment,
-        selectedAddress.delivery_instructions,
-        receiptForOrder || undefined,
-        {
-          substitutions: substitutionDecisions,
-        }
-      );
-
-      if (error || !order) {
-        console.error('Error placing order:', error);
-        Alert.alert('Error', 'Failed to place order. Please try again.');
-      } else {
-        const txnId = `manual-${Date.now()}`;
-        const proof = await supabase.rpc('submit_payment_proof', {
-          p_order_id: order.id,
-          p_txn_id: txnId,
-          p_reported_amount: total,
-          p_receipt_url: receiptForOrder,
-          p_paid_at: new Date().toISOString(),
-        });
-        if (proof.error) {
-          console.error('submit_payment_proof error', proof.error);
-          Alert.alert('Warning', 'Order placed, but receipt could not be queued for admin. Please retry from order details.');
-        }
-        clearCart();
-        Alert.alert(
-          'Order Placed!',
-          'Your order has been placed successfully. You can track it in the Orders section.',
-          [
-            {
-              text: 'View Orders',
-            onPress: () => router.push('/customer/orders' as any)
-            },
-            {
-              text: 'Continue Shopping',
-              onPress: () => router.push('/(tabs)/customer' as any)
-            }
-          ]
-        );
-      }
-    } catch (error) {
-      console.error('Error placing order:', error);
-      Alert.alert('Error', 'Failed to place order. Please try again.');
-    } finally {
-      setPlacing(false);
-    }
-  };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Icon name="ArrowLeft" size="xl" color={theme.colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Cart</Text>
-          <View style={styles.placeholder} />
-        </View>
+        <CartHeader onBack={() => router.back()} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={styles.loadingText}>Loading cart...</Text>
@@ -481,13 +59,7 @@ export default function Cart() {
   if (cartItems.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Icon name="ArrowLeft" size="xl" color={theme.colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Cart</Text>
-          <View style={styles.placeholder} />
-        </View>
+        <CartHeader onBack={() => router.back()} />
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <Text style={styles.emptyText}>Add some delicious items to get started!</Text>
@@ -504,41 +76,10 @@ export default function Cart() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Icon name="ArrowLeft" size="xl" color={theme.colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Cart</Text>
-          <View style={styles.placeholder} />
-      </View>
+      <CartHeader onBack={() => router.back()} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
-        {/* Delivery Address */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery Address</Text>
-          {selectedAddress ? (
-            <TouchableOpacity style={styles.addressCard} onPress={handleSelectAddress}>
-              <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
-              <View style={styles.addressInfo}>
-                <Text style={styles.addressType}>{selectedAddress.label}</Text>
-                <Text style={styles.addressText}>
-                  {selectedAddress.address_line_1}
-                  {selectedAddress.address_line_2 && `, ${selectedAddress.address_line_2}`}
-                </Text>
-                <Text style={styles.addressText}>
-                  {selectedAddress.city}, {selectedAddress.state} {selectedAddress.postal_code}
-                </Text>
-              </View>
-              <Icon name="ChevronDown" size="md" color={theme.colors.textMuted} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.addAddressCard} onPress={handleSelectAddress}>
-              <Icon name="MapPin" size="md" color={theme.colors.textMuted} />
-              <Text style={styles.addAddressText}>Add delivery address</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <CartAddressSection address={selectedAddress} onSelect={handleSelectAddress} />
 
         {/* Cart Items */}
         <View style={styles.section}>
@@ -613,48 +154,17 @@ export default function Cart() {
           </View>
         </View>
 
-        {/* Receipt Upload */}
-        <ReceiptSection />
+        <CartReceiptSection receiptUri={receiptUri} receiptError={receiptError} uploading={receiptUploading} onPick={pickReceipt} />
 
-        {/* Order Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
-          <Text style={styles.sectionHint}>You pay once; includes platform service fee and delivery.</Text>
-          <View style={styles.summaryContainer}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>${getSubtotal().toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery Fee</Text>
-              <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tax</Text>
-              <Text style={styles.summaryValue}>${tax.toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Platform fee (10%)</Text>
-              <Text style={styles.summaryValue}>${platformFee.toFixed(2)}</Text>
-            </View>
-            <View style={[styles.summaryRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
-            </View>
-            {etaLabel && (
-              <View style={[styles.etaBadge, etaTrusted ? styles.etaTrusted : styles.etaCaution]}>
-                <Icon
-                  name="ShieldCheck"
-                  size={14}
-                  color={etaTrusted ? theme.colors.status.success : theme.colors.status.warning}
-                />
-                <Text style={[styles.etaText, etaTrusted ? styles.etaTrustedText : styles.etaCautionText]}>
-                  {etaTrusted ? 'Trusted arrival' : 'Arrival estimate'} • {etaLabel}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
+        <CartSummary
+          subtotal={getSubtotal()}
+          deliveryFee={deliveryFee}
+          tax={tax}
+          platformFee={platformFee}
+          total={total}
+          etaLabel={etaLabel}
+          etaTrusted={etaTrusted}
+        />
       </ScrollView>
 
       {/* Place Order Button */}
@@ -679,27 +189,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: theme.colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    backButton: {
-      padding: 4,
-    },
-    headerTitle: {
-      fontSize: 18,
-      fontFamily: 'Inter-SemiBold',
-      color: theme.colors.text,
-    },
-    placeholder: {
-      width: 32,
     },
     loadingContainer: {
       flex: 1,
@@ -834,91 +323,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       color: theme.colors.textMuted,
       fontFamily: 'Inter-Regular',
     },
-    receiptSection: {
-      marginBottom: 16,
-    },
-    receiptHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    receiptStatus: {
-      color: theme.colors.status.success,
-      fontFamily: 'Inter-SemiBold',
-    },
-    receiptStatusPending: {
-      color: theme.colors.status.warning,
-      fontFamily: 'Inter-SemiBold',
-    },
-    receiptButton: {
-      backgroundColor: theme.colors.primary[100],
-      borderWidth: 1,
-      borderColor: theme.colors.primary[100],
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      borderRadius: 10,
-      marginBottom: 6,
-    },
-    receiptButtonText: {
-      color: theme.colors.primary[500],
-      fontFamily: 'Inter-SemiBold',
-      textAlign: 'center',
-    },
-    receiptHelper: {
-      color: theme.colors.textMuted,
-      fontFamily: 'Inter-Regular',
-      fontSize: 12,
-    },
-    receiptError: {
-      color: theme.colors.status.error,
-      fontFamily: 'Inter-Regular',
-      marginBottom: 8,
-    },
-    summaryContainer: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: 12,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      gap: 12,
-    },
-    sectionHint: {
-      color: theme.colors.textMuted,
-      fontFamily: 'Inter-Regular',
-      fontSize: 12,
-      marginBottom: 6,
-    },
-    summaryRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    summaryLabel: {
-      fontSize: 16,
-      color: theme.colors.textMuted,
-      fontFamily: 'Inter-Regular',
-    },
-    summaryValue: {
-      fontSize: 16,
-      color: theme.colors.text,
-      fontFamily: 'Inter-Medium',
-    },
-    totalRow: {
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border,
-    },
-    totalLabel: {
-      fontSize: 18,
-      fontFamily: 'Inter-SemiBold',
-      color: theme.colors.text,
-    },
-    totalValue: {
-      fontSize: 18,
-      fontFamily: 'Inter-Bold',
-      color: theme.colors.text,
-    },
     substitutionCard: {
       backgroundColor: theme.colors.statusSoft.warning,
       borderColor: theme.colors.status.warning,
@@ -970,34 +374,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     subChatText: {
       color: theme.colors.text,
       fontFamily: 'Inter-SemiBold',
-    },
-    etaBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      marginTop: 12,
-      padding: 10,
-      borderRadius: 10,
-      borderWidth: 1,
-    },
-    etaTrusted: {
-      backgroundColor: theme.colors.statusSoft.success,
-      borderColor: theme.colors.status.success,
-    },
-    etaCaution: {
-      backgroundColor: theme.colors.statusSoft.warning,
-      borderColor: theme.colors.status.warning,
-    },
-    etaText: {
-      fontFamily: 'Inter-Medium',
-      fontSize: 13,
-      color: theme.colors.text,
-    },
-    etaTrustedText: {
-      color: theme.colors.status.success,
-    },
-    etaCautionText: {
-      color: theme.colors.status.warning,
     },
     bottomContainer: {
       backgroundColor: theme.colors.surface,

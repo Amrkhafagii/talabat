@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { money } from '@/utils/adminUi';
 import { IOSCard } from '@/components/ios/IOSCard';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
-import type { DriverProfit, RestaurantProfit } from '@/utils/db/adminOps';
+import type { DriverProfit, RestaurantProfit } from '@/utils/db/admin';
 
 type Props = {
   totalsCustomer: number;

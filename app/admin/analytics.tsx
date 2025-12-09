@@ -10,7 +10,7 @@ import {
   AdminTotals,
   DriverProfit,
   RestaurantProfit,
-} from '@/utils/db/adminOps';
+} from '@/utils/db/admin';
 import AdminGrid from '@/components/admin/AdminGrid';
 import AnalyticsFilters from '@/components/admin/AnalyticsFilters';
 import AnalyticsCharts from '@/components/admin/AnalyticsCharts';

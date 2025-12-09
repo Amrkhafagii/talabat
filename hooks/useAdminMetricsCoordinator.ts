@@ -3,8 +3,8 @@ import { useAdminOpsData } from './useAdminOpsData';
 import { useAdminReports } from './useAdminReports';
 import { useActionQueue } from './useActionQueue';
 import { approvePaymentReview, rejectPaymentReview, reviewDriverLicense, reviewMenuPhoto } from '@/utils/database';
-import { getAdminKpiOverview, getAdminQueueCounts } from '@/utils/db/adminOps';
-import type { AdminKpiOverview, AdminQueueCounts, PaymentReviewItem } from '@/utils/db/adminOps';
+import { getAdminKpiOverview, getAdminQueueCounts } from '@/utils/db/admin';
+import type { AdminKpiOverview, AdminQueueCounts, PaymentReviewItem } from '@/utils/db/admin';
 import { expectedPaymentAmount } from '@/utils/adminUi';
 
 export type AdminMetricsCoordinatorState = ReturnType<typeof useAdminMetricsCoordinator>;

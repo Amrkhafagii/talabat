@@ -4,7 +4,7 @@ import { styles as adminStyles } from '@/styles/adminMetrics';
 import { IOSCard } from '@/components/ios/IOSCard';
 import { IOSBadge } from '@/components/ios/IOSBadge';
 import { iosColors, iosSpacing, iosTypography } from '@/styles/iosTheme';
-import type { OpsAlertsSnapshot } from '@/utils/db/adminOps';
+import type { OpsAlertsSnapshot } from '@/utils/db/admin';
 
 type Props = {
   snapshot: OpsAlertsSnapshot | null;

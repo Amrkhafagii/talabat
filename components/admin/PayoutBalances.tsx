@@ -5,7 +5,7 @@ import { IOSBadge } from '@/components/ios/IOSBadge';
 import { IOSPillButton } from '@/components/ios/IOSPillButton';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import { money } from '@/utils/adminUi';
-import type { PayoutBalance, WalletTx } from '@/utils/db/adminOps';
+import type { PayoutBalance, WalletTx } from '@/utils/db/admin';
 
 type Props = {
   balances: PayoutBalance[];

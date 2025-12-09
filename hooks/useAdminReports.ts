@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { getAgingPayables, getOpsAlertsSnapshot, getSettlementReport, listOrderStateIssues, listDeliveryStateIssues } from '@/utils/database';
-import type { AgingPayable, OpsAlertsSnapshot, SettlementReport, OrderStateIssue, DeliveryStateIssue } from '@/utils/db/adminOps';
+import type { AgingPayable, OpsAlertsSnapshot, SettlementReport, OrderStateIssue, DeliveryStateIssue } from '@/utils/db/admin';
 
 type RefreshParams = {
   settlementDays?: number;

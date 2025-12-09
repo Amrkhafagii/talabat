@@ -4,7 +4,7 @@ import { styles as adminStyles } from '@/styles/adminMetrics';
 import { IOSCard } from '@/components/ios/IOSCard';
 import { IOSBadge } from '@/components/ios/IOSBadge';
 import { iosColors, iosSpacing, iosTypography, iosRadius } from '@/styles/iosTheme';
-import type { DriverPayable, RestaurantPayable } from '@/utils/db/adminOps';
+import type { DriverPayable, RestaurantPayable } from '@/utils/db/admin';
 
 type Props = {
   restaurantPayables: RestaurantPayable[];

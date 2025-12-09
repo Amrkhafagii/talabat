@@ -373,14 +373,12 @@ export async function updateOrderStatus(orderId: string, status: string, additio
     case 'delivered':
       updateData.delivered_at = new Date().toISOString();
       break;
-    case 'cancelled':
+    case 'cancelled': {
       updateData.cancelled_at = new Date().toISOString();
-      if (additionalData?.cancellationReason || (additionalData as any)?.cancellation_reason) {
-        updateData.cancellation_reason = additionalData.cancellationReason || (additionalData as any)?.cancellation_reason;
-      } else {
-        updateData.cancellation_reason = 'unspecified';
-      }
+      const reason = additionalData?.cancellationReason ?? (additionalData as any)?.cancellation_reason;
+      updateData.cancellation_reason = reason || 'unspecified';
       break;
+    }
   }
 
   const { error } = await supabase

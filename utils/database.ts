@@ -18,7 +18,7 @@ export * from './db/substitutions';
 export * from './db/metrics';
 export * from './db/config';
 export * from './db/reroute';
-export * from './db/adminOps';
+export * from './db/admin';
 export * from './db/restaurants';
 export * from './db/dashboard';
 export * from './db/kyc';

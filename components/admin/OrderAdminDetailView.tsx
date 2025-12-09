@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { money } from '@/utils/adminUi';
-import type { OrderAdminDetail } from '@/utils/db/adminOps';
+import type { OrderAdminDetail } from '@/utils/db/admin';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import { IOSCard } from '@/components/ios/IOSCard';
 import { IOSBadge } from '@/components/ios/IOSBadge';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { styles } from '@/styles/adminMetrics';
-import type { AgingPayable } from '@/utils/db/adminOps';
+import type { AgingPayable } from '@/utils/db/admin';
 
 type Props = {
   agingHours: string;

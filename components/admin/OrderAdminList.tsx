@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { iosColors, iosRadius, iosSpacing, iosTypography } from '@/styles/iosTheme';
 import { IOSCard } from '@/components/ios/IOSCard';
 import { IOSBadge } from '@/components/ios/IOSBadge';
-import type { OrderAdminDetail } from '@/utils/db/adminOps';
+import type { OrderAdminDetail } from '@/utils/db/admin';
 
 type Props = {
   orders: OrderAdminDetail[];

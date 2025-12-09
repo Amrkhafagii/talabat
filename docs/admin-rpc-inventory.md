@@ -1,6 +1,6 @@
 # Admin RPC Inventory (current code usage)
 
-From `utils/db/adminOps.ts`, `useAdminOpsData`, and analytics/payout additions:
+From `utils/db/admin`, `useAdminOpsData`, and analytics/payout additions:
 
 - Payment review: `list_payment_review_queue`, `approve_payment_review`, `reject_payment_review`, `submit_payment_proof`
 - Driver docs: `list_driver_license_reviews`, `review_driver_license`
@@ -12,4 +12,4 @@ From `utils/db/adminOps.ts`, `useAdminOpsData`, and analytics/payout additions:
 - Order/admin detail: `get_order_admin_detail`
 - Analytics: `admin_totals`, `admin_driver_profit`, `admin_restaurant_profit`
 
-Source files: `utils/db/adminOps.ts`, `hooks/useAdminOpsData.ts`, `hooks/useAdminReports.ts`, `utils/db/wallets.ts` (capture/refund), plus new analytics/payout migrations.
+Source files: `utils/db/admin/*`, `hooks/useAdminOpsData.ts`, `hooks/useAdminReports.ts`, `utils/db/wallets.ts` (capture/refund), plus new analytics/payout migrations.

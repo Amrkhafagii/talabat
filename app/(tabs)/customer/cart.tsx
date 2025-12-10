@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -6,7 +6,7 @@ import * as Linking from 'expo-linking';
 
 import CartItemCard from '@/components/customer/CartItemCard';
 import { useCartData } from '@/hooks/useCartData';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { Icon } from '@/components/ui/Icon';
 import { CartHeader } from '@/components/customer/CartHeader';
 import { CartAddressSection } from '@/components/customer/CartAddressSection';
@@ -20,6 +20,7 @@ export default function Cart() {
     selectedAddress,
     loading,
     placing,
+    selectedPayment,
     setSelectedPayment,
     receiptUploading,
     receiptUri,
@@ -40,9 +41,11 @@ export default function Cart() {
     getSubtotal,
     handleSelectAddress,
     setSubstitutionDecisions,
+    captureReceipt,
   } = useCartData();
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const [fulfillmentMode, setFulfillmentMode] = useState<'delivery' | 'pickup'>('delivery');
 
 
   if (loading) {
@@ -79,7 +82,31 @@ export default function Cart() {
     <SafeAreaView style={styles.container}>
       <CartHeader onBack={() => router.back()} />
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+      >
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Order Type</Text>
+          <View style={styles.toggleRow}>
+            {(['delivery', 'pickup'] as const).map((mode) => {
+              const active = fulfillmentMode === mode;
+              return (
+                <TouchableOpacity
+                  key={mode}
+                  style={[styles.toggleButton, active && styles.toggleButtonActive]}
+                  onPress={() => setFulfillmentMode(mode)}
+                >
+                  <Icon name={mode === 'delivery' ? 'Truck' : 'Store'} size="md" color={active ? theme.colors.textInverse : theme.colors.text} />
+                  <Text style={[styles.toggleText, active && styles.toggleTextActive]}>
+                    {mode === 'delivery' ? 'Delivery' : 'Pickup'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
         <CartAddressSection address={selectedAddress} onSelect={handleSelectAddress} />
 
         {/* Cart Items */}
@@ -92,14 +119,14 @@ export default function Cart() {
                 {prompt.item.name} is unavailable. We suggest {prompt.substitute.name} for {formatCurrency(prompt.substitute.price)}.
               </Text>
               <View style={styles.subButtons}>
-                <TouchableOpacity style={[styles.subButton, styles.subAccept]} onPress={() => applySubstitutionChoice(prompt.item, prompt.substitute)}>
-                  <Text style={styles.subAcceptText}>Accept swap</Text>
+                <TouchableOpacity style={[styles.subChip, styles.subChipPrimary]} onPress={() => applySubstitutionChoice(prompt.item, prompt.substitute)}>
+                  <Text style={styles.subChipTextPrimary}>Accept swap</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.subButton, styles.subDecline]} onPress={() => handleDeclineSubstitution(prompt.item)}>
-                  <Text style={styles.subDeclineText}>Decline/refund</Text>
+                <TouchableOpacity style={[styles.subChip, styles.subChipSecondary]} onPress={() => handleDeclineSubstitution(prompt.item)}>
+                  <Text style={styles.subChipTextSecondary}>Refund item</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.subButton, styles.subChat]}
+                  style={[styles.subChip, styles.subChipGhost]}
                   onPress={() => {
                     handleChat();
                     setSubstitutionDecisions(prev => {
@@ -115,7 +142,7 @@ export default function Cart() {
                     });
                   }}
                 >
-                  <Text style={styles.subChatText}>Chat</Text>
+                  <Text style={styles.subChipTextGhost}>Chat</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -140,22 +167,45 @@ export default function Cart() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
           <View style={styles.paymentOptions}>
-            <TouchableOpacity 
-              style={[styles.paymentOption, styles.selectedPayment]}
-              onPress={async () => {
-                setSelectedPayment('instapay');
-                await Linking.openURL('https://ipn.eg/S/amrkhafagi/instapay/4VH6jb');
-              }}
-            >
-              <Icon name="CreditCard" size="md" color={theme.colors.primary[500]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.paymentText}>Instapay</Text>
-              </View>
-            </TouchableOpacity>
+            {[
+              { id: 'instapay', label: 'Instapay', helper: 'Instant confirmation', icon: 'CreditCard' },
+              { id: 'wallet', label: 'Wallet', helper: 'Use balance if available', icon: 'Wallet' },
+            ].map((method) => {
+              const active = method.id === selectedPayment;
+              return (
+                <TouchableOpacity
+                  key={method.id}
+                  style={[styles.paymentOption, active && styles.selectedPayment]}
+                  onPress={async () => {
+                    setSelectedPayment(method.id);
+                    if (method.id === 'instapay') {
+                      await Linking.openURL('https://ipn.eg/S/amrkhafagi/instapay/4VH6jb');
+                    }
+                  }}
+                >
+                  <Icon name={method.icon as any} size="md" color={active ? theme.colors.primary[500] : theme.colors.text} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.paymentText}>{method.label}</Text>
+                    <Text style={styles.paymentDetail}>{method.helper}</Text>
+                  </View>
+                  <Icon
+                    name={active ? 'CheckCircle' : 'Circle'}
+                    size="md"
+                    color={active ? theme.colors.primary[500] : theme.colors.textMuted}
+                  />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        <CartReceiptSection receiptUri={receiptUri} receiptError={receiptError} uploading={receiptUploading} onPick={pickReceipt} />
+        <CartReceiptSection
+          receiptUri={receiptUri}
+          receiptError={receiptError}
+          uploading={receiptUploading}
+          onPick={pickReceipt}
+          onCapture={captureReceipt}
+        />
 
         <CartSummary
           subtotal={getSubtotal()}
@@ -185,7 +235,7 @@ export default function Cart() {
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -235,60 +285,52 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     },
     content: {
       flex: 1,
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      gap: 12,
     },
     section: {
       backgroundColor: theme.colors.surface,
       marginBottom: 8,
-      paddingHorizontal: 20,
+      paddingHorizontal: 16,
       paddingVertical: 16,
+      borderRadius: theme.radius.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      gap: 12,
     },
     sectionTitle: {
       fontSize: 18,
       fontFamily: 'Inter-SemiBold',
       color: theme.colors.text,
-      marginBottom: 16,
+      marginBottom: 4,
     },
-    addressCard: {
+    toggleRow: {
       flexDirection: 'row',
-      alignItems: 'center',
-      padding: 16,
-      backgroundColor: theme.colors.formSurface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: theme.colors.formBorder,
+      gap: 10,
     },
-    addressInfo: {
+    toggleButton: {
       flex: 1,
-      marginLeft: 12,
-    },
-    addressType: {
-      fontSize: 16,
-      fontFamily: 'Inter-SemiBold',
-      color: theme.colors.text,
-    },
-    addressText: {
-      fontSize: 14,
-      color: theme.colors.textMuted,
-      fontFamily: 'Inter-Regular',
-      marginTop: 2,
-      lineHeight: 18,
-    },
-    addAddressCard: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 20,
-      backgroundColor: theme.colors.formSurface,
-      borderRadius: 12,
-      borderWidth: 2,
+      gap: 8,
+      paddingVertical: 12,
+      borderRadius: theme.radius.pill,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 1,
       borderColor: theme.colors.border,
-      borderStyle: 'dashed',
     },
-    addAddressText: {
-      fontSize: 16,
-      color: theme.colors.textMuted,
-      fontFamily: 'Inter-Medium',
-      marginLeft: 8,
+    toggleButtonActive: {
+      backgroundColor: theme.colors.primary[500],
+      borderColor: theme.colors.primary[500],
+    },
+    toggleText: {
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+    },
+    toggleTextActive: {
+      color: theme.colors.textInverse,
     },
     itemsContainer: {
       borderRadius: 12,
@@ -303,14 +345,14 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       flexDirection: 'row',
       alignItems: 'center',
       padding: 16,
-      backgroundColor: theme.colors.formSurface,
+      backgroundColor: theme.colors.surfaceAlt,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: theme.colors.formBorder,
+      borderColor: theme.colors.border,
     },
     selectedPayment: {
       borderColor: theme.colors.primary[500],
-      backgroundColor: theme.colors.primary[100],
+      backgroundColor: theme.colors.primary[50],
     },
     paymentText: {
       fontSize: 16,
@@ -348,37 +390,39 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       gap: 8,
       flexWrap: 'wrap',
     },
-    subButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 10,
+    subChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: theme.radius.pill,
     },
-    subAccept: {
-      backgroundColor: theme.colors.status.success,
+    subChipPrimary: {
+      backgroundColor: theme.colors.primary[500],
     },
-    subAcceptText: {
-      color: theme.colors.textInverse,
-      fontFamily: 'Inter-SemiBold',
-    },
-    subDecline: {
+    subChipSecondary: {
       backgroundColor: theme.colors.statusSoft.warning,
       borderWidth: 1,
       borderColor: theme.colors.status.warning,
     },
-    subDeclineText: {
+    subChipGhost: {
+      backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    subChipTextPrimary: {
+      color: theme.colors.textInverse,
+      fontFamily: 'Inter-SemiBold',
+    },
+    subChipTextSecondary: {
       color: theme.colors.status.warning,
       fontFamily: 'Inter-SemiBold',
     },
-    subChat: {
-      backgroundColor: theme.colors.surfaceAlt,
-    },
-    subChatText: {
+    subChipTextGhost: {
       color: theme.colors.text,
       fontFamily: 'Inter-SemiBold',
     },
     bottomContainer: {
       backgroundColor: theme.colors.surface,
-      padding: 20,
+      padding: 16,
       borderTopWidth: 1,
       borderTopColor: theme.colors.border,
     },
@@ -387,9 +431,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       alignItems: 'center',
       justifyContent: 'space-between',
       backgroundColor: theme.colors.primary[500],
-      paddingHorizontal: 24,
-      paddingVertical: 16,
-      borderRadius: 12,
+      paddingHorizontal: 18,
+      paddingVertical: 14,
+      borderRadius: theme.radius.cta,
       ...theme.shadows.raised,
     },
     disabledButton: {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 type Props = {
   title?: string;
@@ -9,13 +9,13 @@ type Props = {
 };
 
 export function CartHeader({ title = 'Cart', onBack }: Props) {
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Icon name='ArrowLeft' size='xl' color={theme.colors.text} />
+        <Icon name='ArrowBack' size='xl' color={theme.colors.text} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>{title}</Text>
       <View style={styles.placeholder} />
@@ -23,7 +23,7 @@ export function CartHeader({ title = 'Cart', onBack }: Props) {
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     header: {
       flexDirection: 'row',

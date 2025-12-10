@@ -2,17 +2,20 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMenuItemsByIds, createOrder, getUserAddresses, getRestaurantById, getSubstitutionForItem, getAutoApplySubstitution } from '@/utils/database';
+import { getMenuItemsByIds, createOrder, getUserAddresses, getRestaurantById, getSubstitutionForItem, getAutoApplySubstitution, uploadPaymentProof, submitPaymentProof } from '@/utils/database';
 import { MenuItem, UserAddress, Restaurant } from '@/types/database';
 import { computeEtaBand } from '@/utils/db/trustedArrival';
 import { estimateTravelMinutes } from '@/utils/etaService';
-import { supabase } from '@/utils/supabase';
 
 type SubstitutionPrompt = { item: MenuItem & { quantity: number }; substitute: MenuItem; maxDeltaPct?: number };
 type SubstitutionDecision = { original_item_id: string; substitute_item_id?: string; decision: 'accept' | 'decline' | 'chat'; price_delta?: number; quantity?: number };
+
+const PAYMENT_PROOF_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+const PAYMENT_PROOF_MAX_BYTES = 5 * 1024 * 1024;
 
 export function useCartData() {
   const { cart, updateQuantity, clearCart } = useCart();
@@ -26,6 +29,7 @@ export function useCartData() {
   const [selectedPayment, setSelectedPayment] = useState('instapay');
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptUri, setReceiptUri] = useState<string | null>(null);
+  const [receiptFileMeta, setReceiptFileMeta] = useState<{ uri: string; mimeType?: string | null; name?: string | null; size?: number | null } | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [etaLabel, setEtaLabel] = useState<string | null>(null);
   const [etaTrusted, setEtaTrusted] = useState<boolean>(false);
@@ -219,7 +223,24 @@ export function useCartData() {
       }
 
       const file = result.assets[0];
-      setReceiptUri(file.uri);
+      const mimeType = (file as any).mimeType as string | undefined;
+      const validationError = validateProofFile({
+        uri: file.uri,
+        mimeType: mimeType ?? null,
+        size: (file as any).size ?? null,
+      });
+      if (validationError) {
+        setReceiptError(validationError);
+        setReceiptUploading(false);
+        return;
+      }
+
+      persistReceiptFile({
+        uri: file.uri,
+        mimeType: mimeType ?? null,
+        name: (file as any).name ?? null,
+        size: (file as any).size ?? null,
+      });
     } catch (err) {
       console.error('Receipt pick error:', err);
       setReceiptError('Failed to pick receipt. Please try again.');
@@ -227,6 +248,68 @@ export function useCartData() {
       setReceiptUploading(false);
     }
   }, []);
+
+  const captureReceipt = useCallback(async () => {
+    try {
+      setReceiptError(null);
+      setReceiptUploading(true);
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.7,
+      });
+
+      if (result.canceled || !result.assets?.length) {
+        setReceiptUploading(false);
+        return;
+      }
+
+      const asset = result.assets[0];
+      const validationError = validateProofFile({
+        uri: asset.uri,
+        mimeType: asset.type ? `image/${asset.type}` : 'image/jpeg',
+        size: asset.fileSize ?? null,
+      });
+      if (validationError) {
+        setReceiptError(validationError);
+        setReceiptUploading(false);
+        return;
+      }
+
+      persistReceiptFile({
+        uri: asset.uri,
+        mimeType: asset.type ? `image/${asset.type}` : 'image/jpeg',
+        name: asset.fileName ?? asset.uri,
+        size: asset.fileSize ?? null,
+      });
+    } catch (err) {
+      console.error('Receipt capture error:', err);
+      setReceiptError('Failed to capture receipt. Please try again.');
+    } finally {
+      setReceiptUploading(false);
+    }
+  }, []);
+
+  const validateProofFile = (file: { uri: string; mimeType?: string | null; size?: number | null }) => {
+    if (file.size && file.size > PAYMENT_PROOF_MAX_BYTES) {
+      return 'Proof too large. Please upload a file under 5MB.';
+    }
+    const mimeType = file.mimeType?.toLowerCase?.();
+    if (mimeType && !PAYMENT_PROOF_ALLOWED_TYPES.includes(mimeType)) {
+      return 'Unsupported file type. Use JPG, PNG, or PDF.';
+    }
+    return null;
+  };
+
+  const persistReceiptFile = (file: { uri: string; mimeType?: string | null; name?: string | null; size?: number | null }) => {
+    setReceiptUri(file.uri);
+    setReceiptFileMeta({
+      uri: file.uri,
+      mimeType: file.mimeType ?? null,
+      name: file.name ?? null,
+      size: file.size ?? null,
+    });
+  };
 
   const getSubtotal = useCallback(() => {
     return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -299,14 +382,16 @@ export function useCartData() {
 
       let receiptForOrder = receiptUri;
       if (receiptUri && !receiptUri.startsWith('http')) {
-        const uploaded = await uploadReceiptToStorage(receiptUri);
+        const uploaded = await uploadReceiptToStorage(receiptFileMeta ?? { uri: receiptUri });
         if (!uploaded) {
           Alert.alert('Error', 'Failed to upload receipt. Please try again.');
+          setReceiptError('Upload failed—please retry.');
           setPlacing(false);
           return;
         }
         receiptForOrder = uploaded;
         setReceiptUri(uploaded);
+        setReceiptFileMeta(prev => (prev ? { ...prev, uri: uploaded } : { uri: uploaded }));
       }
 
       const { data: order, error } = await createOrder(
@@ -333,14 +418,14 @@ export function useCartData() {
         Alert.alert('Error', 'Failed to place order. Please try again.');
       } else {
         const txnId = `manual-${Date.now()}`;
-        const proof = await supabase.rpc('submit_payment_proof', {
-          p_order_id: order.id,
-          p_txn_id: txnId,
-          p_reported_amount: total,
-          p_receipt_url: receiptForOrder,
-          p_paid_at: new Date().toISOString(),
+        const proof = await submitPaymentProof({
+          orderId: order.id,
+          txnId,
+          reportedAmount: total,
+          proofUrl: receiptForOrder,
+          paidAt: new Date().toISOString(),
         });
-        if (proof.error) {
+        if (!proof.ok) {
           console.error('submit_payment_proof error', proof.error);
           Alert.alert('Warning', 'Order placed, but receipt could not be queued for admin. Please retry from order details.');
         }
@@ -364,25 +449,15 @@ export function useCartData() {
     }
   }, [cartItems, clearCart, getSubtotal, receiptUri, restaurantMeta, selectedAddress, selectedPayment, substitutionDecisions, tax, total, user]);
 
-  const uploadReceiptToStorage = useCallback(async (uri: string) => {
+  const uploadReceiptToStorage = useCallback(async (file: { uri: string; mimeType?: string | null; name?: string | null; size?: number | null }) => {
     try {
-      const { data: authUser } = await supabase.auth.getUser();
-      const owner = authUser?.user?.id ?? 'anon';
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const extGuess = uri.split('.').pop()?.split('?')[0] || 'jpg';
-      const path = `${owner}/receipt-${Date.now()}.${extGuess}`;
-
-      const { data, error } = await supabase.storage.from('order-receipts').upload(path, blob, { cacheControl: '3600', upsert: true });
-      if (error) throw error;
-
-      const { data: publicUrlData } = supabase.storage.from('order-receipts').getPublicUrl(data.path);
-      return publicUrlData?.publicUrl || data.path || null;
+      const uploaded = await uploadPaymentProof(file, user?.id);
+      return uploaded?.url ?? null;
     } catch (err) {
       console.error('Receipt upload failed', err);
       return null;
     }
-  }, []);
+  }, [user?.id]);
 
   const handleDeclineSubstitution = useCallback(
     (item: MenuItem & { quantity: number }) => {
@@ -430,6 +505,7 @@ export function useCartData() {
     total,
     updateItemQuantity,
     pickReceipt,
+    captureReceipt,
     handlePlaceOrder,
     handleDeclineSubstitution,
     handleChat,

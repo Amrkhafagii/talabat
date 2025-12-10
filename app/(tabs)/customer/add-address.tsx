@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useForm } from 'react-hook-form';
@@ -9,7 +9,6 @@ import * as Location from 'expo-location';
 import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
-import FormSelect from '@/components/ui/FormSelect';
 import FormToggle from '@/components/ui/FormToggle';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,14 +34,15 @@ export default function AddAddress() {
   const {
     control,
     handleSubmit,
-    formState: { errors, isValid },
-    watch,
+    formState: { isValid },
     setValue,
+    watch,
   } = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
     mode: 'onChange',
     defaultValues: {
       label: 'Home',
+      tag: 'home',
       addressLine1: '',
       addressLine2: '',
       city: '',
@@ -55,15 +55,10 @@ export default function AddAddress() {
       country: '',
     },
   });
+  const postalCode = watch('postalCode');
+  const tag = watch('tag');
 
-  const selectedLabel = watch('label');
-
-  useEffect(() => {
-    // Check if this will be the first address (auto-default)
-    checkIfFirstAddress();
-  }, [user]);
-
-  const checkIfFirstAddress = async () => {
+  const checkIfFirstAddress = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -74,7 +69,11 @@ export default function AddAddress() {
     } catch (error) {
       console.error('Error checking existing addresses:', error);
     }
-  };
+  }, [setValue, user]);
+
+  useEffect(() => {
+    checkIfFirstAddress();
+  }, [checkIfFirstAddress]);
 
   const getCurrentLocationAndAddress = async () => {
     if (Platform.OS === 'web') {
@@ -89,9 +88,8 @@ export default function AddAddress() {
     setLocationError(null);
 
     try {
-      // Request location permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== 'granted') {
         setLocationError('Location permission is required to use GPS');
         Alert.alert(
@@ -101,18 +99,14 @@ export default function AddAddress() {
         return;
       }
 
-      // Get current position
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
 
       const { latitude, longitude } = location.coords;
-
-      // Store coordinates in form
       setValue('latitude', latitude);
       setValue('longitude', longitude);
 
-      // Reverse geocode to get address
       const addresses = await Location.reverseGeocodeAsync({
         latitude,
         longitude,
@@ -120,8 +114,7 @@ export default function AddAddress() {
 
       if (addresses.length > 0) {
         const address = addresses[0];
-        
-        // Populate form fields with geocoded address
+
         if (address.streetNumber && address.street) {
           setValue('addressLine1', `${address.streetNumber} ${address.street}`);
         } else if (address.street) {
@@ -181,6 +174,10 @@ export default function AddAddress() {
     setSaving(true);
 
     try {
+      const normalizedTag = (() => {
+        const raw = (data.label || data.tag || 'other').toLowerCase();
+        return ['home', 'work', 'other'].includes(raw) ? (raw as AddressFormData['tag']) : 'custom';
+      })();
       const newAddress = {
         user_id: user.id,
         label: data.label,
@@ -194,6 +191,7 @@ export default function AddAddress() {
         delivery_instructions: data.deliveryInstructions || undefined,
         latitude: data.latitude,
         longitude: data.longitude,
+        tag: normalizedTag,
       };
 
       const { address, errorCode, errorMessage } = await createUserAddress(newAddress);
@@ -224,58 +222,72 @@ export default function AddAddress() {
     <SafeAreaView style={styles.container}>
       <Header title="Add Address" showBackButton />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* GPS Location Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Fill</Text>
-          <View style={styles.gpsContainer}>
-            <View style={styles.gpsInfo}>
-                <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
-              <View style={styles.gpsTextContainer}>
-                <Text style={styles.gpsTitle}>Use Current Location</Text>
-                <Text style={styles.gpsSubtitle}>
-                  Automatically fill address fields using GPS
-                </Text>
-              </View>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <TouchableOpacity style={styles.locationCard} onPress={getCurrentLocationAndAddress} activeOpacity={0.9}>
+          <View style={styles.locationLeft}>
+            <View style={styles.locationIcon}>
+              <Icon name="Navigation" size="md" color={theme.colors.primary[500]} />
             </View>
-            <Button
-              title={locationLoading ? "Getting Location..." : "Use GPS"}
-              onPress={getCurrentLocationAndAddress}
-              disabled={locationLoading || Platform.OS === 'web'}
-              size="small"
-              style={styles.gpsButton}
-            />
+            <View>
+              <Text style={styles.locationTitle}>{locationLoading ? 'Locating...' : 'Use current location'}</Text>
+              <Text style={styles.locationSubtitle}>Tap to autofill address</Text>
+            </View>
           </View>
-          
-          {locationError && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{locationError}</Text>
-            </View>
-          )}
+          <Icon name="ChevronRight" size="md" color={theme.colors.textMuted} />
+        </TouchableOpacity>
 
-          {Platform.OS === 'web' && (
-            <View style={styles.webNotice}>
-              <Text style={styles.webNoticeText}>
-                📍 GPS location is not available on web. Please enter your address manually.
-              </Text>
-            </View>
-          )}
+        <View style={styles.noticeCard}>
+          <Icon name="Info" size="sm" color={theme.colors.textMuted} />
+          <Text style={styles.noticeText}>
+            Browser permissions are required for GPS. If location fails, enter your address manually below.
+          </Text>
         </View>
 
-        {/* Address Type Selection */}
+        {locationError && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{locationError}</Text>
+          </View>
+        )}
+
+        {Platform.OS === 'web' && (
+          <View style={styles.webNotice}>
+            <Text style={styles.webNoticeText}>
+              📍 GPS location is not available on web. Please enter your address manually.
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.dividerRow}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>OR ENTER MANUALLY</Text>
+          <View style={styles.divider} />
+        </View>
+
         <View style={styles.section}>
-          <FormSelect
-            control={control}
-            name="label"
-            label="Address Type"
-            options={addressTypeOptions}
-          />
+          <Text style={styles.sectionTitle}>Tag this address</Text>
+          <View style={styles.tagRow}>
+            {addressTypeOptions.map(option => {
+              const isActive = (tag || '').toLowerCase() === option.value.toLowerCase();
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[styles.tagPill, isActive && styles.tagPillActive]}
+                  onPress={() => {
+                    setValue('tag', option.value.toLowerCase() as AddressFormData['tag'], { shouldValidate: true });
+                    setValue('label', option.value);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.tagText, isActive && styles.tagTextActive]}>{option.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
-        {/* Address Details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Address Details</Text>
-          
+
           <FormField
             control={control}
             name="addressLine1"
@@ -324,37 +336,37 @@ export default function AddAddress() {
           <FormField
             control={control}
             name="postalCode"
-            label="Postal Code"
-            placeholder="Postal Code (optional)"
+            label="Zip Code"
+            placeholder="4-digit zip"
             keyboardType="default"
             maxLength={20}
           />
+          {postalCode && postalCode.length > 0 && postalCode.length < 4 && (
+            <Text style={styles.validationText}>Zip code must be 4 digits</Text>
+          )}
         </View>
 
-        {/* Delivery Instructions */}
         <View style={styles.section}>
           <FormField
             control={control}
             name="deliveryInstructions"
             label="Delivery Instructions (Optional)"
-            placeholder="e.g., Ring doorbell, Leave at door, Call when arrived..."
+            placeholder="e.g., Gate code is 1234, leave at front door."
             multiline
             numberOfLines={3}
             maxLength={200}
           />
         </View>
 
-        {/* Set as Default */}
         <View style={styles.section}>
           <FormToggle
             control={control}
             name="isDefault"
             label="Set as default address"
-            description="Use this address for future orders"
+            description="This will be used for your future orders"
           />
         </View>
 
-        {/* Location Info */}
         {watch('latitude') && watch('longitude') && (
           <View style={styles.section}>
             <View style={styles.locationInfo}>
@@ -367,13 +379,12 @@ export default function AddAddress() {
         )}
       </ScrollView>
 
-      {/* Save Button */}
       <View style={styles.bottomContainer}>
-          <Button
-            title={saving ? "Saving..." : "Save Address"}
-            onPress={handleSubmit(onSubmit)}
-            disabled={saving || !isValid}
-          />
+        <Button
+          title={saving ? "Saving..." : "Save Address"}
+          onPress={handleSubmit(onSubmit)}
+          disabled={saving || !isValid}
+        />
       </View>
     </SafeAreaView>
   );
@@ -390,6 +401,10 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       paddingHorizontal: 20,
       paddingTop: 16,
     },
+    scrollContent: {
+      paddingBottom: 120,
+      gap: 12,
+    },
     section: {
       marginBottom: 24,
     },
@@ -399,40 +414,39 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       color: theme.colors.text,
       marginBottom: 16,
     },
-    gpsContainer: {
+    locationCard: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       backgroundColor: theme.colors.surface,
       padding: 16,
-      borderRadius: 12,
+      borderRadius: theme.radius.card,
       borderWidth: 1,
       borderColor: theme.colors.border,
       ...theme.shadows.card,
     },
-    gpsInfo: {
+    locationLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    locationIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 16,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    locationTitle: { fontSize: 16, fontFamily: 'Inter-SemiBold', color: theme.colors.text, marginBottom: 2 },
+    locationSubtitle: { fontSize: 14, fontFamily: 'Inter-Regular', color: theme.colors.textMuted },
+    noticeCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      flex: 1,
+      gap: 8,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: theme.radius.md,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
     },
-    gpsTextContainer: {
-      marginLeft: 12,
-      flex: 1,
-    },
-    gpsTitle: {
-      fontSize: 16,
-      fontFamily: 'Inter-SemiBold',
-      color: theme.colors.text,
-      marginBottom: 2,
-    },
-    gpsSubtitle: {
-      fontSize: 14,
-      fontFamily: 'Inter-Regular',
-      color: theme.colors.textMuted,
-    },
-    gpsButton: {
-      marginLeft: 12,
-    },
+    noticeText: { flex: 1, fontFamily: 'Inter-Regular', color: theme.colors.textMuted, fontSize: 13 },
     errorContainer: {
       backgroundColor: theme.colors.statusSoft.error,
       borderWidth: 1,
@@ -470,6 +484,33 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
     marginLeft: {
       marginLeft: 12,
     },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 8,
+    },
+    divider: { flex: 1, height: 1, backgroundColor: theme.colors.border },
+    dividerText: { fontFamily: 'Inter-SemiBold', color: theme.colors.textSubtle, fontSize: 12 },
+    tagRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    tagPill: {
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: theme.radius.pill,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+    },
+    tagPillActive: {
+      borderColor: theme.colors.primary[500],
+      backgroundColor: theme.colors.primary[50],
+    },
+    tagText: { fontFamily: 'Inter-Medium', color: theme.colors.text },
+    tagTextActive: { color: theme.colors.primary[600] },
+    validationText: { color: theme.colors.status.error, fontFamily: 'Inter-Medium', marginTop: 6 },
     locationInfo: {
       flexDirection: 'row',
       alignItems: 'center',

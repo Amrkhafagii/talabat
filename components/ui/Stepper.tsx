@@ -32,13 +32,14 @@ export default function Stepper({ steps, currentIndex, style }: StepperProps) {
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
+  const circleSize = theme.spacing.lg + theme.spacing.md;
   return StyleSheet.create({
     container: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     step: { flex: 1, alignItems: 'center' },
     circle: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
+      width: circleSize,
+      height: circleSize,
+      borderRadius: circleSize / 2,
       backgroundColor: theme.colors.surfaceAlt,
       borderWidth: 1,
       borderColor: theme.colors.border,
@@ -53,6 +54,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       backgroundColor: theme.colors.border,
       flex: 1,
       marginHorizontal: 4,
+      borderRadius: theme.radius.sm,
     },
     barActive: { backgroundColor: theme.colors.primary[500] },
     stepLabel: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: theme.spacing.xs },

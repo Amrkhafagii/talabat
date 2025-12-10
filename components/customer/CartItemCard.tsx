@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { Icon } from '@/components/ui/Icon';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -17,7 +17,7 @@ interface CartItemCardProps {
 }
 
 export default function CartItemCard({ item, onUpdateQuantity }: CartItemCardProps) {
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
@@ -45,7 +45,7 @@ export default function CartItemCard({ item, onUpdateQuantity }: CartItemCardPro
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     cartItem: {
       flexDirection: 'row',

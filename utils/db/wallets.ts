@@ -2,6 +2,13 @@ import { supabase } from '../supabase';
 import { Wallet, WalletTransaction, PayoutMethod, PayoutAttempt } from '@/types/database';
 import { logAudit } from './trustedArrival';
 
+type WalletTransactionFilters = {
+  bucket?: WalletTransaction['bucket'];
+  direction?: WalletTransaction['direction'];
+  status?: WalletTransaction['status'][];
+  limit?: number;
+};
+
 export async function getWalletsByUser(userId: string): Promise<Wallet[]> {
   const { data, error } = await supabase
     .from('wallets')
@@ -15,12 +22,30 @@ export async function getWalletsByUser(userId: string): Promise<Wallet[]> {
   return data || [];
 }
 
-export async function getWalletTransactions(walletId: string): Promise<WalletTransaction[]> {
-  const { data, error } = await supabase
+export async function getWalletTransactions(walletId: string, filters?: WalletTransactionFilters): Promise<WalletTransaction[]> {
+  let query = supabase
     .from('v_wallet_feed')
     .select('*')
     .eq('wallet_id', walletId)
     .order('created_at', { ascending: false });
+
+  if (filters?.bucket) {
+    query = query.eq('bucket', filters.bucket);
+  }
+
+  if (filters?.direction) {
+    query = query.eq('direction', filters.direction);
+  }
+
+  if (filters?.status && filters.status.length > 0) {
+    query = query.in('status', filters.status);
+  }
+
+  if (filters?.limit) {
+    query = query.limit(filters.limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching wallet transactions:', error);
@@ -323,4 +348,28 @@ export async function getPayoutConfirmation(walletId: string, requestId?: string
 
   const attempts = await listPayoutAttempts(data.id);
   return { request: data, attempts };
+}
+
+// Wallet top-up proof (manual) for customer wallets
+export async function submitWalletTopupProof(walletId: string, amount: number, params?: { txnRef?: string; receiptUrl?: string }) {
+  const { data, error } = await supabase.rpc('submit_wallet_topup_proof', {
+    p_wallet_id: walletId,
+    p_amount: amount,
+    p_txn_ref: params?.txnRef ?? null,
+    p_receipt_url: params?.receiptUrl ?? null,
+  });
+
+  if (error) {
+    console.error('Error submitting wallet topup proof', error);
+    return null;
+  }
+
+  await logAudit('wallet_topup_proof', 'wallet_transactions', data as any, {
+    wallet_id: walletId,
+    amount,
+    txn_ref: params?.txnRef,
+    receipt_url: params?.receiptUrl,
+  });
+
+  return data as string | null;
 }

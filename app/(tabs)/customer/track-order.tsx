@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -8,7 +8,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { useTrackOrder } from '@/hooks/useTrackOrder';
 import { TrackOrderStatusCard } from '@/components/customer/TrackOrderStatusCard';
 import { TrackOrderDelayCard } from '@/components/customer/TrackOrderDelayCard';
@@ -42,8 +42,26 @@ export default function TrackOrder() {
     getOrderItems,
   } = useTrackOrder(orderId);
   const { etaWindow, showTrustedEta } = etaDetails;
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const receiptUrl = order?.receipt_url || order?.payment_proof_url || null;
+  const mapLat = (driverLocation?.latitude || order?.delivery?.driver?.current_latitude) ?? null;
+  const mapLng = (driverLocation?.longitude || order?.delivery?.driver?.current_longitude) ?? null;
+  const staticMapUrl =
+    mapLat && mapLng && process.env.EXPO_PUBLIC_MAPS_API_KEY
+      ? `https://maps.googleapis.com/maps/api/staticmap?center=${mapLat},${mapLng}&zoom=14&size=600x300&markers=color:orange%7C${mapLat},${mapLng}&key=${process.env.EXPO_PUBLIC_MAPS_API_KEY}`
+      : null;
+  const hasMapPreview = Boolean(mapLat && mapLng);
+
+  const openReceipt = useCallback(() => {
+    if (!receiptUrl) {
+      Alert.alert('Receipt', 'Receipt is not available yet.');
+      return;
+    }
+    Linking.openURL(receiptUrl).catch(() => {
+      Alert.alert('Receipt', 'Unable to open receipt right now.');
+    });
+  }, [receiptUrl]);
 
   if (loading) {
     return (
@@ -106,6 +124,25 @@ export default function TrackOrder() {
 
         <TrackOrderProgress currentStepIndex={currentStepIndex} />
 
+        {hasMapPreview && (
+          <Card style={styles.mapCard}>
+            {staticMapUrl ? (
+              <Image source={{ uri: staticMapUrl }} style={styles.mapPreview} resizeMode="cover" />
+            ) : (
+              <View style={styles.mapCompact}>
+                <Icon name="MapPinFill" size="lg" color={theme.colors.primary[500]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.mapText}>Driver location locked</Text>
+                  <Text style={styles.mapCoords}>
+                    {mapLat?.toFixed(4)}, {mapLng?.toFixed(4)}
+                  </Text>
+                </View>
+              </View>
+            )}
+            <Button title="Open Maps" onPress={openDriverInMaps} variant="outline" />
+          </Card>
+        )}
+
         {/* Driver Information */}
         {driver && ['picked_up', 'on_the_way'].includes(order.status) && (
           <Card style={styles.driverCard}>
@@ -126,12 +163,16 @@ export default function TrackOrder() {
                   {driver.vehicle_color && ` • ${driver.vehicle_color}`}
                 </Text>
               </View>
-              <Button
-                title="Call"
-                onPress={callDriver}
-                size="small"
-                variant="outline"
-              />
+              <View style={styles.driverActions}>
+                <TouchableOpacity style={styles.driverChip} onPress={callDriver}>
+                  <Icon name="Phone" size="sm" color={theme.colors.primary[500]} />
+                  <Text style={styles.driverChipText}>Call</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.driverChipSecondary}>
+                  <Icon name="MessageCircle" size="sm" color={theme.colors.textMuted} />
+                  <Text style={styles.driverChipMuted}>Message</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Live location */}
@@ -185,12 +226,40 @@ export default function TrackOrder() {
                 <Text style={styles.chargeLabel}>{row.label}</Text>
                 <Text style={styles.chargeValue}>{money(row.value)}</Text>
               </View>
-            ))}
+              ))}
             <View style={styles.chargeDivider} />
             <View style={styles.chargeRow}>
               <Text style={styles.chargeTotalLabel}>Total charged</Text>
               <Text style={styles.chargeTotalValue}>{money(order.total_charged ?? order.total)}</Text>
             </View>
+          </View>
+          <View style={styles.receiptRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sectionSubtitle}>Receipt</Text>
+              <Text style={styles.receiptHelper}>
+                {receiptUrl ? 'Preview your payment receipt below.' : 'Receipt will appear once payment is processed.'}
+              </Text>
+            </View>
+            <Button
+              title="Open Receipt"
+              onPress={openReceipt}
+              variant="outline"
+              size="small"
+              disabled={!receiptUrl}
+            />
+          </View>
+          {receiptUrl ? (
+            <Image source={{ uri: receiptUrl }} style={styles.receiptPreview} resizeMode="cover" />
+          ) : null}
+          <View style={styles.supportActions}>
+            <Button title="Contact Support" onPress={callRestaurant} variant="outline" style={styles.supportButton} />
+            <Button
+              title={receiptUrl ? 'View Receipt' : 'Receipt Pending'}
+              onPress={openReceipt}
+              variant="outline"
+              style={styles.supportButton}
+              disabled={!receiptUrl}
+            />
           </View>
         </Card>
 
@@ -198,7 +267,7 @@ export default function TrackOrder() {
         <Card style={styles.addressCard}>
           <Text style={styles.sectionTitle}>Delivery Address</Text>
           <View style={styles.addressInfo}>
-            <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
+            <Icon name="MapPinFill" size="md" color={theme.colors.primary[500]} />
             <Text style={styles.addressText}>{order.delivery_address}</Text>
           </View>
           {order.delivery_instructions && (
@@ -233,7 +302,7 @@ export default function TrackOrder() {
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -274,6 +343,33 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       color: theme.colors.text,
       marginBottom: 16,
     },
+    sectionSubtitle: {
+      fontSize: 14,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+      marginBottom: 2,
+    },
+    mapCard: {
+      marginBottom: 16,
+      gap: 12,
+    },
+    mapPreview: {
+      height: 160,
+      borderRadius: theme.radius.card,
+      width: '100%',
+    },
+    mapCompact: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: theme.radius.card,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    mapText: { fontFamily: 'Inter-Medium', color: theme.colors.textMuted },
+    mapCoords: { fontFamily: 'Inter-SemiBold', color: theme.colors.text },
     driverCard: {
       marginBottom: 16,
     },
@@ -293,6 +389,30 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     driverDetails: {
       flex: 1,
     },
+    driverActions: {
+      gap: 8,
+      flexDirection: 'row',
+    },
+    driverChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: theme.radius.pill,
+      backgroundColor: theme.colors.primary[50],
+    },
+    driverChipSecondary: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: theme.radius.pill,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    driverChipText: { fontFamily: 'Inter-SemiBold', color: theme.colors.primary[600], fontSize: 13 },
+    driverChipMuted: { fontFamily: 'Inter-SemiBold', color: theme.colors.textMuted, fontSize: 13 },
     liveLocation: {
       marginTop: 12,
       padding: 12,
@@ -390,6 +510,32 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       fontFamily: 'Inter-Bold',
       color: theme.colors.text,
     },
+    receiptRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 12,
+      marginBottom: 8,
+    },
+    receiptHelper: {
+      fontSize: 12,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textMuted,
+    },
+    receiptPreview: {
+      width: '100%',
+      height: 160,
+      borderRadius: theme.radius.card,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    supportActions: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 12,
+    },
+    supportButton: { flex: 1 },
     addressCard: {
       marginBottom: 16,
     },

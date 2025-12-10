@@ -15,6 +15,7 @@ export type PaymentReviewItem = {
   restaurant_net: number | null;
   customer_payment_txn_id: string | null;
   receipt_url: string | null;
+  payment_proof_url: string | null;
   created_at: string;
 };
 

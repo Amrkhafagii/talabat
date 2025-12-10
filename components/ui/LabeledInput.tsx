@@ -28,21 +28,21 @@ export default function LabeledInput({ label, helperText, errorText, style, ...p
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
   return {
-    container: { marginBottom: theme.spacing.md },
+    container: { marginBottom: theme.spacing.lg },
     label: { ...theme.typography.subhead, color: theme.colors.text, marginBottom: theme.spacing.xs },
     input: {
       backgroundColor: theme.colors.formSurface,
       borderWidth: 1,
       borderColor: theme.colors.formBorder,
-      borderRadius: theme.radius.md,
-      paddingHorizontal: theme.spacing.md,
+      borderRadius: theme.radius.lg,
+      paddingHorizontal: theme.spacing.lg,
       paddingVertical: theme.spacing.sm,
       color: theme.colors.formText,
       minHeight: theme.tap.minHeight,
       fontFamily: 'Inter-Regular',
     },
     inputError: { borderColor: theme.colors.status.error },
-    helper: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: theme.spacing.xs },
+    helper: { ...theme.typography.caption, color: theme.colors.textSubtle, marginTop: theme.spacing.xs },
     error: { ...theme.typography.caption, color: theme.colors.status.error, marginTop: theme.spacing.xs },
   };
 }

@@ -16,6 +16,10 @@ export async function getRestaurants(filters?: RestaurantFilters, options?: Rest
   const to = from + pageSize - 1;
   const hasLocation = options?.lat !== undefined && options?.lng !== undefined;
   const maxDistanceKm = options?.maxDistanceKm ?? 15;
+  const cuisineFilter = filters?.cuisine?.length ? filters.cuisine : filters?.cuisineTags;
+  const sanitizedCuisine = cuisineFilter?.map(c => c.replace(/'/g, "''"));
+  const minRating = filters?.rating ?? filters?.minRating;
+  const maxDeliveryFee = filters?.deliveryFee ?? filters?.maxDeliveryFee;
 
   let query = supabase
     .from('restaurants')
@@ -23,16 +27,20 @@ export async function getRestaurants(filters?: RestaurantFilters, options?: Rest
     .eq('is_active', true);
 
   // Apply filters
-  if (filters?.cuisine && filters.cuisine.length > 0) {
-    query = query.in('cuisine', filters.cuisine);
+  if (sanitizedCuisine && sanitizedCuisine.length > 0) {
+    query = query.overlaps('cuisine_tags', sanitizedCuisine.map(c => c.toLowerCase()));
   }
 
-  if (filters?.rating) {
-    query = query.gte('rating', filters.rating);
+  if (minRating !== undefined) {
+    query = query.gte('rating', minRating);
   }
 
-  if (filters?.deliveryFee) {
-    query = query.lte('delivery_fee', filters.deliveryFee);
+  if (maxDeliveryFee !== undefined) {
+    query = query.lte('delivery_fee', maxDeliveryFee);
+  }
+
+  if (filters?.deliveryTime !== undefined) {
+    query = query.lte('delivery_time', filters.deliveryTime);
   }
 
   if (filters?.promoted !== undefined) {

@@ -29,7 +29,7 @@ export default function FormSelect<T extends FieldValues>({
   disabled = false,
 }: FormSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
-  const { colors, spacing, radius, typography, shadows, tap, iconSizes } = useRestaurantTheme();
+  const { colors, spacing, radius, typography, tap, iconSizes } = useRestaurantTheme();
 
   const styles = useMemo(() => {
     const baseContainer: ViewStyle = {
@@ -39,10 +39,11 @@ export default function FormSelect<T extends FieldValues>({
       backgroundColor: colors.formSurface,
       borderWidth: 1,
       borderColor: colors.formBorder,
-      borderRadius: radius.md,
-      paddingHorizontal: spacing.md,
+      borderRadius: radius.lg,
+      paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,
       minHeight: tap.minHeight,
+      gap: spacing.sm,
     };
 
     return {
@@ -52,7 +53,8 @@ export default function FormSelect<T extends FieldValues>({
       selectText: { ...typography.body, color: colors.formText, flex: 1 } as TextStyle,
       placeholderText: { color: colors.formPlaceholder } as TextStyle,
       selectError: { borderColor: colors.status.error, borderWidth: 1.5 } as ViewStyle,
-      selectDisabled: { backgroundColor: colors.formSurfaceAlt, borderColor: colors.border } as ViewStyle,
+      selectDisabled: { backgroundColor: colors.formSurfaceAlt, borderColor: colors.borderMuted } as ViewStyle,
+      selectFocused: { borderColor: colors.primary[500], borderWidth: 1.5, backgroundColor: colors.surface },
       errorText: { ...typography.caption, color: colors.status.error, marginTop: spacing.xs, marginLeft: spacing.xs } as TextStyle,
       modalOverlay: {
         flex: 1,
@@ -66,7 +68,8 @@ export default function FormSelect<T extends FieldValues>({
         borderRadius: radius.xl,
         width: '100%',
         maxHeight: '70%',
-        ...shadows.card,
+        borderWidth: 1,
+        borderColor: colors.borderMuted,
       } as ViewStyle,
       modalHeader: {
         paddingHorizontal: spacing.lg,
@@ -87,13 +90,12 @@ export default function FormSelect<T extends FieldValues>({
       } as ViewStyle,
       selectedOption: { backgroundColor: colors.surfaceAlt } as ViewStyle,
       optionText: { ...typography.body, color: colors.text, flex: 1 } as TextStyle,
-      selectedOptionText: { color: colors.accent, fontFamily: 'Inter-SemiBold' } as TextStyle,
+      selectedOptionText: { color: colors.accentStrong, fontFamily: 'Inter-SemiBold' } as TextStyle,
       chevron: { marginLeft: spacing.sm } as ViewStyle,
       iconSize: iconSizes.md,
     };
   }, [
     colors.accent,
-    colors.border,
     colors.borderMuted,
     colors.formBorder,
     colors.formPlaceholder,
@@ -101,14 +103,14 @@ export default function FormSelect<T extends FieldValues>({
     colors.formSurfaceAlt,
     colors.formText,
     colors.overlay,
+    colors.primary,
     colors.status.error,
     colors.surface,
     colors.surfaceAlt,
     colors.text,
     iconSizes.md,
-    radius.md,
+    radius.lg,
     radius.xl,
-    shadows.card,
     spacing.lg,
     spacing.md,
     spacing.sm,
@@ -135,6 +137,7 @@ export default function FormSelect<T extends FieldValues>({
                 styles.selectContainer,
                 error && styles.selectError,
                 disabled && styles.selectDisabled,
+                isOpen && !disabled && !error ? styles.selectFocused : undefined,
               ]}
               onPress={() => !disabled && setIsOpen(true)}
               disabled={disabled}

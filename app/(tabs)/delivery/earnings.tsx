@@ -54,13 +54,7 @@ export default function DeliveryEarnings() {
     return () => theme.setMode(prev);
   }, [theme]);
 
-  useEffect(() => {
-    if (user) {
-      loadDriverData();
-    }
-  }, [user]);
-
-  const loadDriverData = async () => {
+  const loadDriverData = React.useCallback(async () => {
     if (!user) return;
 
     try {
@@ -84,7 +78,13 @@ export default function DeliveryEarnings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadDriverData();
+    }
+  }, [loadDriverData, user]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -104,21 +104,6 @@ export default function DeliveryEarnings() {
         return stats.totalEarnings;
       default:
         return stats.weekEarnings;
-    }
-  };
-
-  const getPeriodLabel = () => {
-    switch (selectedPeriod) {
-      case 'today':
-        return 'Today';
-      case 'week':
-        return 'This Week';
-      case 'month':
-        return 'This Month';
-      case 'all':
-        return 'All Time';
-      default:
-        return 'This Week';
     }
   };
 
@@ -193,7 +178,7 @@ export default function DeliveryEarnings() {
 
         {/* Main Earnings Display */}
         <Card style={styles.heroCard}>
-          <Text style={styles.heroLabel}>This Week's Earnings</Text>
+          <Text style={styles.heroLabel}>This Week&apos;s Earnings</Text>
           <Text style={styles.heroAmount}>{formatCurrency(getPeriodEarnings())}</Text>
           <Text style={styles.heroSub}>Updated just now</Text>
         </Card>

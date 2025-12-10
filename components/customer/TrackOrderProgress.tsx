@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Card from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { orderSteps } from '@/hooks/useTrackOrder';
 
 type Props = {
@@ -10,12 +10,12 @@ type Props = {
 };
 
 export function TrackOrderProgress({ currentStepIndex }: Props) {
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   return (
     <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Order Progress</Text>
+      <Text style={styles.sectionTitle}>Order Status</Text>
       <View style={styles.progressContainer}>
         {orderSteps.map((step, index) => {
           const StepIcon = step.icon;
@@ -48,7 +48,7 @@ export function TrackOrderProgress({ currentStepIndex }: Props) {
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     progressCard: {
       marginBottom: 16,

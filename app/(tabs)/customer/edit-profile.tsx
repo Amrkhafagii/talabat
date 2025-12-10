@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions } from 'react-native';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, useWindowDimensions, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
@@ -9,7 +9,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile, updateUserProfile } from '@/utils/database';
 import { User as UserType } from '@/types/database';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function EditProfile() {
   const { user } = useAuth();
@@ -19,17 +19,11 @@ export default function EditProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { width: screenWidth } = useWindowDimensions();
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const responsive = useMemo(() => computeResponsiveSizes(screenWidth), [screenWidth]);
   const styles = useMemo(() => createStyles(theme, responsive), [theme, responsive]);
 
-  useEffect(() => {
-    if (user) {
-      loadUserProfile();
-    }
-  }, [user]);
-
-  const loadUserProfile = async () => {
+  const loadUserProfile = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -47,7 +41,11 @@ export default function EditProfile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadUserProfile();
+  }, [loadUserProfile]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -114,7 +112,7 @@ export default function EditProfile() {
               </Text>
             </View>
             <TouchableOpacity style={styles.cameraButton}>
-              <Icon name="Camera" size="sm" color={theme.colors.textInverse} />
+              <Icon name="CameraPlus" size="md" color={theme.colors.textInverse} />
             </TouchableOpacity>
           </View>
           <Text style={styles.changePictureText}>Tap to change picture</Text>
@@ -175,7 +173,12 @@ export default function EditProfile() {
 
         {/* Account Info */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>Account Information</Text>
+          <View style={styles.infoHeader}>
+            <Text style={styles.infoTitle}>Account Information</Text>
+            <View style={styles.membershipBadge}>
+              <Text style={styles.membershipText}>Foodie Gold</Text>
+            </View>
+          </View>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Member since</Text>
             <Text style={styles.infoValue}>
@@ -211,7 +214,7 @@ const computeResponsiveSizes = (screenWidth: number): ResponsiveSizes => {
   return { avatar, camera };
 };
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>, responsive: ResponsiveSizes) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>, responsive: ResponsiveSizes) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -325,23 +328,37 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>, responsive: Respons
       color: theme.colors.text,
       marginLeft: 8,
     },
-    infoSection: {
-      backgroundColor: theme.colors.surface,
-      paddingHorizontal: 20,
-      paddingVertical: 24,
-      marginBottom: 16,
-    },
-    infoTitle: {
-      fontSize: 18,
-      fontFamily: 'Inter-SemiBold',
-      color: theme.colors.text,
-      marginBottom: 16,
-    },
-    infoItem: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: 12,
+  infoSection: {
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    marginBottom: 16,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  infoTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.text,
+  },
+  membershipBadge: {
+    backgroundColor: theme.colors.primary[50],
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.primary[100],
+  },
+  membershipText: { fontFamily: 'Inter-SemiBold', color: theme.colors.primary[600], fontSize: 12 },
+  infoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
     },

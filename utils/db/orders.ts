@@ -98,6 +98,13 @@ export async function createOrder(
       eta_confidence_high: etaTimestamps.eta_confidence_high,
       wallet_capture_status: 'pending',
       status: 'pending',
+      ...(receiptUrl
+        ? {
+            payment_proof_url: receiptUrl,
+            payment_proof_uploaded_at: new Date().toISOString(),
+            payment_proof_uploaded_by: userId,
+          }
+        : {}),
     })
     .eq('id', orderId as string)
     .select()
@@ -393,4 +400,98 @@ export async function updateOrderStatus(orderId: string, status: string, additio
   }
 
   return true;
+}
+
+// Payment proof helpers
+const PAYMENT_PROOF_BUCKET = 'payment-proofs';
+const PAYMENT_PROOF_MAX_BYTES = 5 * 1024 * 1024; // 5MB
+const PAYMENT_PROOF_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+
+type PaymentProofFile = {
+  uri: string;
+  mimeType?: string | null;
+  name?: string | null;
+  size?: number | null;
+};
+
+const guessExtension = (file: PaymentProofFile, mime?: string | null) => {
+  const fallback = 'jpg';
+  if (file.name && file.name.includes('.')) {
+    return file.name.split('.').pop() || fallback;
+  }
+  if (file.uri && file.uri.includes('.')) {
+    const trimmed = file.uri.split('?')[0];
+    const parts = trimmed.split('.');
+    if (parts.length > 1) return parts.pop() || fallback;
+  }
+  if (mime) {
+    if (mime.includes('png')) return 'png';
+    if (mime.includes('pdf')) return 'pdf';
+  }
+  return fallback;
+};
+
+export async function uploadPaymentProof(file: PaymentProofFile, userId?: string, attempt = 1): Promise<{ url: string; path: string } | null> {
+  try {
+    const response = await fetch(file.uri);
+    const blob = await response.blob();
+    const mime = file.mimeType || (blob as any)?.type || 'application/octet-stream';
+    const normalizedMime = mime?.toLowerCase?.() ?? mime;
+    const size = typeof file.size === 'number' ? file.size : (blob as any)?.size;
+
+    if (size && size > PAYMENT_PROOF_MAX_BYTES) {
+      console.warn('Payment proof too large', { size });
+      return null;
+    }
+
+    const mimeIsKnown = normalizedMime && normalizedMime !== 'application/octet-stream';
+    if (mimeIsKnown && !PAYMENT_PROOF_ALLOWED_TYPES.includes(normalizedMime)) {
+      console.warn('Unsupported payment proof type', { mime: normalizedMime });
+      return null;
+    }
+
+    const ext = guessExtension(file, normalizedMime);
+    const path = `${userId ?? 'anon'}/payment-proof-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    const storage = supabase.storage.from(PAYMENT_PROOF_BUCKET);
+    const { data, error } = await storage
+      .upload(path, blob, { cacheControl: '3600', upsert: false, contentType: normalizedMime || undefined });
+
+    if (error) throw error;
+
+    const { data: signed } = await storage.createSignedUrl(data.path, 60 * 60 * 24 * 90);
+    const { data: publicUrlData } = storage.getPublicUrl(data.path);
+    return { url: signed?.signedUrl || publicUrlData?.publicUrl || data.path, path: data.path };
+  } catch (err) {
+    console.error('Payment proof upload failed', { attempt, err });
+    if (attempt < 2) {
+      await new Promise(resolve => setTimeout(resolve, 300 * attempt));
+      return uploadPaymentProof(file, userId, attempt + 1);
+    }
+    return null;
+  }
+}
+
+export async function submitPaymentProof(params: {
+  orderId: string;
+  txnId: string;
+  reportedAmount: number;
+  proofUrl?: string | null;
+  paidAt?: string | null;
+}) {
+  const { orderId, txnId, reportedAmount, proofUrl, paidAt } = params;
+  const { data, error } = await supabase.rpc('submit_payment_proof', {
+    p_order_id: orderId,
+    p_txn_id: txnId,
+    p_reported_amount: reportedAmount,
+    p_receipt_url: proofUrl ?? null,
+    p_paid_at: paidAt ?? null,
+  });
+
+  if (error) {
+    console.error('submit_payment_proof error', error);
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, result: data };
 }

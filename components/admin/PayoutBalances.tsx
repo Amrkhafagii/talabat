@@ -27,10 +27,11 @@ const sorters: Record<SortKey, (a: PayoutBalance, b: PayoutBalance) => number> =
 
 export function PayoutBalances({ balances, walletTx, onSettle, onViewTx }: Props) {
   const [sort, setSort] = useState<SortKey>('balance');
+  const sorted = useMemo(() => [...balances].sort(sorters[sort]), [balances, sort]);
+
   if (balances.length === 0) {
     return <Text style={styles.helperText}>No balances found.</Text>;
   }
-  const sorted = useMemo(() => [...balances].sort(sorters[sort]), [balances, sort]);
 
   const confirmSettle = (b: PayoutBalance) => {
     if ((b.balance ?? 0) <= 0) {

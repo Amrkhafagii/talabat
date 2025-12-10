@@ -6,7 +6,7 @@ import { syncIosTheme } from './iosTheme';
 
 export type ThemeMode = 'light' | 'dark';
 
-type PrimaryRamp = { 50: string; 100: string; 500: string; 600: string };
+type PrimaryRamp = { 25?: string; 50: string; 100: string; 500: string; 600: string };
 type StatusSet = { success: string; warning: string; error: string; info: string; hold?: string };
 
 type Palette = {
@@ -100,77 +100,89 @@ export type AppTheme = {
 
 type IconSizes = { sm: number; md: number; lg: number; xl: number };
 
-const primaryRampLight: PrimaryRamp = { 50: '#FFF4EC', 100: '#FFE8D6', 500: '#FF6B00', 600: '#FF7A1A' };
-const primaryRampDark: PrimaryRamp = { 50: '#1F3B73', 100: '#1F3B73', 500: '#1E3A8A', 600: '#244A9D' };
+const primaryRampLight: PrimaryRamp = {
+  25: '#FFF9F2',
+  50: '#FFE8D6',
+  100: '#FFDDB8',
+  500: '#F58220',
+  600: '#E26F0B',
+};
+const primaryRampDark: PrimaryRamp = {
+  25: '#1E1A16',
+  50: '#2C261F',
+  100: '#3A3127',
+  500: '#FF9C42',
+  600: '#F58220',
+};
 
-const baseSpacing: Spacing = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 20, xl: 24, xl2: 32 };
-const baseRadius: Radius = { sm: 12, md: 14, lg: 18, xl: 22, pill: 999, card: 18, cta: 20 };
-const baseIconSizes: IconSizes = { sm: 18, md: 20, lg: 22, xl: 24 };
+const baseSpacing: Spacing = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 20, xl: 26, xl2: 34 };
+const baseRadius: Radius = { sm: 12, md: 16, lg: 20, xl: 28, pill: 999, card: 20, cta: 18 };
+const baseIconSizes: IconSizes = { sm: 16, md: 20, lg: 24, xl: 30 };
 
 const lightPalette: Palette = {
-  background: '#F8F6F3',
+  background: '#F8F5F0',
   surface: '#FFFFFF',
-  surfaceAlt: '#F3F4F6',
-  surfaceStrong: '#FFFFFF',
-  border: '#E5E4DF',
-  borderMuted: '#EAE8E3',
-  text: '#1F1F1F',
-  textMuted: '#6B7280',
-  textSubtle: '#8A8F99',
+  surfaceAlt: '#F2ECE3',
+  surfaceStrong: '#FFF9F3',
+  border: '#E5D9CB',
+  borderMuted: '#EDE3D7',
+  text: '#1F140C',
+  textMuted: '#524437',
+  textSubtle: '#74675A',
   textInverse: '#FFFFFF',
-  secondaryText: '#6B7280',
-  mutedText: '#8A8F99',
+  secondaryText: '#382F2B',
+  mutedText: '#8A7C6F',
   formSurface: '#FFFFFF',
-  formSurfaceAlt: '#F3F4F6',
-  formBorder: '#E5E4DF',
-  formPlaceholder: '#8A8F99',
-  formText: '#1F1F1F',
+  formSurfaceAlt: '#F4EEE4',
+  formBorder: '#E5D9CB',
+  formPlaceholder: '#9B8D80',
+  formText: '#22160E',
   accent: primaryRampLight[500],
   accentStrong: primaryRampLight[600],
-  accentSoft: primaryRampLight[100],
-  success: '#16A34A',
-  warning: '#F59E0B',
-  error: '#D92D20',
-  info: '#2563EB',
-  positive: '#16A34A',
-  pill: '#F0F1F5',
-  overlay: 'rgba(0,0,0,0.08)',
+  accentSoft: primaryRampLight[50],
+  success: '#2CB164',
+  warning: '#F0A417',
+  error: '#D64545',
+  info: '#2F6FE4',
+  positive: '#2CB164',
+  pill: '#F0E5D8',
+  overlay: 'rgba(18, 12, 6, 0.08)',
 };
 
 const darkPalette: Palette = {
-  background: '#0F1524',
-  surface: '#121A2C',
-  surfaceAlt: '#182742',
-  surfaceStrong: '#121A2C',
-  border: '#1F2A44',
-  borderMuted: '#25324D',
-  text: '#FFFFFF',
-  textMuted: '#9FB3D9',
-  textSubtle: '#7E8FB3',
-  textInverse: '#FFFFFF',
-  secondaryText: '#9FB3D9',
-  mutedText: '#7E8FB3',
-  formSurface: '#121A2C',
-  formSurfaceAlt: '#182742',
-  formBorder: '#1F2A44',
-  formPlaceholder: '#7E8FB3',
-  formText: '#FFFFFF',
+  background: '#15100C',
+  surface: '#1D1711',
+  surfaceAlt: '#231B14',
+  surfaceStrong: '#1F1912',
+  border: '#33271D',
+  borderMuted: '#3D2F22',
+  text: '#F6EDE3',
+  textMuted: '#D4C7BA',
+  textSubtle: '#B39E8D',
+  textInverse: '#1A120C',
+  secondaryText: '#E8DDCF',
+  mutedText: '#CBB9A8',
+  formSurface: '#201910',
+  formSurfaceAlt: '#241C13',
+  formBorder: '#3D2F22',
+  formPlaceholder: '#A38F7D',
+  formText: '#F6EDE3',
   accent: primaryRampDark[500],
   accentStrong: primaryRampDark[600],
   accentSoft: primaryRampDark[50],
-  success: '#22C55E',
-  warning: '#FBBF24',
-  error: '#F87171',
-  info: '#5AC8FA',
-  positive: '#22C55E',
-  pill: '#1C2740',
+  success: '#40C37A',
+  warning: '#F4B744',
+  error: '#F2857A',
+  info: '#85AFFF',
+  positive: '#40C37A',
+  pill: '#2B2118',
   overlay: 'rgba(0,0,0,0.45)',
 };
 
 const statusSoftLight: StatusSet = {
-  success: '#E9F7EE',
-  warning: '#FFF7E0',
-  error: '#FFE5E5',
+  success: '#EAF7EF',
+  warning: '#FFF5E5',
+  error: '#FFE9E7',
   info: '#E8F0FF',
 };
 
@@ -183,32 +195,32 @@ const statusSoftDark: StatusSet = {
 
 const buildShadows = (cardElevation: number, raisedElevation: number): ShadowSet => ({
   card: {
-    shadowColor: 'rgba(0,0,0,0.08)',
+    shadowColor: 'rgba(18, 12, 6, 0.12)',
     shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
     elevation: cardElevation,
   },
   raised: {
-    shadowColor: 'rgba(0,0,0,0.14)',
+    shadowColor: 'rgba(18, 12, 6, 0.16)',
     shadowOpacity: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
     elevation: raisedElevation,
   },
 });
 
 const buildTypography = (textColor: string): Typography => ({
-  title1: { fontSize: rf(24), lineHeight: rf(30), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  title2: { fontSize: rf(20), lineHeight: rf(26), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  titleXl: { fontSize: rf(28), lineHeight: rf(34), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  titleL: { fontSize: rf(24), lineHeight: rf(30), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  titleM: { fontSize: rf(20), lineHeight: rf(26), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  title1: { fontSize: rf(28), lineHeight: rf(34), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  title2: { fontSize: rf(24), lineHeight: rf(30), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  titleXl: { fontSize: rf(32), lineHeight: rf(38), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  titleL: { fontSize: rf(26), lineHeight: rf(32), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  titleM: { fontSize: rf(18), lineHeight: rf(24), fontFamily: 'Inter-SemiBold', fontWeight: '600', color: textColor },
   body: { fontSize: rf(16), lineHeight: rf(22), fontFamily: 'Inter-Regular', fontWeight: '400', color: textColor },
-  subhead: { fontSize: rf(16), lineHeight: rf(22), fontFamily: 'Inter-SemiBold', fontWeight: '600', color: textColor },
-  caption: { fontSize: rf(14), lineHeight: rf(20), fontFamily: 'Inter-Medium', fontWeight: '500', color: textColor },
+  subhead: { fontSize: rf(15), lineHeight: rf(21), fontFamily: 'Inter-SemiBold', fontWeight: '600', color: textColor },
+  caption: { fontSize: rf(13), lineHeight: rf(18), fontFamily: 'Inter-Medium', fontWeight: '500', color: textColor },
   button: { fontSize: rf(16), lineHeight: rf(20), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
-  buttonSmall: { fontSize: rf(14), lineHeight: rf(18), fontFamily: 'Inter-Bold', fontWeight: '700', color: textColor },
+  buttonSmall: { fontSize: rf(14), lineHeight: rf(18), fontFamily: 'Inter-SemiBold', fontWeight: '600', color: textColor },
 });
 
 const buildSpacing = (): Spacing => ({
@@ -254,7 +266,7 @@ function buildShadow(elevation: number, opacity = 0.14): ViewStyle {
   }) as ViewStyle;
 }
 
-const baseShadows = buildShadows(6, 10);
+const baseShadows = buildShadows(8, 12);
 const AppThemeContext = createContext<AppTheme | undefined>(undefined);
 
 export const appThemeLight = {
@@ -293,12 +305,12 @@ export function AppThemeProvider({ children, initialMode = 'light' }: { children
   const scaledIcons = useMemo(buildIconSizes, [width]);
   const shadows = useMemo(() => {
     return {
-      card: { ...baseShadows.card, ...buildShadow(baseShadows.card.elevation ?? 6, 0.08) },
-      raised: { ...baseShadows.raised, ...buildShadow(baseShadows.raised.elevation ?? 10, 0.14) },
+      card: { ...baseShadows.card, ...buildShadow(baseShadows.card.elevation ?? 8, 0.12) },
+      raised: { ...baseShadows.raised, ...buildShadow(baseShadows.raised.elevation ?? 12, 0.18) },
     };
   }, []);
 
-  const tapMinHeight = Math.max(44, hp(isTablet ? '4%' : '5%'));
+  const tapMinHeight = Math.max(48, hp(isTablet ? '4.5%' : '5.5%'));
   const tapHitSlop = sp(12);
 
   const theme = useMemo<AppTheme>(

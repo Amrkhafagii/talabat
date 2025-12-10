@@ -26,6 +26,7 @@ export interface Restaurant {
   name: string;
   description?: string;
   cuisine: string;
+  cuisine_tags?: string[];
   rating: number;
   delivery_time: string;
   delivery_fee: number;
@@ -122,6 +123,7 @@ export interface UserAddress {
   longitude?: number;
   is_default: boolean;
   delivery_instructions?: string;
+  tag?: 'home' | 'work' | 'other' | 'custom';
   created_at: string;
   updated_at: string;
 }
@@ -173,6 +175,9 @@ export interface Order {
   delivery_fee_paid_at?: string | null;
   payment_proof_attempts?: number | null;
   payment_proof_last_attempt?: string | null;
+  payment_proof_url?: string | null;
+  payment_proof_uploaded_at?: string | null;
+  payment_proof_uploaded_by?: string | null;
   payment_reported_amount?: number | null;
   payment_auto_verified?: boolean | null;
   payment_txn_duplicate?: boolean | null;
@@ -446,8 +451,11 @@ interface PaginatedResponse<T> {
 // Search and Filter Types
 export interface RestaurantFilters {
   cuisine?: string[];
+  cuisineTags?: string[];
   rating?: number;
+  minRating?: number;
   deliveryFee?: number;
+  maxDeliveryFee?: number;
   deliveryTime?: number;
   promoted?: boolean;
   search?: string;

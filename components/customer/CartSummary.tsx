@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { Icon } from '@/components/ui/Icon';
+import { HStack } from '@/components/ui/Stack';
 import { formatCurrency } from '@/utils/formatters';
 
 type Props = {
@@ -15,7 +16,7 @@ type Props = {
 };
 
 export function CartSummary({ subtotal, deliveryFee, tax, platformFee, total, etaLabel, etaTrusted }: Props) {
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   return (
@@ -23,26 +24,26 @@ export function CartSummary({ subtotal, deliveryFee, tax, platformFee, total, et
       <Text style={styles.sectionTitle}>Order Summary</Text>
       <Text style={styles.sectionHint}>You pay once; includes platform service fee and delivery.</Text>
       <View style={styles.summaryContainer}>
-        <View style={styles.summaryRow}>
+        <HStack style={styles.summaryRow} justify="space-between" align="center">
           <Text style={styles.summaryLabel}>Subtotal</Text>
           <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
-        </View>
-        <View style={styles.summaryRow}>
+        </HStack>
+        <HStack style={styles.summaryRow} justify="space-between" align="center">
           <Text style={styles.summaryLabel}>Delivery Fee</Text>
           <Text style={styles.summaryValue}>{formatCurrency(deliveryFee)}</Text>
-        </View>
-        <View style={styles.summaryRow}>
+        </HStack>
+        <HStack style={styles.summaryRow} justify="space-between" align="center">
           <Text style={styles.summaryLabel}>Tax</Text>
           <Text style={styles.summaryValue}>{formatCurrency(tax)}</Text>
-        </View>
-        <View style={styles.summaryRow}>
+        </HStack>
+        <HStack style={styles.summaryRow} justify="space-between" align="center">
           <Text style={styles.summaryLabel}>Platform fee (10%)</Text>
           <Text style={styles.summaryValue}>{formatCurrency(platformFee)}</Text>
-        </View>
-        <View style={[styles.summaryRow, styles.totalRow]}>
+        </HStack>
+        <HStack style={[styles.summaryRow, styles.totalRow]} justify="space-between" align="center">
           <Text style={styles.totalLabel}>Total</Text>
           <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
-        </View>
+        </HStack>
         {etaLabel && (
           <View style={[styles.etaBadge, etaTrusted ? styles.etaTrusted : styles.etaCaution]}>
             <Icon name='ShieldCheck' size={14} color={etaTrusted ? theme.colors.status.success : theme.colors.status.warning} />
@@ -56,7 +57,7 @@ export function CartSummary({ subtotal, deliveryFee, tax, platformFee, total, et
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     section: {
       backgroundColor: theme.colors.surface,

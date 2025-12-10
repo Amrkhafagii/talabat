@@ -16,19 +16,20 @@ export default function SearchBar({
   placeholder = "Search...",
   style,
 }: SearchBarProps) {
-  const { colors, spacing, radius, typography, tap } = useRestaurantTheme();
+  const { colors, spacing, radius, typography, tap, shadows } = useRestaurantTheme();
 
   const styles = useMemo(() => ({
     container: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.formSurfaceAlt,
-      paddingHorizontal: spacing.md,
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,
-      borderRadius: radius.md,
+      borderRadius: radius.pill,
       borderWidth: 1,
-      borderColor: colors.formBorder,
+      borderColor: colors.borderMuted,
       minHeight: tap.minHeight - 4,
+      ...shadows.card,
     } as ViewStyle,
     input: {
       flex: 1,
@@ -36,11 +37,11 @@ export default function SearchBar({
       ...typography.body,
       color: colors.text,
     } as TextStyle,
-  }), [colors.formBorder, colors.formSurfaceAlt, colors.text, radius.md, spacing.md, spacing.sm, tap.minHeight, typography.body]);
+  }), [colors.borderMuted, colors.surface, colors.text, radius.pill, shadows.card, spacing.lg, spacing.sm, tap.minHeight, typography.body]);
 
   return (
     <View style={[styles.container, style]}>
-      <Icon name="Search" size="md" color={colors.mutedText} />
+      <Icon name="Search" size="lg" color={colors.textSubtle} />
       <TextInput
         style={styles.input}
         placeholder={placeholder}

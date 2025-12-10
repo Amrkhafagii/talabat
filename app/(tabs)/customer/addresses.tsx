@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -7,7 +7,7 @@ import Header from '@/components/ui/Header';
 import Button from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserAddresses, deleteUserAddress, updateUserAddress } from '@/utils/database';
+import { getUserAddresses, deleteUserAddress, setDefaultAddress } from '@/utils/database';
 import { UserAddress } from '@/types/database';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
@@ -15,42 +15,36 @@ export default function Addresses() {
   const { user } = useAuth();
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [zipError, setZipError] = useState<string | null>(null);
   const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  useEffect(() => {
-    if (user) {
-      loadAddresses();
-    }
-  }, [user]);
-
-  const loadAddresses = async () => {
+  const loadAddresses = useCallback(async () => {
     if (!user) return;
 
     try {
       setLoading(true);
       const addressesData = await getUserAddresses(user.id);
       setAddresses(addressesData);
+      const invalidZip = addressesData.find(addr => addr.postal_code && addr.postal_code.length > 0 && addr.postal_code.length < 4);
+      setZipError(invalidZip ? 'Zip code must be 4 digits. Please edit your address.' : null);
     } catch (error) {
       console.error('Error loading addresses:', error);
       Alert.alert('Error', 'Failed to load addresses');
     } finally {
       setLoading(false);
+      setZipError(null);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadAddresses();
+  }, [loadAddresses]);
 
   const handleSetDefault = async (addressId: string) => {
     try {
-      // First, remove default from all addresses
-      await Promise.all(
-        addresses.map(addr => 
-          updateUserAddress(addr.id, { is_default: false })
-        )
-      );
+      const success = await setDefaultAddress(addressId);
 
-      // Then set the selected address as default
-      const success = await updateUserAddress(addressId, { is_default: true });
-      
       if (success) {
         await loadAddresses(); // Reload to reflect changes
         Alert.alert('Success', 'Default address updated');
@@ -126,87 +120,95 @@ export default function Addresses() {
     );
   }
 
+  const renderTagIcon = (tag?: string) => {
+    switch (tag) {
+      case 'work':
+        return <Icon name="BriefcaseSolid" size="md" color={theme.colors.text} />;
+      case 'custom':
+        return <Icon name="HeartSolid" size="md" color={theme.colors.text} />;
+      default:
+        return <Icon name="HomeFill" size="md" color={theme.colors.text} />;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="Delivery Addresses" showBackButton />
+      <Header title="My Addresses" showBackButton />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Add New Address Button */}
-        <TouchableOpacity style={styles.addButton} onPress={addNewAddress}>
-          <Icon name="Plus" size="lg" color={theme.colors.primary[500]} />
-          <Text style={styles.addButtonText}>Add New Address</Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <TouchableOpacity style={styles.useLocationCard} onPress={addNewAddress}>
+          <View style={styles.useLocationLeft}>
+            <View style={styles.useLocationIcon}>
+              <Icon name="MapTarget" size="md" color={theme.colors.primary[500]} />
+            </View>
+            <View>
+              <Text style={styles.useLocationTitle}>Use current location</Text>
+              <Text style={styles.useLocationSubtitle}>Let GPS fill the address fields</Text>
+            </View>
+          </View>
+          <Icon name="ChevronRight" size="md" color={theme.colors.textMuted} />
         </TouchableOpacity>
+
+        {zipError && (
+          <View style={styles.errorBar}>
+            <Icon name="AlertTriangle" size="sm" color={theme.colors.status.error} />
+            <Text style={styles.errorBarText}>{zipError}</Text>
+          </View>
+        )}
 
         {/* Addresses List */}
         {addresses.length > 0 ? (
           <View style={styles.addressesList}>
             {addresses.map((address) => (
-              <View key={address.id} style={styles.addressCard}>
-                <View style={styles.addressHeader}>
-                  <View style={styles.addressLabelContainer}>
-                    <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
-                    <Text style={styles.addressLabel}>{address.label}</Text>
-                    {address.is_default && (
-                      <View style={styles.defaultBadge}>
-                        <Icon name="Star" size="sm" color={theme.colors.textInverse} />
-                        <Text style={styles.defaultText}>Default</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.addressActions}>
-                    <TouchableOpacity 
-                      style={styles.actionButton}
-                      onPress={() => editAddress(address)}
-                    >
-                      <Icon name="Edit" size="sm" color={theme.colors.textMuted} />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.actionButton}
-                      onPress={() => handleDeleteAddress(address)}
-                    >
-                      <Icon name="Trash2" size="sm" color={theme.colors.status.error} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.addressDetails}>
-                  <Text style={styles.addressText}>
-                    {address.address_line_1}
-                    {address.address_line_2 && `, ${address.address_line_2}`}
-                  </Text>
-                  <Text style={styles.addressText}>
-                    {address.city}, {address.state} {address.postal_code}
-                  </Text>
-                  {address.delivery_instructions && (
-                    <Text style={styles.instructionsText}>
-                      Instructions: {address.delivery_instructions}
+              <TouchableOpacity key={address.id} style={[styles.addressCard, address.is_default && styles.addressCardActive]} onPress={() => handleSetDefault(address.id)} activeOpacity={0.9}>
+                <View style={styles.cardTop}>
+                  <View style={styles.iconBadge}>{renderTagIcon(address.tag)}</View>
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardTitleRow}>
+                      <Text style={styles.addressLabel}>{address.label}</Text>
+                      {address.is_default && <View style={styles.defaultPill}><Text style={styles.defaultPillText}>Default</Text></View>}
+                    </View>
+                    <Text style={styles.addressText}>
+                      {address.address_line_1}
+                      {address.address_line_2 ? `, ${address.address_line_2}` : ''}
                     </Text>
+                    <Text style={styles.addressTextMuted}>
+                      {address.city}, {address.state} {address.postal_code}
+                    </Text>
+                  </View>
+                  <View style={styles.radioOuter}>{address.is_default && <View style={styles.radioInner} />}</View>
+                </View>
+                <View style={styles.cardActions}>
+                  <TouchableOpacity style={styles.actionPill} onPress={() => editAddress(address)}>
+                    <Icon name="Edit" size="sm" color={theme.colors.primary[600]} />
+                    <Text style={styles.actionPillText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionPill} onPress={() => handleDeleteAddress(address)}>
+                    <Icon name="Trash2" size="sm" color={theme.colors.status.error} />
+                    <Text style={[styles.actionPillText, styles.dangerText]}>Remove</Text>
+                  </TouchableOpacity>
+                  {!address.is_default && (
+                    <TouchableOpacity style={[styles.actionPill, styles.primaryGhost]} onPress={() => handleSetDefault(address.id)}>
+                      <Icon name="Star" size="sm" color={theme.colors.primary[500]} />
+                      <Text style={[styles.actionPillText, styles.primaryText]}>Set default</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
-
-                {!address.is_default && (
-                  <TouchableOpacity 
-                    style={styles.setDefaultButton}
-                    onPress={() => handleSetDefault(address.id)}
-                  >
-                    <Text style={styles.setDefaultText}>Set as Default</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              </TouchableOpacity>
             ))}
+            <TouchableOpacity style={styles.addCard} onPress={addNewAddress}>
+              <Icon name="Plus" size="md" color={theme.colors.primary[500]} />
+              <Text style={styles.addCardText}>Add new address</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Icon name="MapPin" size={64} color={theme.colors.textSubtle} />
-            <Text style={styles.emptyTitle}>No addresses yet</Text>
-            <Text style={styles.emptyText}>
-              Add your first delivery address to start ordering
-            </Text>
-            <Button
-              title="Add Address"
-              onPress={addNewAddress}
-              style={styles.emptyButton}
-            />
+            <View style={styles.dottedCard}>
+              <Icon name="MapPinFill" size="lg" color={theme.colors.primary[500]} />
+              <Text style={styles.emptyTitle}>No addresses yet</Text>
+              <Text style={styles.emptyText}>Add a delivery location to speed up checkout.</Text>
+            </View>
+            <Button title="Add Address" onPress={addNewAddress} style={styles.emptyButton} />
           </View>
         )}
       </ScrollView>
@@ -237,131 +239,170 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       paddingHorizontal: 20,
       paddingTop: 16,
     },
-    addButton: {
+    scrollContent: {
+      paddingBottom: 40,
+      gap: 16,
+    },
+    useLocationCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
       backgroundColor: theme.colors.surface,
-      paddingVertical: 16,
-      borderRadius: 12,
-      borderWidth: 2,
-      borderColor: theme.colors.primary[500],
-      borderStyle: 'dashed',
-      marginBottom: 20,
+      borderRadius: theme.radius.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
       ...theme.shadows.card,
     },
-    addButtonText: {
-      fontSize: 16,
-      fontFamily: 'Inter-SemiBold',
-      color: theme.colors.primary[500],
-      marginLeft: 8,
+    useLocationLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    useLocationIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    useLocationTitle: { fontFamily: 'Inter-SemiBold', color: theme.colors.text, fontSize: 16 },
+    useLocationSubtitle: { fontFamily: 'Inter-Regular', color: theme.colors.textMuted, fontSize: 13 },
+    errorBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: theme.colors.statusSoft.error,
+      borderWidth: 1,
+      borderColor: theme.colors.status.error,
+    },
+    errorBarText: {
+      color: theme.colors.status.error,
+      fontFamily: 'Inter-Medium',
+      flex: 1,
     },
     addressesList: {
       gap: 16,
     },
     addressCard: {
       backgroundColor: theme.colors.surface,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: theme.radius.card,
+      padding: 18,
       borderWidth: 1,
       borderColor: theme.colors.border,
       ...theme.shadows.card,
+      gap: 12,
     },
-    addressHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+    addressCardActive: {
+      borderColor: theme.colors.primary[500],
+      backgroundColor: theme.colors.primary[50],
+    },
+    cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    iconBadge: {
+      width: 48,
+      height: 48,
+      borderRadius: 16,
+      backgroundColor: theme.colors.surfaceAlt,
       alignItems: 'center',
-      marginBottom: 12,
+      justifyContent: 'center',
     },
-    addressLabelContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flex: 1,
-    },
+    cardContent: { flex: 1, gap: 4 },
+    cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     addressLabel: {
       fontSize: 18,
       fontFamily: 'Inter-SemiBold',
       color: theme.colors.text,
-      marginLeft: 8,
-    },
-    defaultBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.colors.status.success,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-      marginLeft: 8,
-    },
-    defaultText: {
-      fontSize: 10,
-      color: theme.colors.textInverse,
-      fontFamily: 'Inter-SemiBold',
-      marginLeft: 4,
-    },
-    addressActions: {
-      flexDirection: 'row',
-      gap: 8,
-    },
-    actionButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: theme.colors.surfaceAlt,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    addressDetails: {
-      marginBottom: 12,
     },
     addressText: {
       fontSize: 14,
-      color: theme.colors.textMuted,
+      color: theme.colors.text,
       fontFamily: 'Inter-Regular',
       lineHeight: 20,
     },
-    instructionsText: {
-      fontSize: 12,
-      color: theme.colors.textSubtle,
-      fontFamily: 'Inter-Regular',
-      fontStyle: 'italic',
-      marginTop: 4,
-    },
-    setDefaultButton: {
-      alignSelf: 'flex-start',
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      backgroundColor: theme.colors.primary[50],
-      borderRadius: 6,
-      borderWidth: 1,
-      borderColor: theme.colors.primary[500],
-    },
-    setDefaultText: {
-      fontSize: 12,
-      color: theme.colors.primary[500],
-      fontFamily: 'Inter-SemiBold',
-    },
-    emptyState: {
-      alignItems: 'center',
-      paddingVertical: 64,
-      paddingHorizontal: 32,
-    },
-    emptyTitle: {
-      fontSize: 20,
-      fontFamily: 'Inter-SemiBold',
-      color: theme.colors.text,
-      marginTop: 16,
-      marginBottom: 8,
-    },
-    emptyText: {
-      fontSize: 16,
+    addressTextMuted: {
+      fontSize: 13,
       color: theme.colors.textMuted,
       fontFamily: 'Inter-Regular',
-      textAlign: 'center',
-      lineHeight: 24,
-      marginBottom: 24,
     },
+    defaultPill: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      backgroundColor: theme.colors.statusSoft.success,
+      borderRadius: theme.radius.pill,
+      borderWidth: 1,
+      borderColor: theme.colors.status.success,
+    },
+    defaultPillText: {
+      fontSize: 12,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.status.success,
+    },
+    radioOuter: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      borderWidth: 2,
+      borderColor: theme.colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    radioInner: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: theme.colors.primary[500],
+    },
+    cardActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    actionPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: theme.radius.pill,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    actionPillText: { fontFamily: 'Inter-SemiBold', color: theme.colors.text, fontSize: 13 },
+    primaryGhost: { backgroundColor: theme.colors.primary[50], borderColor: theme.colors.primary[500] },
+    primaryText: { color: theme.colors.primary[600] },
+    dangerText: { color: theme.colors.status.error },
+    addCard: {
+      padding: 16,
+      borderRadius: theme.radius.card,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    addCardText: { fontFamily: 'Inter-SemiBold', color: theme.colors.primary[500], fontSize: 15 },
+    emptyState: {
+      alignItems: 'center',
+      gap: 16,
+      paddingVertical: 40,
+      paddingHorizontal: 20,
+    },
+    dottedCard: {
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.colors.border,
+      borderRadius: theme.radius.card,
+      padding: 24,
+      alignItems: 'center',
+      backgroundColor: theme.colors.surface,
+      gap: 8,
+    },
+    emptyTitle: { fontFamily: 'Inter-SemiBold', color: theme.colors.text, fontSize: 18 },
+    emptyText: { fontFamily: 'Inter-Regular', color: theme.colors.textMuted, textAlign: 'center', lineHeight: 20 },
     emptyButton: {
-      marginTop: 16,
+      marginTop: 8,
+      alignSelf: 'stretch',
     },
   });

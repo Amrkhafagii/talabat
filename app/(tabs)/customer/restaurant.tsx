@@ -1,5 +1,14 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  ImageBackground,
+  Share,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -11,7 +20,7 @@ import { useCart } from '@/hooks/useCart';
 import { getRestaurantById, getMenuItemsByRestaurant } from '@/utils/database';
 import { Restaurant, MenuItem as MenuItemType } from '@/types/database';
 import { isRestaurantOpenNow } from '@/utils/hours';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { wp } from '@/styles/responsive';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -26,10 +35,15 @@ export default function RestaurantDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { cart, addToCart, removeFromCart, getTotalItems } = useCart();
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const restaurantId = params.restaurantId as string;
+  const categoriesFromMenu = useMemo(() => {
+    const unique = Array.from(new Set(menuItems.map((item) => item.category).filter(Boolean)));
+    const base = ['All', 'Popular', ...unique];
+    return base.length > 1 ? base : baseCategories;
+  }, [menuItems]);
 
   useEffect(() => {
     if (restaurantId) {
@@ -55,7 +69,7 @@ export default function RestaurantDetail() {
 
       const [restaurantData, menuData] = await Promise.all([
         getRestaurantById(restaurantId),
-        getMenuItemsByRestaurant(restaurantId, filters)
+        getMenuItemsByRestaurant(restaurantId, filters),
       ]);
 
       if (!restaurantData) {
@@ -75,7 +89,7 @@ export default function RestaurantDetail() {
 
   const getCartTotalForItems = () => {
     return Object.entries(cart).reduce((total, [itemId, quantity]) => {
-      const item = menuItems.find(item => item.id === itemId);
+      const item = menuItems.find((menu) => menu.id === itemId);
       return total + (item ? item.price * quantity : 0);
     }, 0);
   };
@@ -106,43 +120,75 @@ export default function RestaurantDetail() {
     );
   }
 
+  const isClosed = !restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours);
+  const heroImage = (restaurant as any).cover_image || restaurant.image;
+
   return (
     <SafeAreaView style={styles.container}>
-      <Header
-        title={restaurant.name}
-        showBackButton
-      />
-
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Restaurant Info */}
-        <View style={styles.restaurantInfo}>
-          <Image 
-            source={{ uri: restaurant.image }} 
-            style={styles.restaurantImage} 
-          />
-          <View style={styles.restaurantDetails}>
-            <Text style={styles.restaurantName}>{restaurant.name}</Text>
-            <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
-            <View style={styles.restaurantMeta}>
-              <View style={styles.rating}>
-                <Icon name="Star" size="sm" color={theme.colors.status.warning} />
-                <Text style={styles.ratingText}>{restaurant.rating}</Text>
+        <View style={styles.heroWrapper}>
+          <ImageBackground source={{ uri: heroImage }} style={styles.heroImage}>
+            <View style={styles.heroOverlay} />
+            <View style={styles.heroTopBar}>
+              <TouchableOpacity style={styles.heroIconButton} onPress={() => router.back()}>
+                <Icon name="ArrowBack" size="lg" color={theme.colors.textInverse} />
+              </TouchableOpacity>
+              <View style={styles.heroTopActions}>
+                <TouchableOpacity style={styles.heroIconButton} onPress={() => setMenuSearchQuery('')}>
+                  <Icon name="Search" size="lg" color={theme.colors.textInverse} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.heroIconButton}
+                  onPress={() =>
+                    Share.share({
+                      title: restaurant.name,
+                      message: `Check out ${restaurant.name} on Talabat`,
+                    })
+                  }
+                >
+                  <Icon name="Upload" size="lg" color={theme.colors.textInverse} />
+                </TouchableOpacity>
               </View>
-              <View style={styles.delivery}>
-                <Icon name="Clock" size="sm" color={theme.colors.textMuted} />
-                <Text style={styles.deliveryText}>{restaurant.delivery_time} min</Text>
+            </View>
+          </ImageBackground>
+          <View style={styles.heroCard}>
+            <View style={styles.heroHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.restaurantName}>{restaurant.name}</Text>
+                <Text style={styles.restaurantCuisine}>
+                  {restaurant.cuisine} • {restaurant.delivery_time} min • $
+                  {restaurant.delivery_fee.toFixed(2)} fee
+                </Text>
+              </View>
+              <View style={styles.ratingBadge}>
+                <Icon name="Star" size="sm" color={theme.colors.textInverse} />
+                <Text style={styles.ratingBadgeText}>{restaurant.rating.toFixed(1)}</Text>
+              </View>
+            </View>
+            <View style={styles.heroMetaRow}>
+              <View style={styles.metaPill}>
+                <Icon name="Clock" size="sm" color={theme.colors.primary[500]} />
+                <Text style={styles.metaPillText}>{restaurant.delivery_time} min</Text>
+              </View>
+              <View style={styles.metaPill}>
+                <Icon name="Truck" size="sm" color={theme.colors.primary[500]} />
+                <Text style={styles.metaPillText}>
+                  {restaurant.delivery_fee === 0 ? 'Free delivery' : `$${restaurant.delivery_fee.toFixed(2)} delivery`}
+                </Text>
+              </View>
+              <View style={styles.metaPill}>
+                <Icon name="ShieldCheck" size="sm" color={theme.colors.status.success} />
+                <Text style={styles.metaPillText}>Quality checked</Text>
               </View>
             </View>
           </View>
         </View>
 
         {/* Closed banner */}
-        {(!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)) && (
+        {isClosed && (
           <View style={styles.closedBanner}>
             <Text style={styles.closedTitle}>Currently Closed</Text>
-            <Text style={styles.closedSubtitle}>
-              Please check back during opening hours.
-            </Text>
+            <Text style={styles.closedSubtitle}>Please check back during opening hours.</Text>
           </View>
         )}
 
@@ -159,19 +205,18 @@ export default function RestaurantDetail() {
         {/* Category Tabs */}
         <View style={styles.categoryTabs}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {baseCategories.map((category) => (
+            {categoriesFromMenu.map((category) => (
               <TouchableOpacity
                 key={category}
-                style={[
-                  styles.categoryTab,
-                  selectedCategory === category && styles.selectedTab
-                ]}
+                style={[styles.categoryTab, selectedCategory === category && styles.selectedTab]}
                 onPress={() => setSelectedCategory(category)}
               >
-                <Text style={[
-                  styles.categoryTabText,
-                  selectedCategory === category && styles.selectedTabText
-                ]}>
+                <Text
+                  style={[
+                    styles.categoryTabText,
+                    selectedCategory === category && styles.selectedTabText,
+                  ]}
+                >
                   {category}
                 </Text>
               </TouchableOpacity>
@@ -190,15 +235,17 @@ export default function RestaurantDetail() {
                 description: item.description,
                 price: item.price,
                 image: item.image,
-                popular: item.is_popular
+                popular: item.is_popular,
+                available: item.is_available,
               }}
               quantity={cart[item.id] || 0}
               onAdd={() => addToCart(item.id)}
               onRemove={() => removeFromCart(item.id)}
-              disabled={!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)}
+              disabled={isClosed || !item.is_available}
+              unavailableReason={!item.is_available ? 'Sold out' : undefined}
             />
           ))}
-          
+
           {menuItems.length === 0 && (
             <View style={styles.emptyCategory}>
               <Text style={styles.emptyCategoryText}>
@@ -212,21 +259,24 @@ export default function RestaurantDetail() {
       {/* Cart Button */}
       {getTotalItems() > 0 && (
         <View style={styles.cartButtonContainer}>
-          <TouchableOpacity 
-            style={[styles.cartButton, (!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)) && styles.cartButtonDisabled]}
+          <TouchableOpacity
+            style={[styles.cartButton, isClosed && styles.cartButtonDisabled]}
             onPress={() => {
-              if (!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)) return;
+              if (isClosed) return;
               router.push('/customer/cart');
             }}
-            disabled={!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours)}
+            disabled={isClosed}
           >
             <View style={styles.cartInfo}>
               <Icon name="ShoppingCart" size="md" color={theme.colors.textInverse} />
               <Text style={styles.cartCount}>{getTotalItems()}</Text>
             </View>
-            <Text style={styles.cartText}>
-              {!restaurant.is_open || !isRestaurantOpenNow(restaurant.restaurant_hours) ? 'Closed' : 'View Cart'}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cartText}>
+                {isClosed ? 'Closed' : 'View Cart'}
+              </Text>
+              <Text style={styles.cartSubtitle}>Items ready in ~{restaurant.delivery_time} min</Text>
+            </View>
             <Text style={styles.cartTotal}>{formatCurrency(getCartTotalForItems())}</Text>
           </TouchableOpacity>
         </View>
@@ -235,7 +285,7 @@ export default function RestaurantDetail() {
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -277,18 +327,49 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       fontSize: 16,
       fontFamily: 'Inter-SemiBold',
     },
-    restaurantInfo: {
-      backgroundColor: theme.colors.surface,
-      marginBottom: 8,
-    },
-    restaurantImage: {
+    heroWrapper: { marginBottom: 8 },
+    heroImage: {
       width: '100%',
-      aspectRatio: 16 / 9,
-      minHeight: 180,
-      maxHeight: 260,
+      height: 260,
     },
-    restaurantDetails: {
-      padding: 20,
+    heroOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.28)',
+    },
+    heroTopBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+    },
+    heroTopActions: { flexDirection: 'row', gap: 10 },
+    heroIconButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(0,0,0,0.35)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    heroCard: {
+      marginHorizontal: 16,
+      marginTop: -26,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      padding: 16,
+      ...theme.shadows.card,
+      gap: 12,
+    },
+    heroHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 10,
     },
     restaurantName: {
       fontSize: 24,
@@ -300,32 +381,39 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       fontSize: 16,
       color: theme.colors.textMuted,
       fontFamily: 'Inter-Regular',
-      marginBottom: 12,
+      marginBottom: 8,
     },
-    restaurantMeta: {
+    ratingBadge: {
       flexDirection: 'row',
       alignItems: 'center',
+      backgroundColor: theme.colors.primary[500],
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: 14,
+      gap: 6,
     },
-    rating: {
+    ratingBadgeText: {
+      color: theme.colors.textInverse,
+      fontFamily: 'Inter-SemiBold',
+    },
+    heroMetaRow: {
+      flexDirection: 'row',
+      gap: 10,
+      flexWrap: 'wrap',
+    },
+    metaPill: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginRight: 20,
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surfaceAlt,
     },
-    ratingText: {
-      fontSize: 14,
-      color: theme.colors.text,
-      marginLeft: 4,
+    metaPillText: {
       fontFamily: 'Inter-Medium',
-    },
-    delivery: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    deliveryText: {
-      fontSize: 14,
-      color: theme.colors.textMuted,
-      marginLeft: 4,
-      fontFamily: 'Inter-Regular',
+      color: theme.colors.text,
+      fontSize: 13,
     },
     searchSection: {
       backgroundColor: theme.colors.surface,
@@ -343,13 +431,16 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     },
     categoryTab: {
       paddingHorizontal: Math.max(theme.spacing.sm, wp('4%')),
-      paddingVertical: 8,
-      marginHorizontal: 4,
-      borderRadius: 20,
+      paddingVertical: 10,
+      marginHorizontal: 6,
+      borderRadius: 18,
       backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
     },
     selectedTab: {
       backgroundColor: theme.colors.primary[500],
+      borderColor: theme.colors.primary[500],
     },
     categoryTabText: {
       fontSize: 14,
@@ -361,7 +452,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     },
     menuItems: {
       backgroundColor: theme.colors.surface,
-      paddingTop: 16,
+      paddingTop: 8,
     },
     emptyCategory: {
       alignItems: 'center',
@@ -374,7 +465,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     },
     cartButtonContainer: {
       backgroundColor: theme.colors.surface,
-      padding: 20,
+      padding: 16,
       borderTopWidth: 1,
       borderTopColor: theme.colors.border,
     },
@@ -382,10 +473,11 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: theme.colors.primary[500],
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      borderRadius: 12,
+      paddingHorizontal: 18,
+      paddingVertical: 14,
+      borderRadius: 16,
       ...theme.shadows.raised,
+      gap: 12,
     },
     cartInfo: {
       flexDirection: 'row',
@@ -398,11 +490,15 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       marginLeft: 8,
     },
     cartText: {
-      flex: 1,
       fontSize: 16,
       fontFamily: 'Inter-SemiBold',
       color: theme.colors.textInverse,
-      textAlign: 'center',
+    },
+    cartSubtitle: {
+      fontSize: 12,
+      fontFamily: 'Inter-Regular',
+      color: theme.colors.textInverse,
+      opacity: 0.9,
     },
     cartTotal: {
       fontSize: 16,

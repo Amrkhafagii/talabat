@@ -29,6 +29,10 @@ export type OrderTimelineEvent = {
   event_note: string | null;
   created_at: string;
   created_by: string | null;
+  eta_confidence_low?: string | null;
+  eta_confidence_high?: string | null;
+  eta_promised?: string | null;
+  source?: 'status' | 'event';
 };
 
 export async function getOrderTimeline(orderId: string): Promise<OrderTimelineEvent[]> {

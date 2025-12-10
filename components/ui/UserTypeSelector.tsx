@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import Animated, {
@@ -40,7 +40,7 @@ function hexWithAlpha(hex: string, alpha: number) {
   return `#${cleaned}${a}`;
 }
 
-function createAnimations(): AnimationValues {
+function useOptionAnimations(): AnimationValues {
   return {
     scale: useSharedValue(1),
     elevation: useSharedValue(0),
@@ -84,7 +84,6 @@ function UserTypeCard({
     opacity: animations.glowOpacity.value,
   }));
 
-  const IconComponent = option.icon;
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} hitSlop={hitSlop} accessibilityRole="button" accessibilityState={{ selected: isSelected }}>
       <Animated.View
@@ -200,7 +199,7 @@ function buildStyles(theme: ReturnType<typeof useRestaurantTheme>): SelectorStyl
     iconContainer: {
       width: 56,
       height: 56,
-      borderRadius: 28,
+      borderRadius: theme.radius.pill,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: spacing.md,
@@ -215,7 +214,7 @@ function buildStyles(theme: ReturnType<typeof useRestaurantTheme>): SelectorStyl
     selectionIndicator: {
       width: 28,
       height: 28,
-      borderRadius: 14,
+      borderRadius: theme.radius.pill,
       justifyContent: 'center',
       alignItems: 'center',
       ...shadows.card,
@@ -237,6 +236,11 @@ export default function UserTypeSelector({ selectedType, onSelect }: UserTypeSel
   const theme = useRestaurantTheme();
   const styles = useMemo(() => buildStyles(theme), [theme]);
   const iconSize = theme.iconSizes.lg;
+  const animationValues = {
+    customer: useOptionAnimations(),
+    restaurant: useOptionAnimations(),
+    delivery: useOptionAnimations(),
+  };
 
   const options: UserTypeOption[] = useMemo(
     () => [
@@ -264,12 +268,6 @@ export default function UserTypeSelector({ selectedType, onSelect }: UserTypeSel
     ],
     [theme.colors.accent, theme.colors.status.info, theme.colors.status.warning]
   );
-
-  const animationValues = useRef<Record<UserTypeOption['id'], AnimationValues>>({
-    customer: createAnimations(),
-    restaurant: createAnimations(),
-    delivery: createAnimations(),
-  }).current;
 
   const animateCardSelection = (cardId: string, isSelected: boolean) => {
     const animations = animationValues[cardId as keyof typeof animationValues];

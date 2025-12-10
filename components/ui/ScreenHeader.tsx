@@ -62,6 +62,7 @@ export default function ScreenHeader({
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
+  const iconSize = Math.max(36, theme.tap.minHeight * 0.75);
   return {
     container: {
       flexDirection: 'row',
@@ -75,14 +76,15 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     },
     left: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
     iconButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width: iconSize,
+      height: iconSize,
+      borderRadius: theme.radius.cta,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.colors.surfaceAlt,
+      backgroundColor: theme.colors.surfaceStrong,
       borderWidth: 1,
       borderColor: theme.colors.borderMuted,
+      ...theme.shadows.card,
     },
     title: { ...theme.typography.titleL, color: theme.colors.text },
     subtitle: { ...theme.typography.caption, color: theme.colors.secondaryText },

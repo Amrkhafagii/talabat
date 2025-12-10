@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { UserAddress } from '@/types/database';
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function CartAddressSection({ address, onSelect }: Props) {
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   return (
@@ -18,7 +18,7 @@ export function CartAddressSection({ address, onSelect }: Props) {
       <Text style={styles.sectionTitle}>Delivery Address</Text>
       {address ? (
         <TouchableOpacity style={styles.addressCard} onPress={onSelect}>
-          <Icon name='MapPin' size='md' color={theme.colors.primary[500]} />
+          <Icon name='MapPinFill' size='md' color={theme.colors.primary[500]} />
           <View style={styles.addressInfo}>
             <Text style={styles.addressType}>{address.label}</Text>
             <Text style={styles.addressText}>
@@ -29,11 +29,13 @@ export function CartAddressSection({ address, onSelect }: Props) {
               {address.city}, {address.state} {address.postal_code}
             </Text>
           </View>
-          <Icon name='ChevronDown' size='md' color={theme.colors.textMuted} />
+          <View style={styles.changePill}>
+            <Text style={styles.changeText}>Change</Text>
+          </View>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity style={styles.addAddressCard} onPress={onSelect}>
-          <Icon name='MapPin' size='md' color={theme.colors.textMuted} />
+          <Icon name='MapPinFill' size='md' color={theme.colors.textMuted} />
           <Text style={styles.addAddressText}>Add delivery address</Text>
         </TouchableOpacity>
       )}
@@ -41,7 +43,7 @@ export function CartAddressSection({ address, onSelect }: Props) {
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     section: {
       backgroundColor: theme.colors.surface,
@@ -59,10 +61,10 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       flexDirection: 'row',
       alignItems: 'center',
       padding: 16,
-      backgroundColor: theme.colors.formSurface,
-      borderRadius: 12,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: theme.radius.card,
       borderWidth: 1,
-      borderColor: theme.colors.formBorder,
+      borderColor: theme.colors.border,
     },
     addressInfo: {
       flex: 1,
@@ -85,8 +87,8 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       alignItems: 'center',
       justifyContent: 'center',
       padding: 20,
-      backgroundColor: theme.colors.formSurface,
-      borderRadius: 12,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: theme.radius.card,
       borderWidth: 2,
       borderColor: theme.colors.border,
       borderStyle: 'dashed',
@@ -96,5 +98,18 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       color: theme.colors.textMuted,
       fontFamily: 'Inter-Medium',
       marginLeft: 8,
+    },
+    changePill: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: theme.radius.pill,
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    changeText: {
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.primary[500],
+      fontSize: 13,
     },
   });

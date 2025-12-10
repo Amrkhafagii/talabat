@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TextInput, ViewStyle, TextStyle, StyleProp, TextInputProps } from 'react-native';
 import { Control, Controller, FieldPath, FieldValues } from 'react-hook-form';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
@@ -41,6 +41,7 @@ export default function FormField<T extends FieldValues>({
   rightElement,
 }: FormFieldProps<T>) {
   const { colors, spacing, radius, typography, tap } = useRestaurantTheme();
+  const [focused, setFocused] = useState(false);
 
   const styles = useMemo(() => {
     const baseInput: TextStyle = {
@@ -61,18 +62,20 @@ export default function FormField<T extends FieldValues>({
         backgroundColor: colors.formSurface,
         borderWidth: 1,
         borderColor: colors.formBorder,
-        borderRadius: radius.md,
+        borderRadius: radius.lg,
         minHeight: tap.minHeight,
+        paddingVertical: spacing.xs,
       } as ViewStyle,
       input: baseInput,
-      multilineInput: { paddingTop: spacing.sm, minHeight: 80 } as TextStyle,
+      multilineInput: { paddingTop: spacing.sm, minHeight: 92 } as TextStyle,
       inputWithRightElement: { paddingRight: spacing.sm } as TextStyle,
       inputError: { borderColor: colors.status.error, borderWidth: 1.5 } as ViewStyle,
-      inputDisabled: { backgroundColor: colors.formSurfaceAlt, borderColor: colors.border } as ViewStyle,
+      inputDisabled: { backgroundColor: colors.formSurfaceAlt, borderColor: colors.borderMuted } as ViewStyle,
+      inputFocused: { borderColor: colors.primary[500], borderWidth: 1.5, backgroundColor: colors.surface },
       rightElement: { paddingHorizontal: spacing.sm, paddingVertical: spacing.sm } as ViewStyle,
       errorText: { ...typography.caption, color: colors.status.error, marginTop: spacing.xs, marginLeft: spacing.xs } as TextStyle,
     };
-  }, [colors.border, colors.formBorder, colors.formSurface, colors.formSurfaceAlt, colors.formText, colors.status.error, colors.text, radius.md, spacing.lg, spacing.md, spacing.sm, spacing.xs, tap.minHeight, typography.caption, typography.subhead]);
+  }, [colors.borderMuted, colors.formBorder, colors.formSurface, colors.formSurfaceAlt, colors.formText, colors.primary, colors.status.error, colors.surface, colors.text, radius.lg, spacing.lg, spacing.md, spacing.sm, spacing.xs, tap.minHeight, typography.caption, typography.subhead]);
 
   return (
     <Controller
@@ -86,6 +89,7 @@ export default function FormField<T extends FieldValues>({
               styles.inputContainer,
               error ? styles.inputError : undefined,
               disabled ? styles.inputDisabled : undefined,
+              focused && !error && !disabled ? styles.inputFocused : undefined,
             ]}
           >
             <TextInput
@@ -98,7 +102,11 @@ export default function FormField<T extends FieldValues>({
               placeholder={placeholder}
               value={value}
               onChangeText={onChange}
-              onBlur={onBlur}
+              onBlur={() => {
+                onBlur();
+                setFocused(false);
+              }}
+              onFocus={() => setFocused(true)}
               secureTextEntry={secureTextEntry}
               keyboardType={keyboardType}
               autoCapitalize={autoCapitalize}

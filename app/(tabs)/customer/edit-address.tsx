@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -12,9 +12,9 @@ import { getUserAddresses, updateUserAddress } from '@/utils/database';
 import { UserAddress } from '@/types/database';
 
 const addressTypes = [
-  { id: 'Home', icon: 'Home', label: 'Home' },
-  { id: 'Work', icon: 'Briefcase', label: 'Work' },
-  { id: 'Other', icon: 'Heart', label: 'Other' },
+  { id: 'Home', icon: 'HomeFill', label: 'Home' },
+  { id: 'Work', icon: 'BriefcaseSolid', label: 'Work' },
+  { id: 'Other', icon: 'HeartSolid', label: 'Other' },
 ];
 
 export default function EditAddress() {
@@ -35,14 +35,9 @@ export default function EditAddress() {
   const [saving, setSaving] = useState(false);
   const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const zipTooShort = postalCode.length > 0 && postalCode.length < 4;
 
-  useEffect(() => {
-    if (user && addressId) {
-      loadAddress();
-    }
-  }, [user, addressId]);
-
-  const loadAddress = async () => {
+  const loadAddress = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -54,9 +49,10 @@ export default function EditAddress() {
         setAddress(foundAddress);
         
         // Determine address type
-        const standardTypes = ['Home', 'Work'];
-        if (standardTypes.includes(foundAddress.label)) {
-          setSelectedType(foundAddress.label);
+        const normalizedTag = (foundAddress.tag || foundAddress.label || 'Other').toLowerCase();
+        const standardTypes = ['home', 'work'];
+        if (standardTypes.includes(normalizedTag)) {
+          setSelectedType(normalizedTag === 'home' ? 'Home' : 'Work');
         } else {
           setSelectedType('Other');
           setCustomLabel(foundAddress.label);
@@ -79,7 +75,13 @@ export default function EditAddress() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [addressId, user]);
+
+  useEffect(() => {
+    if (user && addressId) {
+      loadAddress();
+    }
+  }, [addressId, loadAddress, user]);
 
   const handleSave = async () => {
     if (!user || !address) return;
@@ -105,6 +107,7 @@ export default function EditAddress() {
     try {
       setSaving(true);
 
+      const rawTag = (selectedType || 'Other').toLowerCase();
       const updates: Partial<UserAddress> = {
         label: selectedType === 'Other' ? customLabel.trim() || 'Other' : selectedType,
         address_line_1: addressLine1.trim(),
@@ -113,7 +116,7 @@ export default function EditAddress() {
         state: state.trim(),
         postal_code: postalCode.trim(),
         delivery_instructions: deliveryInstructions.trim() || undefined,
-        updated_at: new Date().toISOString(),
+        tag: rawTag === 'other' && customLabel.trim() ? 'custom' : (rawTag as UserAddress['tag']),
       };
 
       const success = await updateUserAddress(address.id, updates);
@@ -161,6 +164,11 @@ export default function EditAddress() {
       <Header title="Edit Address" showBackButton />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.noticeCard}>
+          <Icon name="Info" size="sm" color={theme.colors.textMuted} />
+          <Text style={styles.noticeText}>Update your address details or change the default tag below.</Text>
+        </View>
+
         {/* Address Type Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Address Type</Text>
@@ -168,23 +176,16 @@ export default function EditAddress() {
             {addressTypes.map((type) => (
               <TouchableOpacity
                 key={type.id}
-                style={[
-                  styles.typeButton,
-                  selectedType === type.id && styles.selectedType
-                ]}
+                style={[styles.typeButton, selectedType === type.id && styles.selectedType]}
                 onPress={() => setSelectedType(type.id)}
+                activeOpacity={0.9}
               >
-                <Icon 
+                <Icon
                   name={type.icon}
-                  size="lg"
-                  color={selectedType === type.id ? theme.colors.primary[500] : theme.colors.textMuted} 
+                  size="md"
+                  color={selectedType === type.id ? theme.colors.primary[500] : theme.colors.textMuted}
                 />
-                <Text style={[
-                  styles.typeText,
-                  selectedType === type.id && styles.selectedTypeText
-                ]}>
-                  {type.label}
-                </Text>
+                <Text style={[styles.typeText, selectedType === type.id && styles.selectedTypeText]}>{type.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -257,13 +258,14 @@ export default function EditAddress() {
             <Text style={styles.inputLabel}>Postal Code *</Text>
             <TextInput
               style={styles.input}
-              placeholder="10001"
-              value={postalCode}
-              onChangeText={setPostalCode}
-              keyboardType="numeric"
-              maxLength={10}
-            />
-          </View>
+            placeholder="10001"
+            value={postalCode}
+            onChangeText={setPostalCode}
+            keyboardType="numeric"
+            maxLength={10}
+          />
+          {zipTooShort && <Text style={styles.validationText}>Zip code must be 4 digits</Text>}
+        </View>
         </View>
 
         {/* Delivery Instructions */}
@@ -330,6 +332,22 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
     color: theme.colors.status.error,
     fontFamily: 'Inter-Regular',
   },
+  noticeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: theme.colors.surfaceAlt,
+    padding: 12,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: 16,
+  },
+  noticeText: {
+    flex: 1,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textMuted,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
@@ -351,12 +369,15 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
   typeButton: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 12,
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    borderWidth: 2,
+    borderRadius: theme.radius.card,
+    borderWidth: 1,
     borderColor: theme.colors.border,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
   },
   selectedType: {
     borderColor: theme.colors.primary[500],
@@ -366,7 +387,6 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: theme.colors.textMuted,
-    marginTop: 8,
   },
   selectedTypeText: {
     color: theme.colors.primary[500],
@@ -407,6 +427,7 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
   marginLeft: {
     marginLeft: 12,
   },
+  validationText: { color: theme.colors.status.error, fontFamily: 'Inter-Medium', marginTop: 6 },
   defaultInfo: {
     backgroundColor: theme.colors.statusSoft.success,
     padding: 16,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -46,13 +46,7 @@ export default function DeliveryHistory() {
   const [error, setError] = useState<string | null>(null);
   const styles = useMemo(() => createStyles(theme, contentPadding, sectionGap), [theme, contentPadding, sectionGap]);
 
-  useEffect(() => {
-    if (user) {
-      loadDriverData();
-    }
-  }, [user, selectedPeriod]);
-
-  const loadDriverData = async () => {
+  const loadDriverData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -81,7 +75,13 @@ export default function DeliveryHistory() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedPeriod, user]);
+
+  useEffect(() => {
+    if (user) {
+      loadDriverData();
+    }
+  }, [loadDriverData, user]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

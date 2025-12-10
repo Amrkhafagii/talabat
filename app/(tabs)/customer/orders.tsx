@@ -7,17 +7,18 @@ import Header from '@/components/ui/Header';
 import OrderCard from '@/components/customer/OrderCard';
 import Button from '@/components/ui/Button';
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { formatOrderTime } from '@/utils/formatters';
 import { getOrderItems } from '@/utils/orderHelpers';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function Orders() {
   const [selectedTab, setSelectedTab] = useState('active');
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuth();
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const { orders, loading, error, refetch } = useRealtimeOrders({
@@ -51,32 +52,6 @@ export default function Orders() {
     console.log('Reorder:', orderId);
   };
 
-  if (loading && !refreshing) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Header title="My Orders" showBackButton />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
-          <Text style={styles.loadingText}>Loading orders...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (error) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Header title="My Orders" showBackButton />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <Header 
@@ -85,11 +60,11 @@ export default function Orders() {
         rightComponent={<RealtimeIndicator />}
       />
 
-      {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, selectedTab === 'active' && styles.activeTab]}
           onPress={() => setSelectedTab('active')}
+          activeOpacity={0.9}
         >
           <Text style={[styles.tabText, selectedTab === 'active' && styles.activeTabText]}>
             Active ({activeOrders.length})
@@ -98,6 +73,7 @@ export default function Orders() {
         <TouchableOpacity
           style={[styles.tab, selectedTab === 'past' && styles.activeTab]}
           onPress={() => setSelectedTab('past')}
+          activeOpacity={0.9}
         >
           <Text style={[styles.tabText, selectedTab === 'past' && styles.activeTabText]}>
             Past ({pastOrders.length})
@@ -105,7 +81,6 @@ export default function Orders() {
         </TouchableOpacity>
       </View>
 
-      {/* Orders List */}
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         style={styles.content}
@@ -118,6 +93,21 @@ export default function Orders() {
           />
         }
       >
+        {loading && !refreshing && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary[500]} />
+            <Text style={styles.loadingText}>Loading orders...</Text>
+          </View>
+        )}
+
+        {error && (
+          <View style={styles.errorCard}>
+            <Icon name="AlertTriangle" size="md" color={theme.colors.status.error} />
+            <Text style={styles.errorTitle}>Some recent orders failed to load.</Text>
+            <Button title="Retry" onPress={handleRefresh} variant="outline" style={styles.retryButton} />
+          </View>
+        )}
+
         {displayOrders.map((order) => (
           <OrderCard
             key={order.id}
@@ -139,16 +129,16 @@ export default function Orders() {
 
         {displayOrders.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No orders found</Text>
-            <Text style={styles.emptyText}>
-              {selectedTab === 'active' 
-                ? 'You don\'t have any active orders'
-                : 'You haven\'t placed any orders yet'
-              }
-            </Text>
+            <View style={styles.dottedCard}>
+              <Icon name="Receipt" size="lg" color={theme.colors.textMuted} />
+              <Text style={styles.emptyTitle}>No orders {selectedTab === 'active' ? 'in progress' : 'yet'}</Text>
+              <Text style={styles.emptyText}>
+                {selectedTab === 'active' ? 'Track live orders here once you place them.' : 'Start your first order to see it here.'}
+              </Text>
+            </View>
             <Button
               title="Explore Restaurants"
-            onPress={() => router.push('/(tabs)/customer' as any)}
+              onPress={() => router.push('/(tabs)/customer' as any)}
               style={styles.exploreButton}
             />
           </View>
@@ -158,7 +148,7 @@ export default function Orders() {
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -203,18 +193,21 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     tabContainer: {
       flexDirection: 'row',
       backgroundColor: theme.colors.surface,
-      paddingHorizontal: 20,
-      paddingVertical: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 8,
     },
     tab: {
       flex: 1,
       paddingVertical: 12,
       alignItems: 'center',
-      borderBottomWidth: 2,
-      borderBottomColor: 'transparent',
+      borderRadius: theme.radius.pill,
+      backgroundColor: theme.colors.surfaceAlt,
     },
     activeTab: {
-      borderBottomColor: theme.colors.primary[500],
+      backgroundColor: theme.colors.primary[50],
+      borderWidth: 1,
+      borderColor: theme.colors.primary[500],
     },
     tabText: {
       fontSize: 16,
@@ -222,12 +215,25 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       color: theme.colors.textMuted,
     },
     activeTabText: {
-      color: theme.colors.primary[500],
+      color: theme.colors.primary[600],
     },
     content: {
       flex: 1,
       paddingTop: 16,
     },
+    errorCard: {
+      marginHorizontal: 20,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.colors.status.warning,
+      backgroundColor: theme.colors.statusSoft.warning,
+      padding: 16,
+      borderRadius: theme.radius.card,
+      alignItems: 'center',
+      gap: 8,
+    },
+    errorTitle: { fontFamily: 'Inter-Medium', color: theme.colors.status.warning, textAlign: 'center' },
     emptyState: {
       alignItems: 'center',
       paddingVertical: 48,
@@ -249,5 +255,14 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     },
     exploreButton: {
       marginTop: 16,
+    },
+    dottedCard: {
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.colors.border,
+      borderRadius: theme.radius.card,
+      padding: 20,
+      alignItems: 'center',
+      gap: 8,
     },
   });

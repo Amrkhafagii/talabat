@@ -69,13 +69,7 @@ export default function LocationTracking() {
 
   const effectiveTracking = useMemo(() => isTracking || hookTracking, [isTracking, hookTracking]);
 
-  useEffect(() => {
-    if (user) {
-      loadDriverData();
-    }
-  }, [user]);
-
-  const loadDriverData = async () => {
+  const loadDriverData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -91,7 +85,13 @@ export default function LocationTracking() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadDriverData();
+    }
+  }, [loadDriverData, user]);
 
   const startLocationTracking = useCallback(async () => {
     try {

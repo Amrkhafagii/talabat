@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { useAppTheme } from '@/styles/appTheme';
+import { Icon } from '@/components/ui/Icon';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 type Props = {
   delayReason: string;
@@ -23,16 +24,20 @@ export function TrackOrderDelayCard({
   onApproveReroute,
   onDeclineReroute,
 }: Props) {
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   return (
     <Card style={styles.delayCard}>
       <View style={styles.delayHeader}>
-        <Text style={styles.delayTitle}>{delayReason}</Text>
-        <Text style={styles.delayBadge}>Monitoring</Text>
+        <View style={styles.delayIcon}>
+          <Icon name="Clock" size="sm" color={theme.colors.status.warning} />
+        </View>
+        <View style={styles.delayCopy}>
+          <Text style={styles.delayTitle}>{delayReason}</Text>
+          <Text style={styles.delayText}>Traffic is heavier than usual. You can accept a credit while we keep pushing the order.</Text>
+        </View>
       </View>
-      <Text style={styles.delayText}>We spotted a risk to your ETA. You can accept a small credit while we keep pushing this order.</Text>
       <Button
         title={creditStatus === 'issued' ? 'Credit applied' : creditStatus === 'issuing' ? 'Applying credit...' : 'Accept delay for credit'}
         onPress={onAcceptCredit}
@@ -54,7 +59,7 @@ export function TrackOrderDelayCard({
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     delayCard: {
       marginBottom: 16,
@@ -64,23 +69,25 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     },
     delayHeader: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'flex-start',
+      gap: 10,
       marginBottom: 8,
     },
+    delayIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.status.warning,
+    },
+    delayCopy: { flex: 1, gap: 4 },
     delayTitle: {
       fontSize: 16,
       fontFamily: 'Inter-SemiBold',
       color: theme.colors.status.warning,
-    },
-    delayBadge: {
-      fontSize: 12,
-      color: theme.colors.status.warning,
-      backgroundColor: theme.colors.statusSoft.warning,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 8,
-      fontFamily: 'Inter-Medium',
     },
     delayText: {
       fontSize: 14,

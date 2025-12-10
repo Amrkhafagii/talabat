@@ -66,9 +66,12 @@ export default function CustomerLayout() {
           backgroundColor: theme.colors.surface,
           borderTopWidth: 1,
           borderTopColor: theme.colors.border,
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 70,
+          paddingTop: 6,
+          paddingBottom: 10,
+          height: 76,
+          shadowColor: 'rgba(0,0,0,0.08)',
+          shadowOpacity: 1,
+          shadowRadius: 14,
         },
         tabBarActiveTintColor: theme.colors.primary[500],
         tabBarInactiveTintColor: theme.colors.textSubtle,
@@ -166,6 +169,12 @@ export default function CustomerLayout() {
       />
       <Tabs.Screen
         name="wallet"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="payment-proof"
         options={{
           href: null,
         }}

@@ -30,8 +30,9 @@ const rejectReasons = [
 ];
 
 export default function PhotoReviewList({ items, loading, statusText, onApprove, onReject }: PhotoReviewListProps) {
-  if (loading) return <SkeletonCard />;
   const [notes, setNotes] = useState<Record<string, string>>({});
+
+  if (loading) return <SkeletonCard />;
 
   const ageBadge = (iso?: string | null) => {
     if (!iso) return null;

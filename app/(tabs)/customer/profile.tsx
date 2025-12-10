@@ -5,6 +5,7 @@ import { useRestaurantTheme } from '@/styles/restaurantTheme';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Icon } from '@/components/ui/Icon';
+import { HStack } from '@/components/ui/Stack';
 import { getUserProfile, getUserAddresses } from '@/utils/database';
 import { User as UserType, UserAddress } from '@/types/database';
 
@@ -103,24 +104,27 @@ export default function Profile() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Icon name="ArrowLeft" size="lg" color={theme.colors.text} />
+          <Icon name="ArrowBack" size="lg" color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
-        <TouchableOpacity style={styles.editButton} onPress={editProfile}>
-          <Icon name="Edit" size="md" color={theme.colors.primary[500]} />
+        <TouchableOpacity style={styles.editTextButton} onPress={editProfile}>
+          <Text style={styles.editText}>Edit</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Profile Info */}
         <View style={styles.profileSection}>
-          <View style={styles.profilePicture}>
-            <Text style={styles.profileInitial}>
-              {getInitials(userProfile?.full_name)}
-            </Text>
+          <View style={styles.avatarContainer}>
+            <View style={styles.profilePicture}>
+              <Text style={styles.profileInitial}>
+                {getInitials(userProfile?.full_name)}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.cameraBadge} onPress={editProfile}>
+              <Icon name="CameraPlus" size="sm" color={theme.colors.primary[500]} />
+            </TouchableOpacity>
           </View>
           <Text style={styles.profileName}>
             {userProfile?.full_name || 'User'}
@@ -131,36 +135,36 @@ export default function Profile() {
           )}
         </View>
 
-        {/* Stats */}
-        <View style={styles.statsSection}>
+        <HStack style={styles.statsSection} justify="space-between" align="center">
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>47</Text>
-            <Text style={styles.statLabel}>Total Orders</Text>
+            <Icon name="Calendar" size="md" color={theme.colors.textMuted} />
+            <Text style={styles.statNumber}>12</Text>
+            <Text style={styles.statLabel}>Orders</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>$342</Text>
-            <Text style={styles.statLabel}>Total Spent</Text>
+            <Icon name="Ticket" size="md" color={theme.colors.textMuted} />
+            <Text style={styles.statNumber}>3</Text>
+            <Text style={styles.statLabel}>Vouchers</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>4.8</Text>
-            <Text style={styles.statLabel}>Avg Rating</Text>
+            <Icon name="Heart" size="md" color={theme.colors.textMuted} />
+            <Text style={styles.statNumber}>5</Text>
+            <Text style={styles.statLabel}>Favorites</Text>
           </View>
-        </View>
+        </HStack>
 
-        {/* Delivery Addresses */}
         <View style={styles.addressSection}>
           <View style={styles.addressHeader}>
-            <View style={styles.addressHeaderLeft}>
-              <Icon name="MapPin" size="md" color={theme.colors.primary[500]} />
-              <Text style={styles.addressTitle}>Delivery Addresses</Text>
-            </View>
+            <Text style={styles.addressTitle}>Default Address</Text>
             <TouchableOpacity onPress={manageAddresses}>
               <Text style={styles.manageText}>Manage</Text>
             </TouchableOpacity>
           </View>
-          
           {defaultAddress ? (
             <View style={styles.addressCard}>
+              <View style={styles.addressIcon}>
+                <Icon name="MapPinFill" size="md" color={theme.colors.primary[500]} />
+              </View>
               <View style={styles.addressInfo}>
                 <Text style={styles.addressLabel}>{defaultAddress.label}</Text>
                 <Text style={styles.addressText}>
@@ -183,9 +187,9 @@ export default function Profile() {
           )}
         </View>
 
-        {/* Options */}
         <View style={styles.optionsSection}>
           {profileOptions.map((option) => {
+            const showBadge = option.title === 'Notifications';
             return (
               <TouchableOpacity
                 key={option.id}
@@ -195,21 +199,24 @@ export default function Profile() {
               >
                 <View style={styles.optionLeft}>
                   <View style={styles.optionIcon}>
-                    <Icon name={option.icon} size="md" color={theme.colors.primary[500]} />
+                    <Icon name={option.icon} size="md" color={theme.colors.text} />
                   </View>
                   <Text style={styles.optionText}>{option.title}</Text>
                 </View>
-                <Text style={styles.optionArrow}>›</Text>
+                <View style={styles.optionRight}>
+                  {showBadge && <View style={styles.badge}><Text style={styles.badgeText}>2</Text></View>}
+                  <Icon name="ChevronRight" size="md" color={theme.colors.textMuted} />
+                </View>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
           <Icon name="LogOut" size="md" color={theme.colors.status.error} />
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
+        <Text style={styles.versionText}>Version 2.4.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -233,13 +240,12 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
   backButton: {
     padding: 4,
   },
+  editTextButton: { padding: 4 },
+  editText: { fontFamily: 'Inter-SemiBold', color: theme.colors.primary[500], fontSize: 16 },
   headerTitle: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
     color: theme.colors.text,
-  },
-  editButton: {
-    padding: 4,
   },
   profileSection: {
     backgroundColor: theme.colors.surface,
@@ -247,17 +253,30 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
     paddingVertical: 32,
     marginBottom: 16,
   },
+  avatarContainer: { position: 'relative' },
   profilePicture: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.primary[500],
+    backgroundColor: theme.colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
+  cameraBadge: {
+    position: 'absolute',
+    right: -6,
+    bottom: 4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.shadows.card,
+  },
   profileInitial: {
-    color: theme.colors.textInverse,
+    color: theme.colors.primary[600],
     fontSize: 28,
     fontFamily: 'Inter-Bold',
   },
@@ -279,14 +298,16 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
     fontFamily: 'Inter-Regular',
   },
   statsSection: {
-    flexDirection: 'row',
     backgroundColor: theme.colors.surface,
     marginBottom: 16,
-    paddingVertical: 24,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    gap: 12,
   },
   statCard: {
     flex: 1,
     alignItems: 'center',
+    gap: 6,
   },
   statNumber: {
     fontSize: 24,
@@ -311,15 +332,10 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
     alignItems: 'center',
     marginBottom: 16,
   },
-  addressHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   addressTitle: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
     color: theme.colors.text,
-    marginLeft: 8,
   },
   manageText: {
     fontSize: 14,
@@ -334,9 +350,18 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
     borderRadius: 12,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    gap: 12,
   },
   addressInfo: {
     flex: 1,
+  },
+  addressIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addressLabel: {
     fontSize: 16,
@@ -409,6 +434,17 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
     fontFamily: 'Inter-Medium',
     color: theme.colors.text,
   },
+  optionRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  badge: {
+    minWidth: 22,
+    paddingHorizontal: 6,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: theme.colors.primary[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { fontFamily: 'Inter-SemiBold', color: theme.colors.textInverse, fontSize: 12 },
   optionArrow: {
     fontSize: 20,
     color: theme.colors.textSubtle,
@@ -431,5 +467,11 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) => StyleShee
     fontFamily: 'Inter-SemiBold',
     color: theme.colors.status.error,
     marginLeft: 8,
+  },
+  versionText: {
+    textAlign: 'center',
+    color: theme.colors.textMuted,
+    fontFamily: 'Inter-Regular',
+    marginBottom: 24,
   },
 });

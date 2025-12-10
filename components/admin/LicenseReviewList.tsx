@@ -38,8 +38,9 @@ const ageBadge = (iso?: string | null) => {
 };
 
 export default function LicenseReviewList({ items, loading, statusText, onApprove, onReject }: LicenseReviewListProps) {
-  if (loading) return <SkeletonCard />;
   const [notes, setNotes] = useState<Record<string, string>>({});
+
+  if (loading) return <SkeletonCard />;
 
   const handleApprove = (item: DriverLicenseReview) => {
     Alert.alert('Approve license?', item.full_name ?? item.driver_id, [

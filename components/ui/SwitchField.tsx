@@ -39,14 +39,14 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.md,
-      backgroundColor: theme.colors.surface,
+      paddingHorizontal: theme.spacing.lg,
+      backgroundColor: theme.colors.surfaceStrong,
       borderRadius: theme.radius.lg,
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderColor: theme.colors.borderMuted,
     } as ViewStyle,
     texts: { flex: 1, marginRight: theme.spacing.md },
     label: { ...theme.typography.subhead, color: theme.colors.text },
-    helper: { ...theme.typography.caption, color: theme.colors.secondaryText, marginTop: theme.spacing.xs },
+    helper: { ...theme.typography.caption, color: theme.colors.textSubtle, marginTop: theme.spacing.xs },
   };
 }

@@ -4,7 +4,7 @@ import Card from '@/components/ui/Card';
 import OrderStatusBadge from '@/components/common/OrderStatusBadge';
 import RealtimeIndicator from '@/components/common/RealtimeIndicator';
 import { Icon } from '@/components/ui/Icon';
-import { useAppTheme } from '@/styles/appTheme';
+import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 type Props = {
   orderId: string;
@@ -29,63 +29,100 @@ export function TrackOrderStatusCard({
   safetyEvents,
   estimatedDelivery,
 }: Props) {
-  const theme = useAppTheme();
+  const theme = useRestaurantTheme();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
+  const isOnTime = !etaAlert;
 
   return (
     <Card style={styles.statusCard}>
       <View style={styles.statusHeader}>
-        <Text style={styles.orderNumber}>Order #{orderId.slice(-6).toUpperCase()}</Text>
-        <OrderStatusBadge status={status} size='large' />
+        <View>
+          <Text style={styles.orderNumber}>Order #{orderId.slice(-6).toUpperCase()} • {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+          <Text style={styles.arrivalText}>{etaWindow || estimatedDelivery || 'Arriving soon'}</Text>
+          <Text style={styles.restaurantName}>{restaurantName}</Text>
+        </View>
+        <RealtimeIndicator />
+      </View>
+      <View style={styles.pillRow}>
+        <View style={styles.statusPill}>
+          <OrderStatusBadge status={status} size='large' />
+        </View>
+        <View style={[styles.statusPill, isOnTime ? styles.onTime : styles.delay]}>
+          <Icon name={isOnTime ? 'CheckCircle' : 'AlertTriangle'} size="sm" color={isOnTime ? theme.colors.status.success : theme.colors.status.warning} />
+          <Text style={[styles.pillLabel, isOnTime ? styles.onTimeText : styles.delayText]}>{isOnTime ? 'On Time' : 'Delayed'}</Text>
+        </View>
       </View>
       {etaAlert && <Text style={styles.warningText}>{etaAlert}</Text>}
-      <Text style={styles.restaurantName}>{restaurantName}</Text>
-      <Text style={styles.orderTime}>Ordered {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
       {etaWindow && showTrustedEta && (
         <View style={styles.trustedEta}>
           <Icon name='ShieldCheck' size='sm' color={theme.colors.status.success} />
           <Text style={styles.trustedEtaText}>Trusted arrival {etaWindow}</Text>
         </View>
       )}
-      {safetyEvents.temp && (
-        <Text style={styles.safetyLine}>Temp check passed at {new Date(safetyEvents.temp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-      )}
-      {safetyEvents.handoff && (
-        <Text style={styles.safetyLine}>Handoff confirmed at {new Date(safetyEvents.handoff).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-      )}
-      {estimatedDelivery && <Text style={styles.estimatedTime}>Estimated delivery: {estimatedDelivery}</Text>}
-      <RealtimeIndicator />
+      <View style={styles.metaRow}>
+        {safetyEvents.temp && (
+          <Text style={styles.safetyLine}>Temp check passed</Text>
+        )}
+        {safetyEvents.handoff && (
+          <Text style={styles.safetyLine}>Handoff confirmed</Text>
+        )}
+      </View>
     </Card>
   );
 }
 
-const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
   StyleSheet.create({
     statusCard: {
       marginBottom: 16,
+      padding: 16,
     },
     statusHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
+      alignItems: 'flex-start',
+      marginBottom: 12,
+      gap: 8,
     },
     orderNumber: {
-      fontSize: 18,
-      fontFamily: 'Inter-SemiBold',
+      fontSize: 14,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.textMuted,
+    },
+    arrivalText: {
+      fontSize: 22,
+      fontFamily: 'Inter-Bold',
       color: theme.colors.text,
     },
     restaurantName: {
       fontSize: 16,
       fontFamily: 'Inter-Medium',
       color: theme.colors.text,
-      marginBottom: 4,
+      marginTop: 2,
     },
-    orderTime: {
-      fontSize: 14,
-      color: theme.colors.textMuted,
-      fontFamily: 'Inter-Regular',
+    pillRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 8,
     },
+    statusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: theme.radius.pill,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    onTime: {
+      backgroundColor: theme.colors.statusSoft.success,
+    },
+    delay: {
+      backgroundColor: theme.colors.statusSoft.warning,
+    },
+    pillLabel: { fontFamily: 'Inter-SemiBold', color: theme.colors.text },
+    onTimeText: { color: theme.colors.status.success },
+    delayText: { color: theme.colors.status.warning },
     trustedEta: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -102,16 +139,11 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       color: theme.colors.status.success,
       fontFamily: 'Inter-SemiBold',
     },
+    metaRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
     safetyLine: {
       fontSize: 12,
       color: theme.colors.status.success,
       fontFamily: 'Inter-Medium',
-      marginTop: 4,
-    },
-    estimatedTime: {
-      fontSize: 14,
-      color: theme.colors.primary[500],
-      fontFamily: 'Inter-SemiBold',
       marginTop: 4,
     },
     warningText: {

@@ -79,6 +79,7 @@ const profileSchema = z.object({
 
 // Address schemas
 export const addressSchema = z.object({
+  tag: z.enum(['home', 'work', 'other', 'custom']).optional(),
   label: z
     .string()
     .min(1, 'Address label is required')

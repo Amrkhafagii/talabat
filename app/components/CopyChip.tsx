@@ -6,10 +6,10 @@ import { useAppTheme } from '@/styles/appTheme';
 type Props = { label: string; value?: string | null };
 
 export default function CopyChip({ label, value }: Props) {
-  if (!value) return null;
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  if (!value) return null;
   const copy = () => {
     Clipboard.setStringAsync(String(value));
   };

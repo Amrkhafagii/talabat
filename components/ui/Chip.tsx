@@ -19,15 +19,15 @@ export default function Chip({ label, active = false, onPress, variant = 'neutra
 
   const { containerStyle, labelStyle } = useMemo(() => {
     const paletteByVariant: Record<ChipVariant, { bg: string; border?: string; text: string }> = {
-      neutral: { bg: colors.surfaceAlt, border: colors.borderMuted, text: colors.textMuted },
-      outline: { bg: 'transparent', border: colors.border, text: colors.text },
-      accent: { bg: colors.primary[500], text: colors.textInverse },
+      neutral: { bg: colors.surface, border: colors.borderMuted, text: colors.textSubtle },
+      outline: { bg: colors.surface, border: colors.border, text: colors.text },
+      accent: { bg: colors.accentSoft, text: colors.primary[600] },
     };
     const palette = paletteByVariant[variant];
     const activePalette =
       variant === 'accent'
-        ? palette
-        : { bg: colors.primary[100], border: colors.primary[500], text: colors.primary[500] };
+        ? { bg: colors.primary[500], border: colors.primary[500], text: colors.textInverse }
+        : { bg: colors.primary[50], border: colors.primary[500], text: colors.primary[600] };
 
     const background = active ? activePalette.bg : palette.bg;
     const border = active ? activePalette.border : palette.border;

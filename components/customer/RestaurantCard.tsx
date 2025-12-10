@@ -50,7 +50,7 @@ export default function RestaurantCard({
         )}
         <TouchableOpacity style={styles.favoriteButton} onPress={onFavoritePress}>
           <Icon
-            name="Heart"
+            name={isFavorite ? 'HeartSolid' : 'Heart'}
             size="md"
             color={isFavorite ? theme.colors.primary[500] : theme.colors.textInverse}
           />
@@ -89,7 +89,7 @@ export default function RestaurantCard({
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
         <TouchableOpacity onPress={onFavoritePress}>
           <Icon
-            name="Heart"
+            name={isFavorite ? 'HeartSolid' : 'Heart'}
             size="md"
             color={isFavorite ? theme.colors.primary[500] : theme.colors.textMuted}
           />

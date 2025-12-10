@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { UserAddress } from '@/types/database';
-import { getUserAddresses } from '@/utils/database';
+import { getUserAddresses, setDefaultAddress as persistDefaultAddress } from '@/utils/database';
 import { useAuth } from '@/contexts/AuthContext';
 
 type Coordinates = { latitude: number; longitude: number } | null;
@@ -18,7 +18,7 @@ const LocationContext = createContext<LocationContextValue | undefined>(undefine
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [coords, setCoords] = useState<Coordinates>(null);
-  const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
+  const [selectedAddress, setSelectedAddressState] = useState<UserAddress | null>(null);
 
   const refreshLocation = useCallback(async () => {
     try {
@@ -46,11 +46,20 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       const addresses = await getUserAddresses(user.id);
       const defaultAddress = addresses.find(addr => addr.is_default) || addresses[0];
       if (defaultAddress) {
-        setSelectedAddress(defaultAddress);
+        setSelectedAddressState(defaultAddress);
       }
     };
     loadDefaultAddress();
   }, [user]);
+
+  const setSelectedAddress = useCallback((addr: UserAddress | null) => {
+    setSelectedAddressState(prev => {
+      if (addr?.id && addr.id !== prev?.id) {
+        persistDefaultAddress(addr.id).catch(err => console.warn('persistDefaultAddress failed', err));
+      }
+      return addr;
+    });
+  }, []);
 
   return (
     <LocationContext.Provider

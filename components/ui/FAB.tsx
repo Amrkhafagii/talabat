@@ -30,7 +30,7 @@ function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
     fab: {
       width: 56,
       height: 56,
-      borderRadius: 28,
+      borderRadius: theme.radius.xl,
       backgroundColor: theme.colors.accent,
       alignItems: 'center',
       justifyContent: 'center',

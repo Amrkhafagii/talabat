@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TouchableOpacity, Text, ViewStyle, TextStyle } from 'react-native';
+import { TouchableOpacity, Text, ViewStyle, TextStyle, ActivityIndicator, View } from 'react-native';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
@@ -17,6 +17,8 @@ interface ButtonProps {
   textStyle?: TextStyle;
   pill?: boolean;
   fullWidth?: boolean;
+  iconLeft?: React.ReactNode;
+  iconRight?: React.ReactNode;
 }
 
 export default function Button({
@@ -31,15 +33,17 @@ export default function Button({
   textStyle,
   pill = false,
   fullWidth = false,
+  iconLeft,
+  iconRight,
 }: ButtonProps) {
   const { colors, spacing, radius, typography, shadows, tap } = useRestaurantTheme();
 
   const { containerStyle, labelStyle } = useMemo(() => {
-    const heights: Record<ButtonSize, number> = { small: 44, medium: 52, large: 56 };
+    const heights: Record<ButtonSize, number> = { small: 44, medium: 52, large: 60 };
     const horizontalPadding: Record<ButtonSize, number> = {
       small: spacing.lg,
       medium: spacing.xl,
-      large: spacing.xl,
+      large: spacing.xl2,
     };
     const borderRadius = pill ? radius.pill : radius.cta;
     const baseHeight = heights[size] ?? heights.medium;
@@ -47,10 +51,10 @@ export default function Button({
 
     const textBase = size === 'small' ? typography.buttonSmall : typography.button;
     const variants: Record<ButtonVariant, { backgroundColor: string; borderColor?: string; textColor: string; shadow?: ViewStyle }> = {
-      primary: { backgroundColor: colors.primary[500], textColor: colors.textInverse, shadow: shadows.card },
-      secondary: { backgroundColor: colors.surfaceAlt, borderColor: colors.border, textColor: colors.text, shadow: undefined },
-      ghost: { backgroundColor: 'transparent', borderColor: colors.border, textColor: colors.text, shadow: undefined },
-      outline: { backgroundColor: 'transparent', borderColor: colors.primary[500], textColor: colors.primary[500], shadow: undefined },
+      primary: { backgroundColor: colors.primary[500], textColor: colors.textInverse, shadow: shadows.raised },
+      secondary: { backgroundColor: colors.accentSoft, borderColor: colors.accentSoft, textColor: colors.accentStrong, shadow: shadows.card },
+      ghost: { backgroundColor: 'transparent', borderColor: colors.borderMuted, textColor: colors.text, shadow: undefined },
+      outline: { backgroundColor: colors.surface, borderColor: colors.primary[500], textColor: colors.primary[600], shadow: undefined },
       danger: { backgroundColor: colors.statusSoft.error, borderColor: colors.status.error, textColor: colors.status.error, shadow: undefined },
     };
     const variantStyles = variants[variant];
@@ -63,7 +67,7 @@ export default function Button({
       borderWidth: variantStyles.borderColor ? 1 : 0,
       borderColor: variantStyles.borderColor ?? 'transparent',
       backgroundColor: variantStyles.backgroundColor,
-      opacity: disabled ? 0.6 : 1,
+      opacity: disabled ? 0.5 : 1,
       ...(variantStyles.shadow ?? {}),
       paddingHorizontal,
       paddingVertical: spacing.sm,
@@ -87,9 +91,17 @@ export default function Button({
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
-      <Text style={[labelStyle, textStyle]}>
-        {loading ? loadingText || 'Loading...' : title}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color={labelStyle.color} />
+      ) : (
+        <>
+          {iconLeft ? <View>{iconLeft}</View> : null}
+          <Text style={[labelStyle, textStyle]}>
+            {loading ? loadingText || 'Loading...' : title}
+          </Text>
+          {iconRight ? <View>{iconRight}</View> : null}
+        </>
+      )}
     </TouchableOpacity>
   );
 }

@@ -1,0 +1,1 @@
+Icon assets live here if/when we add custom SVGs or PNGs alongside the vector icon map in `components/ui/Icon.tsx`. The current Phase 2 reset leans on the Expo vector icon set, but this directory is ready for handoff when bespoke pictos from design arrive.

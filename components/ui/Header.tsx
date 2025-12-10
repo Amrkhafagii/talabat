@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { View, Text, ViewStyle, TextStyle } from 'react-native';
 import { router } from 'expo-router';
 import { useRestaurantTheme } from '@/styles/restaurantTheme';
-import { Icon } from './Icon';
 import { IconButton } from './IconButton';
 
 interface HeaderProps {
@@ -20,7 +19,7 @@ export default function Header({
   onBackPress,
   subdued = false,
 }: HeaderProps) {
-  const { colors, spacing, radius, typography, tap, iconSizes, insets } = useRestaurantTheme();
+  const { colors, spacing, radius, typography, tap, iconSizes, insets, shadows } = useRestaurantTheme();
 
   const styles = useMemo(
     () => ({
@@ -28,22 +27,23 @@ export default function Header({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.md + Math.max(insets.top * 0.35, spacing.sm),
+        paddingHorizontal: spacing.xl,
+        paddingTop: spacing.md + Math.max(insets.top * 0.5, spacing.sm),
         paddingBottom: spacing.md,
-        backgroundColor: subdued ? colors.surfaceAlt : colors.surface,
+        backgroundColor: subdued ? colors.surfaceAlt : colors.surfaceStrong,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        borderBottomColor: colors.borderMuted,
+        ...(subdued ? {} : shadows.card),
       } as ViewStyle,
       backButton: {
         padding: spacing.xs,
         minHeight: tap.minHeight,
-        borderRadius: radius.sm,
+        borderRadius: radius.md,
       } as ViewStyle,
-      title: { ...typography.titleL, textAlign: 'center', flex: 1, color: colors.text } as TextStyle,
+      title: { ...typography.titleM, textAlign: 'center', flex: 1, color: colors.text } as TextStyle,
       placeholder: { width: iconSizes.lg + spacing.xs * 2 } as ViewStyle,
     }),
-    [colors.border, colors.surface, colors.surfaceAlt, colors.text, iconSizes.lg, insets.top, radius.sm, spacing.lg, spacing.md, spacing.sm, spacing.xs, subdued, tap.minHeight, typography.titleL]
+    [colors.borderMuted, colors.surfaceAlt, colors.surfaceStrong, colors.text, iconSizes.lg, insets.top, radius.md, shadows.card, spacing.md, spacing.sm, spacing.xl, spacing.xs, subdued, tap.minHeight, typography.titleM]
   );
 
   const handleBackPress = () => {

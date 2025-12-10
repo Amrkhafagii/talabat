@@ -93,7 +93,7 @@ export default function IssueReport() {
           </View>
           <Text style={styles.subText}>For: {activeDelivery?.order?.user_id || 'Customer'}</Text>
 
-          <Text style={styles.sectionTitle}>What's the issue?</Text>
+          <Text style={styles.sectionTitle}>What&apos;s the issue?</Text>
           <View style={styles.reasonList}>
             {REASONS.map((item) => (
               <TouchableOpacity

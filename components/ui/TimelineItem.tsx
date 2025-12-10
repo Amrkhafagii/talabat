@@ -34,20 +34,21 @@ export default function TimelineItem({ title, subtitle, time, active, completed,
 }
 
 function createStyles(theme: ReturnType<typeof useRestaurantTheme>) {
+  const dotSize = theme.spacing.md;
   return StyleSheet.create({
     row: { flexDirection: 'row', gap: theme.spacing.sm },
     indicatorCol: { alignItems: 'center' },
     dot: {
-      width: 14,
-      height: 14,
-      borderRadius: 7,
+      width: dotSize,
+      height: dotSize,
+      borderRadius: theme.radius.pill,
       borderWidth: 2,
     },
     line: {
       flex: 1,
       width: 2,
       marginTop: theme.spacing.xs,
-      borderRadius: 1,
+      borderRadius: theme.radius.pill,
     },
     content: {
       flex: 1,

@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -12,33 +12,26 @@ import { useRestaurantTheme } from '@/styles/restaurantTheme';
 
 export default function Filters() {
   const params = useLocalSearchParams();
-  
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
   const [minRating, setMinRating] = useState<number>(0);
   const [maxDeliveryFee, setMaxDeliveryFee] = useState<number>(50);
   const [showPromotedOnly, setShowPromotedOnly] = useState<boolean>(false);
-  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'delivery_time'>('recommended');
   const theme = useRestaurantTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  useEffect(() => {
-    loadCategories();
-    loadCurrentFilters();
-  }, []);
-
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const categoriesData = await getCategories();
       setCategories(categoriesData);
     } catch (error) {
       console.error('Error loading categories:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
-  const loadCurrentFilters = () => {
+  const loadCurrentFilters = useCallback(() => {
     // Load current filter values from params
     if (params.selectedCuisines) {
       try {
@@ -56,7 +49,18 @@ export default function Filters() {
     if (params.showPromotedOnly) {
       setShowPromotedOnly(params.showPromotedOnly === 'true');
     }
-  };
+    if (params.sortBy) {
+      const sortParam = (params.sortBy as string) as typeof sortBy;
+      if (['recommended', 'rating', 'delivery_time'].includes(sortParam)) {
+        setSortBy(sortParam);
+      }
+    }
+  }, [params.maxDeliveryFee, params.minRating, params.selectedCuisines, params.showPromotedOnly, params.sortBy, sortBy]);
+
+  useEffect(() => {
+    loadCategories();
+    loadCurrentFilters();
+  }, [loadCategories, loadCurrentFilters]);
 
   const toggleCuisine = (cuisine: string) => {
     setSelectedCuisines(prev => 
@@ -71,10 +75,10 @@ export default function Filters() {
   };
 
   const deliveryFeeOptions = [
-    { label: 'Any', value: 50 },
-    { label: 'Under $5', value: 5 },
-    { label: 'Under $3', value: 3 },
-    { label: 'Free delivery', value: 0 },
+    { label: 'Any', value: 50, helper: 'Show all' },
+    { label: '< $2', value: 2, helper: 'Budget friendly' },
+    { label: '< $5', value: 5, helper: 'Keep fees low' },
+    { label: 'Free', value: 0, helper: 'No delivery fee' },
   ];
 
   const applyFilters = () => {
@@ -83,6 +87,7 @@ export default function Filters() {
       minRating: minRating.toString(),
       maxDeliveryFee: maxDeliveryFee.toString(),
       showPromotedOnly: showPromotedOnly.toString(),
+      sortBy,
     });
     router.back();
   };
@@ -92,18 +97,29 @@ export default function Filters() {
     setMinRating(0);
     setMaxDeliveryFee(50);
     setShowPromotedOnly(false);
+    setSortBy('recommended');
   };
 
   const hasActiveFilters = selectedCuisines.length > 0 || minRating > 0 || maxDeliveryFee < 50 || showPromotedOnly;
 
   // Get unique cuisines from categories
   const cuisines = [...new Set(categories.map(cat => cat.name))];
+  const sortOptions: { key: typeof sortBy; label: string }[] = [
+    { key: 'recommended', label: 'Recommended' },
+    { key: 'rating', label: 'Rating' },
+    { key: 'delivery_time', label: 'Delivery Time' },
+  ];
+  const ratingOptions = [
+    { value: 4.5, label: '4.5 ★ & Up', helper: 'Top picks' },
+    { value: 4, label: '4.0 ★ & Up', helper: 'Great value' },
+    { value: 0, label: 'Any Rating', helper: 'No minimum' },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header 
-        title="Filters" 
-        showBackButton 
+      <Header
+        title="Filters"
+        showBackButton
         rightComponent={
           hasActiveFilters ? (
             <TouchableOpacity onPress={clearFilters}>
@@ -113,63 +129,89 @@ export default function Filters() {
         }
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Cuisine Filter */}
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cuisine</Text>
-          <View style={styles.cuisineGrid}>
-            {cuisines.map((cuisine) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Sort by</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowGap}>
+            {sortOptions.map(option => (
               <TouchableOpacity
-                key={cuisine}
-                style={[
-                  styles.cuisineChip,
-                  selectedCuisines.includes(cuisine) && styles.selectedChip
-                ]}
-                onPress={() => toggleCuisine(cuisine)}
+                key={option.key}
+                style={[styles.pill, sortBy === option.key && styles.pillActive]}
+                onPress={() => setSortBy(option.key)}
+                activeOpacity={0.85}
               >
-                <Text style={[
-                  styles.cuisineChipText,
-                  selectedCuisines.includes(cuisine) && styles.selectedChipText
-                ]}>
-                  {cuisine}
-                </Text>
-                {selectedCuisines.includes(cuisine) && (
-                  <Icon name="X" size="sm" color={theme.colors.textInverse} style={styles.chipIcon} />
-                )}
+                <Text style={[styles.pillText, sortBy === option.key && styles.pillTextActive]}>{option.label}</Text>
               </TouchableOpacity>
             ))}
+          </ScrollView>
+        </View>
+
+        {/* Cuisine Filter */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Cuisines</Text>
+            <TouchableOpacity>
+              <Text style={styles.linkText}>See all</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.cuisineGrid}>
+            {cuisines.map((cuisine) => {
+              const selected = selectedCuisines.includes(cuisine);
+              return (
+                <TouchableOpacity
+                  key={cuisine}
+                  style={[styles.cuisineChip, selected && styles.selectedChip]}
+                  onPress={() => toggleCuisine(cuisine)}
+                  activeOpacity={0.9}
+                >
+                  <Icon name="Utensils" size="sm" color={selected ? theme.colors.textInverse : theme.colors.text} />
+                  <Text style={[styles.cuisineChipText, selected && styles.selectedChipText]}>
+                    {cuisine}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity style={[styles.cuisineChip, styles.addCuisineChip]} onPress={() => router.back()}>
+              <Icon name="Plus" size="sm" color={theme.colors.textMuted} />
+              <Text style={[styles.cuisineChipText, styles.mutedText]}>More</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* Rating Filter */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Minimum Rating</Text>
+          <Text style={styles.sectionTitle}>Rating</Text>
           <View style={styles.ratingContainer}>
-            {[1, 2, 3, 4, 5].map((rating) => (
-              <TouchableOpacity
-                key={rating}
-                style={styles.ratingOption}
-                onPress={() => setRating(rating)}
-              >
-                <View style={styles.ratingStars}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Icon
-                      key={star}
-                      name="Star"
-                      size="md"
-                      color={star <= rating ? theme.colors.status.warning : theme.colors.border}
-                    />
-                  ))}
-                </View>
-                <Text style={styles.ratingText}>{rating}+ stars</Text>
-                <View style={[
-                  styles.radioButton,
-                  minRating === rating && styles.selectedRadio
-                ]}>
-                  {minRating === rating && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            ))}
+            {ratingOptions.map((rating) => {
+              const selected = minRating === rating.value;
+              return (
+                <TouchableOpacity
+                  key={rating.value}
+                  style={[styles.ratingOption, selected && styles.ratingOptionActive]}
+                  onPress={() => setRating(rating.value)}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.ratingRow}>
+                    <View style={[styles.ratingBadge, selected && styles.ratingBadgeActive]}>
+                      <Text style={[styles.ratingBadgeText, selected && styles.ratingBadgeTextActive]}>
+                        {rating.value === 0 ? 'Any' : rating.value.toFixed(1)}
+                      </Text>
+                      {rating.value !== 0 && <Icon name="Star" size="sm" color={selected ? theme.colors.textInverse : theme.colors.status.warning} />}
+                    </View>
+                    <Text style={[styles.ratingText, selected && styles.ratingTextActive]}>{rating.label}</Text>
+                  </View>
+                  <View style={[styles.radioButton, selected && styles.selectedRadio]}>
+                    {selected && <View style={styles.radioInner} />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -177,57 +219,49 @@ export default function Filters() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Delivery Fee</Text>
           <View style={styles.deliveryFeeContainer}>
-            {deliveryFeeOptions.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={styles.deliveryFeeOption}
-                onPress={() => setMaxDeliveryFee(option.value)}
-              >
-                <Text style={styles.deliveryFeeText}>{option.label}</Text>
-                <View style={[
-                  styles.radioButton,
-                  maxDeliveryFee === option.value && styles.selectedRadio
-                ]}>
-                  {maxDeliveryFee === option.value && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            ))}
+            {deliveryFeeOptions.map((option) => {
+              const selected = maxDeliveryFee === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[styles.deliveryFeePill, selected && styles.deliveryFeePillActive]}
+                  onPress={() => setMaxDeliveryFee(option.value)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.deliveryFeeText, selected && styles.deliveryFeeTextActive]}>{option.label}</Text>
+                  <Text style={[styles.deliveryFeeHelper, selected && styles.deliveryFeeHelperActive]}>{option.helper}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Promoted Only Filter */}
         <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.promotedToggle}
-            onPress={() => setShowPromotedOnly(!showPromotedOnly)}
-          >
+          <View style={styles.promotedToggle}>
             <View>
-              <Text style={styles.promotedTitle}>Promoted restaurants only</Text>
-              <Text style={styles.promotedSubtitle}>Show only featured restaurants</Text>
+              <Text style={styles.promotedTitle}>Promoted only</Text>
+              <Text style={styles.promotedSubtitle}>Show only sponsored partners</Text>
             </View>
-            <View style={[
-              styles.toggle,
-              showPromotedOnly && styles.toggleActive
-            ]}>
-              <View style={[
-                styles.toggleThumb,
-                showPromotedOnly && styles.toggleThumbActive
-              ]} />
-            </View>
-          </TouchableOpacity>
+            <Switch
+              value={showPromotedOnly}
+              onValueChange={setShowPromotedOnly}
+              thumbColor={showPromotedOnly ? theme.colors.textInverse : theme.colors.surface}
+              trackColor={{ false: theme.colors.borderMuted, true: theme.colors.primary[500] }}
+            />
+          </View>
         </View>
       </ScrollView>
 
       {/* Apply Button */}
       <View style={styles.bottomContainer}>
+        <TouchableOpacity onPress={clearFilters} disabled={!hasActiveFilters} style={styles.clearAll}>
+          <Text style={[styles.linkText, !hasActiveFilters && styles.disabledText]}>Clear all</Text>
+        </TouchableOpacity>
         <Button
-          title={`Apply Filters${hasActiveFilters ? ` (${[
-            selectedCuisines.length > 0 && selectedCuisines.length,
-            minRating > 0 && '1',
-            maxDeliveryFee < 50 && '1',
-            showPromotedOnly && '1'
-          ].filter(Boolean).reduce((a, b) => Number(a) + Number(b), 0)})` : ''}`}
+          title="Apply Filters"
           onPress={applyFilters}
+          fullWidth
         />
       </View>
     </SafeAreaView>
@@ -240,6 +274,9 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       flex: 1,
       backgroundColor: theme.colors.background,
     },
+    scrollContent: {
+      paddingBottom: 120,
+    },
     clearText: {
       fontSize: 16,
       color: theme.colors.primary[500],
@@ -250,7 +287,7 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       paddingHorizontal: 20,
     },
     section: {
-      marginBottom: 32,
+      marginBottom: 28,
     },
     sectionTitle: {
       fontSize: 18,
@@ -258,18 +295,54 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       color: theme.colors.text,
       marginBottom: 16,
     },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    linkText: {
+      fontSize: 14,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.primary[500],
+    },
+    rowGap: {
+      gap: 10,
+      paddingRight: 12,
+    },
+    pill: {
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: theme.radius.pill,
+      borderWidth: 1,
+      borderColor: theme.colors.borderMuted,
+      backgroundColor: theme.colors.surface,
+      marginRight: 8,
+    },
+    pillActive: {
+      backgroundColor: theme.colors.primary[50],
+      borderColor: theme.colors.primary[500],
+    },
+    pillText: {
+      fontSize: 15,
+      fontFamily: 'Inter-Medium',
+      color: theme.colors.text,
+    },
+    pillTextActive: {
+      color: theme.colors.primary[600],
+    },
     cuisineGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 8,
+      gap: 10,
     },
     cuisineChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
       backgroundColor: theme.colors.surface,
-      borderRadius: 20,
+      borderRadius: theme.radius.pill,
       borderWidth: 1,
       borderColor: theme.colors.border,
     },
@@ -281,6 +354,7 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       fontSize: 14,
       fontFamily: 'Inter-Medium',
       color: theme.colors.text,
+      marginLeft: 6,
     },
     selectedChipText: {
       color: theme.colors.textInverse,
@@ -288,8 +362,14 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
     chipIcon: {
       marginLeft: 4,
     },
+    addCuisineChip: {
+      borderStyle: 'dashed',
+    },
+    mutedText: {
+      color: theme.colors.textSubtle,
+    },
     ratingContainer: {
-      gap: 12,
+      gap: 10,
     },
     ratingOption: {
       flexDirection: 'row',
@@ -297,9 +377,40 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       paddingVertical: 12,
       paddingHorizontal: 16,
       backgroundColor: theme.colors.surface,
-      borderRadius: 12,
+      borderRadius: theme.radius.card,
       borderWidth: 1,
       borderColor: theme.colors.border,
+      justifyContent: 'space-between',
+    },
+    ratingOptionActive: {
+      backgroundColor: theme.colors.primary[50],
+      borderColor: theme.colors.primary[500],
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+    },
+    ratingBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: theme.colors.surfaceAlt,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: theme.radius.pill,
+    },
+    ratingBadgeActive: {
+      backgroundColor: theme.colors.primary[500],
+    },
+    ratingBadgeText: {
+      fontSize: 14,
+      fontFamily: 'Inter-SemiBold',
+      color: theme.colors.text,
+    },
+    ratingBadgeTextActive: {
+      color: theme.colors.textInverse,
     },
     ratingStars: {
       flexDirection: 'row',
@@ -310,6 +421,9 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       fontSize: 16,
       fontFamily: 'Inter-Medium',
       color: theme.colors.text,
+    },
+    ratingTextActive: {
+      color: theme.colors.primary[600],
     },
     radioButton: {
       width: 20,
@@ -330,34 +444,50 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       backgroundColor: theme.colors.primary[500],
     },
     deliveryFeeContainer: {
-      gap: 12,
-    },
-    deliveryFeeOption: {
       flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: 12,
-      paddingHorizontal: 16,
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    deliveryFeePill: {
+      minWidth: '46%',
+      padding: 14,
+      borderRadius: theme.radius.lg,
       backgroundColor: theme.colors.surface,
-      borderRadius: 12,
       borderWidth: 1,
       borderColor: theme.colors.border,
+    },
+    deliveryFeePillActive: {
+      borderColor: theme.colors.primary[500],
+      backgroundColor: theme.colors.primary[50],
     },
     deliveryFeeText: {
       fontSize: 16,
       fontFamily: 'Inter-Medium',
       color: theme.colors.text,
     },
+    deliveryFeeTextActive: {
+      color: theme.colors.primary[600],
+    },
+    deliveryFeeHelper: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontFamily: 'Inter-Regular',
+      marginTop: 4,
+    },
+    deliveryFeeHelperActive: {
+      color: theme.colors.primary[600],
+    },
     promotedToggle: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingVertical: 16,
+      paddingVertical: 18,
       paddingHorizontal: 16,
       backgroundColor: theme.colors.surface,
-      borderRadius: 12,
+      borderRadius: theme.radius.card,
       borderWidth: 1,
       borderColor: theme.colors.border,
+      ...theme.shadows.card,
     },
     promotedTitle: {
       fontSize: 16,
@@ -370,35 +500,21 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       fontFamily: 'Inter-Regular',
       color: theme.colors.textMuted,
     },
-    toggle: {
-      width: 48,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: theme.colors.border,
-      justifyContent: 'center',
-      paddingHorizontal: 2,
-    },
-    toggleActive: {
-      backgroundColor: theme.colors.primary[500],
-    },
-    toggleThumb: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-      backgroundColor: theme.colors.textInverse,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-      elevation: 2,
-    },
-    toggleThumbActive: {
-      transform: [{ translateX: 20 }],
-    },
     bottomContainer: {
-      padding: 20,
+      padding: 16,
+      paddingBottom: 16 + theme.insets.bottom,
       backgroundColor: theme.colors.surface,
       borderTopWidth: 1,
       borderTopColor: theme.colors.border,
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+    },
+    clearAll: {
+      paddingHorizontal: 8,
+    },
+    disabledText: {
+      color: theme.colors.textSubtle,
+      opacity: 0.6,
     },
   });

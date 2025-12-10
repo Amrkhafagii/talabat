@@ -49,12 +49,6 @@ export default function AdminOrders() {
     setLoadingOrder(false);
   };
 
-  useEffect(() => {
-    refreshReports();
-  }, [refreshReports]);
-
-  if (gateLoading || !allowed) return null;
-
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       const term = search.trim().toLowerCase();
@@ -70,6 +64,12 @@ export default function AdminOrders() {
       return true;
     });
   }, [orders, paymentFilter, deliveryFilter, search]);
+
+  useEffect(() => {
+    refreshReports();
+  }, [refreshReports]);
+
+  if (gateLoading || !allowed) return null;
 
   return (
     <AdminShell

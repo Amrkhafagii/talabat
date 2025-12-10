@@ -284,9 +284,9 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
       fontFamily: 'Inter-SemiBold',
     },
     content: {
-      flex: 1,
       paddingHorizontal: 16,
       paddingTop: 12,
+      paddingBottom: theme.insets.bottom + 140,
       gap: 12,
     },
     section: {

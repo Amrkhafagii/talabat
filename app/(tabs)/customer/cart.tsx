@@ -22,6 +22,7 @@ export default function Cart() {
     placing,
     selectedPayment,
     setSelectedPayment,
+    walletBalance,
     receiptUploading,
     receiptUri,
     receiptError,
@@ -169,7 +170,7 @@ export default function Cart() {
           <View style={styles.paymentOptions}>
             {[
               { id: 'instapay', label: 'Instapay', helper: 'Instant confirmation', icon: 'CreditCard' },
-              { id: 'wallet', label: 'Wallet', helper: 'Use balance if available', icon: 'Wallet' },
+              { id: 'wallet', label: 'Wallet', helper: walletBalance !== null ? `Balance: ${formatCurrency(walletBalance)}` : 'Checking balance...', icon: 'Wallet' },
             ].map((method) => {
               const active = method.id === selectedPayment;
               return (
@@ -205,6 +206,7 @@ export default function Cart() {
           uploading={receiptUploading}
           onPick={pickReceipt}
           onCapture={captureReceipt}
+          required={selectedPayment !== 'wallet'}
         />
 
         <CartSummary

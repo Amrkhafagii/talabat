@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMenuItemsByIds, createOrder, getUserAddresses, getRestaurantById, getSubstitutionForItem, getAutoApplySubstitution, uploadPaymentProof, submitPaymentProof } from '@/utils/database';
+import { getMenuItemsByIds, createOrder, getUserAddresses, getRestaurantById, getSubstitutionForItem, getAutoApplySubstitution, uploadPaymentProof, submitPaymentProof, getWalletsByUser, getWalletBalances, holdOrderPayment } from '@/utils/database';
 import { MenuItem, UserAddress, Restaurant } from '@/types/database';
 import { computeEtaBand } from '@/utils/db/trustedArrival';
 import { estimateTravelMinutes } from '@/utils/etaService';
@@ -36,6 +36,8 @@ export function useCartData() {
   const [substitutionPrompts, setSubstitutionPrompts] = useState<SubstitutionPrompt[]>([]);
   const [substitutionDecisions, setSubstitutionDecisions] = useState<SubstitutionDecision[]>([]);
   const [restaurantMeta, setRestaurantMeta] = useState<Restaurant | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletId, setWalletId] = useState<string | null>(null);
 
   const applySubstitutionChoice = useCallback(
     (item: MenuItem & { quantity: number }, substitute: MenuItem | null, auto = false, decision: 'accept' | 'decline' | 'chat' = 'accept') => {
@@ -87,6 +89,42 @@ export function useCartData() {
       }
     },
     [cart, updateQuantity]
+  );
+
+  const loadWalletBalance = useCallback(async () => {
+    if (!user?.id) {
+      setWalletBalance(0);
+      setWalletId(null);
+      return;
+    }
+    try {
+      const wallets = await getWalletsByUser(user.id);
+      const customerWallet = wallets.find(w => w.type === 'customer') || wallets[0];
+      if (customerWallet) {
+        setWalletId(customerWallet.id);
+        const balances = await getWalletBalances(customerWallet.id);
+        const fallback = Number(customerWallet.balance ?? 0);
+        const available = balances?.available ?? fallback;
+        setWalletBalance(Number.isFinite(available) ? available : 0);
+      } else {
+        setWalletId(null);
+        setWalletBalance(0);
+      }
+    } catch (err) {
+      console.error('loadWalletBalance error', err);
+      setWalletBalance(0);
+      setWalletId(null);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadWalletBalance();
+  }, [loadWalletBalance]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadWalletBalance();
+    }, [loadWalletBalance])
   );
 
   const loadCartData = useCallback(async () => {
@@ -337,7 +375,8 @@ export function useCartData() {
       return;
     }
 
-    if (!receiptUri) {
+    const proofRequired = selectedPayment !== 'wallet';
+    if (proofRequired && !receiptUri) {
       Alert.alert('Payment Required', 'Please upload your payment proof before placing the order.');
       return;
     }
@@ -380,13 +419,13 @@ export function useCartData() {
         };
       });
 
-      let receiptForOrder = receiptUri;
-      if (receiptUri && !receiptUri.startsWith('http')) {
-        const uploaded = await uploadReceiptToStorage(receiptFileMeta ?? { uri: receiptUri });
-        if (!uploaded) {
-          Alert.alert('Error', 'Failed to upload receipt. Please try again.');
-          setReceiptError('Upload failed—please retry.');
-          setPlacing(false);
+    let receiptForOrder = receiptUri;
+    if (proofRequired && receiptUri && !receiptUri.startsWith('http')) {
+      const uploaded = await uploadReceiptToStorage(receiptFileMeta ?? { uri: receiptUri });
+      if (!uploaded) {
+        Alert.alert('Error', 'Failed to upload receipt. Please try again.');
+        setReceiptError('Upload failed—please retry.');
+        setPlacing(false);
           return;
         }
         receiptForOrder = uploaded;
@@ -417,17 +456,30 @@ export function useCartData() {
         console.error('Error placing order:', error);
         Alert.alert('Error', 'Failed to place order. Please try again.');
       } else {
-        const txnId = `manual-${Date.now()}`;
-        const proof = await submitPaymentProof({
-          orderId: order.id,
-          txnId,
-          reportedAmount: total,
-          proofUrl: receiptForOrder,
-          paidAt: new Date().toISOString(),
-        });
-        if (!proof.ok) {
-          console.error('submit_payment_proof error', proof.error);
-          Alert.alert('Warning', 'Order placed, but receipt could not be queued for admin. Please retry from order details.');
+        if (selectedPayment === 'wallet') {
+          const hold = await holdOrderPayment(order.id, 'wallet_checkout');
+          if (!hold) {
+            Alert.alert('Wallet Hold Failed', 'We could not reserve funds from your wallet. Please try another payment method.');
+            setPlacing(false);
+            return;
+          }
+          if (walletBalance !== null) {
+            setWalletBalance(Math.max(0, walletBalance - total));
+          }
+        }
+        if (proofRequired) {
+          const txnId = `manual-${Date.now()}`;
+          const proof = await submitPaymentProof({
+            orderId: order.id,
+            txnId,
+            reportedAmount: total,
+            proofUrl: receiptForOrder,
+            paidAt: new Date().toISOString(),
+          });
+          if (!proof.ok) {
+            console.error('submit_payment_proof error', proof.error);
+            Alert.alert('Warning', 'Order placed, but receipt could not be queued for admin. Please retry from order details.');
+          }
         }
         clearCart();
         Alert.alert('Order Placed!', 'Your order has been placed successfully. You can track it in the Orders section.', [
@@ -490,6 +542,7 @@ export function useCartData() {
     placing,
     selectedPayment,
     setSelectedPayment,
+    walletBalance,
     receiptUploading,
     receiptUri,
     receiptError,

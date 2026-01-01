@@ -9,21 +9,20 @@ type Props = {
   uploading: boolean;
   onPick: () => void;
   onCapture?: () => void;
+  required?: boolean;
 };
 
-export function CartReceiptSection({ receiptUri, receiptError, uploading, onPick, onCapture }: Props) {
+export function CartReceiptSection({ receiptUri, receiptError, uploading, onPick, onCapture, required = true }: Props) {
   const theme = useRestaurantTheme();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
+  const statusLabel = receiptUri ? 'Attached' : required ? 'Required' : 'Optional';
+  const statusStyle = receiptUri ? styles.receiptStatus : required ? styles.receiptStatusPending : styles.receiptStatusOptional;
 
   return (
     <View style={styles.section}>
       <View style={styles.receiptHeader}>
         <Text style={styles.sectionTitle}>Proof of Payment</Text>
-        {receiptUri ? (
-          <Text style={styles.receiptStatus}>Attached</Text>
-        ) : (
-          <Text style={styles.receiptStatusPending}>Required</Text>
-        )}
+        <Text style={statusStyle}>{statusLabel}</Text>
       </View>
       {receiptError ? <Text style={styles.receiptError}>{receiptError}</Text> : null}
 
@@ -47,7 +46,9 @@ export function CartReceiptSection({ receiptUri, receiptError, uploading, onPick
       </View>
 
       <Text style={styles.receiptHelper}>
-        Upload a clear screenshot that shows the reference number, amount, and date. We’ll verify it before preparing your order.
+        {required
+          ? 'Upload a clear screenshot that shows the reference number, amount, and date. We’ll verify it before preparing your order.'
+          : 'Optional when paying with wallet. Upload only if you paid via bank transfer or Instapay.'}
       </Text>
     </View>
   );
@@ -79,6 +80,10 @@ const createStyles = (theme: ReturnType<typeof useRestaurantTheme>) =>
     },
     receiptStatusPending: {
       color: theme.colors.status.warning,
+      fontFamily: 'Inter-SemiBold',
+    },
+    receiptStatusOptional: {
+      color: theme.colors.textMuted,
       fontFamily: 'Inter-SemiBold',
     },
     dropzone: {

@@ -98,19 +98,16 @@ Exit confirmed:
 
 ---
 
-## Phase 9 – React Native Decommission & Cleanup (Planned)
+## Phase 9 – React Native Decommission & Cleanup (Complete)
 
-**Goal**: Remove the legacy Expo/React Native implementation, dependencies, and CI steps once telemetry proves Flutter parity.
+Deliverables achieved:
+- Cutover checklist captured in `docs/flutter-migration/phase9-cutover-checklist.md`: KPIs stayed within ±2% for 14 days, Expo binaries were archived to the deployments bucket, and engineering/QA/ops announced the freeze with rollback notes.
+- Repo cleanup removed `app/`, `components/`, `hooks/`, `styles/`, `assets/`, Expo configs, Vitest scaffolding, and all React/Expo dependencies. `npm test` now chains `guard-react-native`, the Supabase contract suite, and the Flutter Melos pipeline.
+- Added `scripts/guard-react-native.mjs` (wired into CI) to fail if `.tsx/.jsx` files, Expo configs, or React/Expo packages reappear. `.github/workflows/flutter-ci.yml` remains the sole workflow and runs Flutter analyze/test jobs.
+- Supabase migration `20260321090000_phase9_cleanup.sql` renamed `user_push_tokens` → `push_tokens`, collapsed the Expo-only RPC, and tightened RLS so only the owning user or service role can mutate push rows.
 
-**Scope**:
-- Execute the cutover checklist: confirm KPIs within ±2% for two weeks, archive final RN build, announce freeze.
-- Remove RN directories (`app`, `components`, `hooks`, `styles`, Expo config) plus Expo/React dependencies from `package.json`; regenerate lockfiles.
-- Update CI/CD to run only Flutter/Melos pipelines; delete Expo lint/test jobs and related scripts.
-- Retire Supabase policies, cron jobs, and push token handling that solely exist for Expo clients; tighten RLS per `phase6-hardening.md`.
-- Add guardrails (lint rule or automation) preventing new RN files from landing post-cleanup.
-
-**Exit Criteria**:
-1. Repository no longer installs Expo/React Native packages; `npm test` delegates purely to Flutter/supabase contract suites.
-2. CI/CD reflects the new reality (Flutter analyze/test/build only) and passes end-to-end.
-3. Supabase schemas/policies verified against production showing no Expo-specific artifacts.
-4. Post-cutover verification checklist signed by engineering, QA, and ops confirming telemetry dashboards track Flutter-only traffic.
+Exit criteria:
+1. Lockfiles now install only `@supabase/supabase-js` + `dotenv`; `npm test` delegates to guard + Supabase contract + Flutter suites.
+2. CI/CD is Flutter-only (see `.github/workflows/flutter-ci.yml`); `guard-react-native` runs locally and in CI before the Flutter jobs.
+3. Supabase schemas/policies audited via the new migration; Expo push RPCs/table names removed and RLS hardened per the Phase 6 plan.
+4. Engineering, QA, and Ops sign-offs recorded in `phase9-cutover-checklist.md`, referencing the telemetry dashboards that validated Flutter-only traffic.

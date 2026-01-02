@@ -19,7 +19,7 @@
 3. **Automated Test Suite & Scripts**
    - Widget cover: `flutter/packages/design_system/test/talabat_button_test.dart` exercises the base CTA component.
    - Integration: `flutter/apps/talabat_app/integration_test/cart_flow_test.dart` boots Riverpod + the cart controller to ensure add-to-cart state works across renders.
-   - `package.json` exposes `npm run test:flutter` (runs both `flutter test` and `flutter test integration_test`) and the root `npm test` chains contract + smoke + Flutter suites.
+   - `package.json` exposes `npm run test:flutter` (runs both `flutter test` and `flutter test integration_test`) and the root `npm test` now runs the `guard-react-native` automation, the Supabase contract suite, and the Flutter suites.
 
 4. **CI & Release Guardrails**
    - GitHub Actions workflow `.github/workflows/flutter-ci.yml` now executes unit *and* integration tests via Melos when Flutter files change.

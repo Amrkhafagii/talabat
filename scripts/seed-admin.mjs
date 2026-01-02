@@ -1,14 +1,14 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const url = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const adminEmail = process.env.ADMIN_EMAIL || 'admin@talabat.local';
 const adminPassword = process.env.ADMIN_PASSWORD || 'ApproveDocs!2025';
 const adminName = process.env.ADMIN_NAME || 'Ops Admin';
 
 if (!url || !serviceRoleKey) {
-  console.error('Missing EXPO_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.');
+  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.');
   process.exit(1);
 }
 

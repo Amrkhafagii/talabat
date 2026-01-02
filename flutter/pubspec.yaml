@@ -1,0 +1,15 @@
+name: talabat_flutter_workspace
+publish_to: 'none'
+description: Flutter migration workspace for Talabat apps.
+version: 0.1.0
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  melos: ^6.0.0
+  flutter_lints: ^4.0.0

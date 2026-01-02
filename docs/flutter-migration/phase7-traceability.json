@@ -1,0 +1,72 @@
+[
+  {
+    "rn": "addresses.tsx",
+    "flutter": "/customer/addresses",
+    "owner": "Customer squad",
+    "tests": "test/customer/address_book_test.dart",
+    "qa": "docs/flutter-migration/qa/customer.md#addresses"
+  },
+  {
+    "rn": "profile.tsx",
+    "flutter": "/customer/profile",
+    "owner": "Customer squad",
+    "tests": "test/customer/profile_page_test.dart",
+    "qa": "docs/flutter-migration/qa/customer.md#profile"
+  },
+  {
+    "rn": "wallet.tsx",
+    "flutter": "/customer/wallet",
+    "owner": "Customer squad",
+    "tests": "integration_test/wallet_flow_test.dart",
+    "qa": "docs/flutter-migration/qa/customer.md#wallet"
+  },
+  {
+    "rn": "performance.tsx",
+    "flutter": "/restaurant/performance",
+    "owner": "Restaurant squad",
+    "tests": "test/restaurant/restaurant_pages_test.dart",
+    "qa": "docs/flutter-migration/qa/restaurant.md#performance"
+  },
+  {
+    "rn": "category-manager.tsx",
+    "flutter": "/restaurant/categories",
+    "owner": "Restaurant squad",
+    "tests": "test/restaurant/restaurant_pages_test.dart",
+    "qa": "docs/flutter-migration/qa/restaurant.md#menu"
+  },
+  {
+    "rn": "order-detail/[orderId].tsx",
+    "flutter": "/restaurant/orders/:orderId",
+    "owner": "Restaurant squad",
+    "tests": "test/restaurant/restaurant_pages_test.dart",
+    "qa": "docs/flutter-migration/qa/restaurant.md#orders"
+  },
+  {
+    "rn": "earnings.tsx",
+    "flutter": "/delivery/earnings",
+    "owner": "Delivery squad",
+    "tests": "test/delivery/earnings_page_test.dart",
+    "qa": "docs/flutter-migration/qa/delivery.md#earnings"
+  },
+  {
+    "rn": "wallet.tsx",
+    "flutter": "/delivery/wallet",
+    "owner": "Delivery squad",
+    "tests": "test/delivery/delivery_issue_test.dart",
+    "qa": "docs/flutter-migration/qa/delivery.md#wallet"
+  },
+  {
+    "rn": "orders.tsx",
+    "flutter": "/admin/orders",
+    "owner": "Admin squad",
+    "tests": "test/admin/admin_pages_test.dart",
+    "qa": "docs/flutter-migration/qa/admin.md#orders"
+  },
+  {
+    "rn": "settings.tsx",
+    "flutter": "/admin/settings",
+    "owner": "Admin squad",
+    "tests": "test/admin/admin_pages_test.dart",
+    "qa": "docs/flutter-migration/qa/admin.md#feature-flags"
+  }
+]

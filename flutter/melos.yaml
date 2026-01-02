@@ -1,0 +1,13 @@
+name: talabat_flutter
+packages:
+  - packages/**
+  - apps/**
+
+scripts:
+  bootstrap: melos bootstrap
+  analyze: melos exec -- flutter analyze
+  format: melos exec -- flutter format .
+  test: |
+    set -e
+    melos exec --dir-exists=test -- flutter test
+    melos exec --dir-exists=integration_test -- flutter test integration_test

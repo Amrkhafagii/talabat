@@ -1,0 +1,184 @@
+[
+  {
+    "name": "create_order_payment_pending",
+    "summary": "Create an order shell with payment pending status so checkout can continue on-device.",
+    "tags": ["orders"],
+    "params": [
+      { "name": "p_user_id", "type": "string", "description": "Customer UUID", "required": true },
+      { "name": "p_restaurant_id", "type": "string", "description": "Restaurant UUID", "required": true },
+      { "name": "p_delivery_address_id", "type": "string", "description": "Address UUID", "required": true },
+      { "name": "p_delivery_address", "type": "string", "description": "Text snapshot of address", "required": true },
+      { "name": "p_subtotal", "type": "number", "description": "Subtotal before fees", "required": true },
+      { "name": "p_delivery_fee", "type": "number", "description": "Delivery fee", "required": true },
+      { "name": "p_tax_amount", "type": "number", "description": "Taxes applied", "required": true },
+      { "name": "p_tip_amount", "type": "number", "description": "Tip amount", "required": false },
+      { "name": "p_payment_method", "type": "string", "description": "instapay/cash/card", "required": true },
+      { "name": "p_payment_ref", "type": "string", "description": "Provider reference", "required": false }
+    ],
+    "response": { "type": "string", "description": "Created order id." }
+  },
+  {
+    "name": "submit_payment_proof",
+    "summary": "Attach Instapay receipt or manual proof for finance review.",
+    "tags": ["orders"],
+    "params": [
+      { "name": "p_order_id", "type": "string", "description": "Order UUID", "required": true },
+      { "name": "p_txn_id", "type": "string", "description": "Payment transaction id", "required": true },
+      { "name": "p_reported_amount", "type": "number", "description": "Amount captured in receipt", "required": true },
+      { "name": "p_receipt_url", "type": "string", "description": "Storage URL for receipt asset", "required": true }
+    ],
+    "response": {
+      "type": "object",
+      "description": "Updated order payment status.",
+      "properties": {
+        "status": { "type": "string" },
+        "payment_status": { "type": "string" }
+      }
+    }
+  },
+  {
+    "name": "set_default_address",
+    "summary": "Mark a given address as the default delivery address for the user.",
+    "tags": ["addresses"],
+    "params": [
+      { "name": "p_user_id", "type": "string", "description": "Customer UUID", "required": true },
+      { "name": "p_address_id", "type": "string", "description": "Address UUID", "required": true }
+    ],
+    "response": { "type": "object", "description": "Result summary.", "properties": { "success": { "type": "boolean" } } }
+  },
+  {
+    "name": "reroute_order_rpc",
+    "summary": "Clone an order against a backup restaurant and cancel the original.",
+    "tags": ["orders"],
+    "params": [
+      { "name": "p_order_id", "type": "string", "description": "Order to reroute", "required": true },
+      { "name": "p_backup_restaurant_id", "type": "string", "description": "Target restaurant id", "required": true },
+      { "name": "p_idempotency_key", "type": "string", "description": "Keeps reroute idempotent", "required": true }
+    ],
+    "response": { "type": "string", "description": "New order id" }
+  },
+  {
+    "name": "update_delivery_status_safe",
+    "summary": "Move delivery to the next status only if rules allow it.",
+    "tags": ["delivery"],
+    "params": [
+      { "name": "p_delivery_id", "type": "string", "required": true, "description": "Delivery UUID" },
+      { "name": "p_next_status", "type": "string", "required": true, "description": "next status token" },
+      { "name": "p_location_lat", "type": "number", "required": false, "description": "Driver latitude" },
+      { "name": "p_location_lng", "type": "number", "required": false, "description": "Driver longitude" }
+    ],
+    "response": {
+      "type": "object",
+      "description": "Delivery row summary.",
+      "properties": {
+        "id": { "type": "string" },
+        "status": { "type": "string" },
+        "driver_earnings": { "type": "number" }
+      }
+    }
+  },
+  {
+    "name": "initiate_restaurant_payout",
+    "summary": "Start restaurant payout workflow in pending state.",
+    "tags": ["payouts"],
+    "params": [
+      { "name": "p_order_id", "type": "string", "required": true, "description": "Order to payout" },
+      { "name": "p_idempotency_key", "type": "string", "required": true, "description": "Ensures single payout" },
+      { "name": "p_payout_ref", "type": "string", "required": true, "description": "Finance reference" }
+    ],
+    "response": { "type": "string", "description": "initiated|skipped" }
+  },
+  {
+    "name": "finalize_restaurant_payout",
+    "summary": "Mark payout success/failure once processor responds.",
+    "tags": ["payouts"],
+    "params": [
+      { "name": "p_order_id", "type": "string", "required": true },
+      { "name": "p_idempotency_key", "type": "string", "required": true },
+      { "name": "p_success", "type": "boolean", "required": true },
+      { "name": "p_payout_ref", "type": "string", "required": true }
+    ],
+    "response": { "type": "string", "description": "paid|error" }
+  },
+  {
+    "name": "admin_totals",
+    "summary": "Totals for finance dashboard.",
+    "tags": ["admin"],
+    "params": [],
+    "response": {
+      "type": "object",
+      "description": "Aggregate metrics.",
+      "properties": {
+        "total_customer_paid": { "type": "number" },
+        "platform_fee": { "type": "number" },
+        "paid_orders": { "type": "integer" }
+      }
+    }
+  },
+  {
+    "name": "admin_queue_counts",
+    "summary": "Queue counts for admin console badges.",
+    "tags": ["admin"],
+    "params": [],
+    "response": {
+      "type": "object",
+      "description": "Queue sizes.",
+      "properties": {
+        "payment_review": { "type": "integer" },
+        "photo_review": { "type": "integer" },
+        "support": { "type": "integer" }
+      }
+    }
+  },
+  {
+    "name": "admin_driver_profit",
+    "summary": "Top driver earnings leaderboard.",
+    "tags": ["admin"],
+    "params": [],
+    "response": {
+      "type": "array",
+      "items": { "type": "object", "properties": { "name": { "type": "string" }, "value": { "type": "number" } } }
+    }
+  },
+  {
+    "name": "admin_restaurant_profit",
+    "summary": "Top restaurant earnings leaderboard.",
+    "tags": ["admin"],
+    "params": [],
+    "response": {
+      "type": "array",
+      "items": { "type": "object", "properties": { "name": { "type": "string" }, "value": { "type": "number" } } }
+    }
+  },
+  {
+    "name": "list_wallet_transactions_for_user",
+    "summary": "Return wallet ledger rows (admin export).",
+    "tags": ["wallet"],
+    "params": [
+      { "name": "p_user_id", "type": "string", "required": true, "description": "User associated with wallet" }
+    ],
+    "response": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "wallet_id": { "type": "string" },
+          "amount": { "type": "number" },
+          "type": { "type": "string" },
+          "status": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  {
+    "name": "admin_order_action",
+    "summary": "Perform action (reroute/refund) on behalf of ops.",
+    "tags": ["admin"],
+    "params": [
+      { "name": "p_order_id", "type": "string", "required": true },
+      { "name": "p_action", "type": "string", "required": true }
+    ],
+    "response": { "type": "object", "properties": { "status": { "type": "string" } } }
+  }
+]

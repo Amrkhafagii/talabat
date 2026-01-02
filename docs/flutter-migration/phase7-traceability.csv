@@ -1,0 +1,11 @@
+rn_screens,flutter_route,owner,tests,qa_checklist
+"addresses.tsx","/customer/addresses","Customer squad","test/customer/address_book_test.dart","docs/flutter-migration/qa/customer.md#addresses"
+"profile.tsx","/customer/profile","Customer squad","test/customer/profile_page_test.dart","docs/flutter-migration/qa/customer.md#profile"
+"wallet.tsx","/customer/wallet","Customer squad","integration_test/wallet_flow_test.dart","docs/flutter-migration/qa/customer.md#wallet"
+"performance.tsx","/restaurant/performance","Restaurant squad","test/restaurant/restaurant_pages_test.dart","docs/flutter-migration/qa/restaurant.md#performance"
+"category-manager.tsx","/restaurant/categories","Restaurant squad","test/restaurant/restaurant_pages_test.dart","docs/flutter-migration/qa/restaurant.md#menu"
+"order-detail/[orderId].tsx","/restaurant/orders/:orderId","Restaurant squad","test/restaurant/restaurant_pages_test.dart","docs/flutter-migration/qa/restaurant.md#orders"
+"earnings.tsx","/delivery/earnings","Delivery squad","test/delivery/earnings_page_test.dart","docs/flutter-migration/qa/delivery.md#earnings"
+"wallet.tsx","/delivery/wallet","Delivery squad","test/delivery/delivery_issue_test.dart","docs/flutter-migration/qa/delivery.md#wallet"
+"orders.tsx","/admin/orders","Admin squad","test/admin/admin_pages_test.dart","docs/flutter-migration/qa/admin.md#orders"
+"settings.tsx","/admin/settings","Admin squad","test/admin/admin_pages_test.dart","docs/flutter-migration/qa/admin.md#feature-flags"

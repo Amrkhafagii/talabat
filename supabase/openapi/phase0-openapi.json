@@ -1,0 +1,663 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Talabat Supabase RPC – Phase 0 Catalogue",
+    "version": "1.0.0",
+    "description": "Auto-generated from supabase/rpc-catalogue.json. Used by Flutter repositories and contract tests."
+  },
+  "paths": {
+    "/rpc/create_order_payment_pending": {
+      "post": {
+        "summary": "Create an order shell with payment pending status so checkout can continue on-device.",
+        "tags": [
+          "orders"
+        ],
+        "operationId": "create_order_payment_pending",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p_user_id": {
+                    "type": "string",
+                    "description": "Customer UUID"
+                  },
+                  "p_restaurant_id": {
+                    "type": "string",
+                    "description": "Restaurant UUID"
+                  },
+                  "p_delivery_address_id": {
+                    "type": "string",
+                    "description": "Address UUID"
+                  },
+                  "p_delivery_address": {
+                    "type": "string",
+                    "description": "Text snapshot of address"
+                  },
+                  "p_subtotal": {
+                    "type": "number",
+                    "description": "Subtotal before fees"
+                  },
+                  "p_delivery_fee": {
+                    "type": "number",
+                    "description": "Delivery fee"
+                  },
+                  "p_tax_amount": {
+                    "type": "number",
+                    "description": "Taxes applied"
+                  },
+                  "p_tip_amount": {
+                    "type": "number",
+                    "description": "Tip amount"
+                  },
+                  "p_payment_method": {
+                    "type": "string",
+                    "description": "instapay/cash/card"
+                  },
+                  "p_payment_ref": {
+                    "type": "string",
+                    "description": "Provider reference"
+                  }
+                },
+                "required": [
+                  "p_user_id",
+                  "p_restaurant_id",
+                  "p_delivery_address_id",
+                  "p_delivery_address",
+                  "p_subtotal",
+                  "p_delivery_fee",
+                  "p_tax_amount",
+                  "p_payment_method"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created order id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "description": "Created order id."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/submit_payment_proof": {
+      "post": {
+        "summary": "Attach Instapay receipt or manual proof for finance review.",
+        "tags": [
+          "orders"
+        ],
+        "operationId": "submit_payment_proof",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p_order_id": {
+                    "type": "string",
+                    "description": "Order UUID"
+                  },
+                  "p_txn_id": {
+                    "type": "string",
+                    "description": "Payment transaction id"
+                  },
+                  "p_reported_amount": {
+                    "type": "number",
+                    "description": "Amount captured in receipt"
+                  },
+                  "p_receipt_url": {
+                    "type": "string",
+                    "description": "Storage URL for receipt asset"
+                  }
+                },
+                "required": [
+                  "p_order_id",
+                  "p_txn_id",
+                  "p_reported_amount",
+                  "p_receipt_url"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated order payment status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "payment_status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/set_default_address": {
+      "post": {
+        "summary": "Mark a given address as the default delivery address for the user.",
+        "tags": [
+          "addresses"
+        ],
+        "operationId": "set_default_address",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p_user_id": {
+                    "type": "string",
+                    "description": "Customer UUID"
+                  },
+                  "p_address_id": {
+                    "type": "string",
+                    "description": "Address UUID"
+                  }
+                },
+                "required": [
+                  "p_user_id",
+                  "p_address_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/reroute_order_rpc": {
+      "post": {
+        "summary": "Clone an order against a backup restaurant and cancel the original.",
+        "tags": [
+          "orders"
+        ],
+        "operationId": "reroute_order_rpc",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p_order_id": {
+                    "type": "string",
+                    "description": "Order to reroute"
+                  },
+                  "p_backup_restaurant_id": {
+                    "type": "string",
+                    "description": "Target restaurant id"
+                  },
+                  "p_idempotency_key": {
+                    "type": "string",
+                    "description": "Keeps reroute idempotent"
+                  }
+                },
+                "required": [
+                  "p_order_id",
+                  "p_backup_restaurant_id",
+                  "p_idempotency_key"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New order id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "description": "New order id"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/update_delivery_status_safe": {
+      "post": {
+        "summary": "Move delivery to the next status only if rules allow it.",
+        "tags": [
+          "delivery"
+        ],
+        "operationId": "update_delivery_status_safe",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p_delivery_id": {
+                    "type": "string",
+                    "description": "Delivery UUID"
+                  },
+                  "p_next_status": {
+                    "type": "string",
+                    "description": "next status token"
+                  },
+                  "p_location_lat": {
+                    "type": "number",
+                    "description": "Driver latitude"
+                  },
+                  "p_location_lng": {
+                    "type": "number",
+                    "description": "Driver longitude"
+                  }
+                },
+                "required": [
+                  "p_delivery_id",
+                  "p_next_status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Delivery row summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "driver_earnings": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/initiate_restaurant_payout": {
+      "post": {
+        "summary": "Start restaurant payout workflow in pending state.",
+        "tags": [
+          "payouts"
+        ],
+        "operationId": "initiate_restaurant_payout",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p_order_id": {
+                    "type": "string",
+                    "description": "Order to payout"
+                  },
+                  "p_idempotency_key": {
+                    "type": "string",
+                    "description": "Ensures single payout"
+                  },
+                  "p_payout_ref": {
+                    "type": "string",
+                    "description": "Finance reference"
+                  }
+                },
+                "required": [
+                  "p_order_id",
+                  "p_idempotency_key",
+                  "p_payout_ref"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "initiated|skipped",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "description": "initiated|skipped"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/finalize_restaurant_payout": {
+      "post": {
+        "summary": "Mark payout success/failure once processor responds.",
+        "tags": [
+          "payouts"
+        ],
+        "operationId": "finalize_restaurant_payout",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p_order_id": {
+                    "type": "string"
+                  },
+                  "p_idempotency_key": {
+                    "type": "string"
+                  },
+                  "p_success": {
+                    "type": "boolean"
+                  },
+                  "p_payout_ref": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "p_order_id",
+                  "p_idempotency_key",
+                  "p_success",
+                  "p_payout_ref"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "paid|error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "description": "paid|error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/admin_totals": {
+      "post": {
+        "summary": "Totals for finance dashboard.",
+        "tags": [
+          "admin"
+        ],
+        "operationId": "admin_totals",
+        "responses": {
+          "200": {
+            "description": "Aggregate metrics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_customer_paid": {
+                      "type": "number"
+                    },
+                    "platform_fee": {
+                      "type": "number"
+                    },
+                    "paid_orders": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/admin_queue_counts": {
+      "post": {
+        "summary": "Queue counts for admin console badges.",
+        "tags": [
+          "admin"
+        ],
+        "operationId": "admin_queue_counts",
+        "responses": {
+          "200": {
+            "description": "Queue sizes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "payment_review": {
+                      "type": "integer"
+                    },
+                    "photo_review": {
+                      "type": "integer"
+                    },
+                    "support": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/admin_driver_profit": {
+      "post": {
+        "summary": "Top driver earnings leaderboard.",
+        "tags": [
+          "admin"
+        ],
+        "operationId": "admin_driver_profit",
+        "responses": {
+          "200": {
+            "description": "RPC response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/admin_restaurant_profit": {
+      "post": {
+        "summary": "Top restaurant earnings leaderboard.",
+        "tags": [
+          "admin"
+        ],
+        "operationId": "admin_restaurant_profit",
+        "responses": {
+          "200": {
+            "description": "RPC response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/list_wallet_transactions_for_user": {
+      "post": {
+        "summary": "Return wallet ledger rows (admin export).",
+        "tags": [
+          "wallet"
+        ],
+        "operationId": "list_wallet_transactions_for_user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p_user_id": {
+                    "type": "string",
+                    "description": "User associated with wallet"
+                  }
+                },
+                "required": [
+                  "p_user_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RPC response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "wallet_id": {
+                        "type": "string"
+                      },
+                      "amount": {
+                        "type": "number"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rpc/admin_order_action": {
+      "post": {
+        "summary": "Perform action (reroute/refund) on behalf of ops.",
+        "tags": [
+          "admin"
+        ],
+        "operationId": "admin_order_action",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p_order_id": {
+                    "type": "string"
+                  },
+                  "p_action": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "p_order_id",
+                  "p_action"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RPC response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {}
+}
